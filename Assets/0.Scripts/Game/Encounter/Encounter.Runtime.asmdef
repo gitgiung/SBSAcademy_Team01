@@ -1,0 +1,4 @@
+{
+  "name": "Encounter.Runtime",
+  "references": ["EnemyMvp.Runtime", "Boss.Runtime", "UnityEngine.UI"]
+}

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,6 +8,15 @@ public class Player : MonoBehaviour
     public GameObject bulletPrefab;
     public LayerMask enemyLayer;
     public Slider healthSlider; // 체력 UI (슬라이더)
+
+    [Header("Dash Settings")]
+    public float dashSpeed = 15f;       // 대쉬 속도
+    public float dashDuration = 0.2f;    // 대쉬 지속 시간
+    public float dashCooldown = 1f;      // 대쉬 쿨타임
+
+    private bool isDashing = false;      // 대쉬 중 여부
+    private bool canDash = true;         // 대쉬 가능 여부 (쿨타임 확인)
+    private Vector3 dashDirection;      // 대쉬 방향
 
     private float attackTimer;
 
@@ -24,16 +34,49 @@ public class Player : MonoBehaviour
 
     void Move() // 플레이어 이동
     {
-        // 기존 코드 그대로 유지
+        if (data == null) return;
+
+        // 대쉬 중일 때는 일반 이동 처리를 하지 않음 (DashRoutine이 위치를 이동시킴)
+        if (isDashing) return;
+
+        // 1. 방향키 입력 감지
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         Vector3 dir = new Vector3(h, v, 0).normalized;
 
-        // PlayerData의 speed를 가져와서 이동
-        if (data != null)
+        // 2. Shift 입력 처리 (방향키를 누르고 있고, 쿨타임이 끝났을 때만 실행)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && dir != Vector3.zero)
         {
-            transform.position += dir * data.speed * Time.deltaTime;
+            StartCoroutine(DashRoutine(dir));
+            return;
         }
+
+        // 3. 일반 이동
+        transform.position += dir * data.speed * Time.deltaTime;
+    }
+
+    // 대쉬 코루틴
+    IEnumerator DashRoutine(Vector3 direction)
+    {
+        isDashing = true;
+        canDash = false;
+        dashDirection = direction;
+
+        float elapsedTime = 0f;
+
+        // 대쉬 지속 시간 동안 빠른 속도로 이동
+        while (elapsedTime < dashDuration)
+        {
+            transform.position += dashDirection * dashSpeed * Time.deltaTime;
+            elapsedTime += Time.deltaTime;
+            yield return null; // 다음 프레임까지 대기
+        }
+
+        isDashing = false;
+
+        // 대쉬 쿨타임 대기
+        yield return new WaitForSeconds(dashCooldown);
+        canDash = true;
     }
 
     void AutoAttack() // 자동 공격

@@ -1,32 +1,59 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class Bullet : MonoBehaviour
 {
-    private Transform target;
+    private Vector3 moveDirection; // 발사될 직선 방향
     private float damage;
     private float speed;
     public float lifeTime = 3f;
 
-    public void Init(Transform target, float damage, float speed) // 총알 초기화
+    private IObjectPool<Bullet> pool;
+    private Coroutine disableCoroutine;
+
+    public void SetPool(IObjectPool<Bullet> pool)
     {
-        this.target = target;
+        this.pool = pool;
+    }
+
+    public void Init(Transform target, float damage, float speed)
+    {
         this.damage = damage;
         this.speed = speed;
 
-        Destroy(gameObject, lifeTime);
+        // [중요] 타겟이 있다면 발사되는 순간의 방향을 '딱 한 번'만 계산
+        if (target != null)
+        {
+            moveDirection = (target.position - transform.position).normalized;
+        }
+        else
+        {
+            moveDirection = transform.up; // 타겟이 없을 경우 기본 바라보는 방향
+        }
+
+        // 수명 제한 코루틴
+        if (disableCoroutine != null)
+        {
+            StopCoroutine(disableCoroutine);
+        }
+        disableCoroutine = StartCoroutine(DeactivateAfterTime());
     }
 
-    void Update() // 총알 이동
+    private IEnumerator DeactivateAfterTime()
     {
-        if (target == null) return;
-
-        transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+        yield return new WaitForSeconds(lifeTime);
+        ReleaseToPool();
     }
 
-    private void OnTriggerEnter2D(Collider2D collision) // 총알이 적과 충돌했을 때
+    void Update()
     {
-        Debug.Log($"[Trigger 감지] 부딪힌 대상: {collision.gameObject.name} / 레이어: {LayerMask.LayerToName(collision.gameObject.layer)}");
+        // 실시간 target 추적이 아닌, 정해진 방향(moveDirection)으로 계속 직선 이동
+        transform.position += moveDirection * speed * Time.deltaTime;
+    }
 
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
         if (collision.gameObject.layer == LayerMask.NameToLayer("enemy"))
         {
             Enemy enemy = collision.gameObject.GetComponent<Enemy>();
@@ -34,7 +61,22 @@ public class Bullet : MonoBehaviour
             {
                 enemy.TakeDamage(damage);
             }
-            Destroy(gameObject);
+
+            ReleaseToPool();
+        }
+    }
+
+    private void ReleaseToPool()
+    {
+        if (disableCoroutine != null)
+        {
+            StopCoroutine(disableCoroutine);
+            disableCoroutine = null;
+        }
+
+        if (pool != null && gameObject.activeSelf)
+        {
+            pool.Release(this);
         }
     }
 }

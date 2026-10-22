@@ -36,7 +36,6 @@ public class Player : MonoBehaviour
     {
         if (data == null) return;
 
-        // 대쉬 중일 때는 일반 이동 처리를 하지 않음 (DashRoutine이 위치를 이동시킴)
         if (isDashing) return;
 
         // 1. 방향키 입력 감지
@@ -117,11 +116,16 @@ public class Player : MonoBehaviour
 
     void Shoot(Transform target) // 총알 발사
     {
-        if (bulletPrefab != null)
+        // 기존: Instantiate 사용
+        // GameObject bulletObj = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
+
+        // 변경: 오브젝트 풀에서 총알 가져오기
+        Bullet bullet = BulletPool.Instance.GetBullet();
+        if (bullet != null)
         {
-            GameObject bulletObj = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
-            Bullet bullet = bulletObj.GetComponent<Bullet>();
-            bullet?.Init(target, data.attackDamage, data.bulletSpeed);
+            bullet.transform.position = transform.position;
+            bullet.transform.rotation = Quaternion.identity;
+            bullet.Init(target, data.attackDamage, data.bulletSpeed);
         }
     }
 

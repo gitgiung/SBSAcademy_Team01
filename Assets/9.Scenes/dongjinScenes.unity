@@ -1029,6 +1029,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   healthSlider: {fileID: 787302044}
+  dashSpeed: 15
+  dashDuration: 0.2
+  dashCooldown: 1
 --- !u!58 &1107222926
 CircleCollider2D:
   m_ObjectHideFlags: 0

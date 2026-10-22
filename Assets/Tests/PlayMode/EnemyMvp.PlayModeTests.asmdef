@@ -1,0 +1,5 @@
+{
+  "name": "EnemyMvp.PlayModeTests",
+  "references": ["EnemyMvp.Runtime", "Boss.Runtime", "Encounter.Runtime", "Combat.Runtime", "PlayerMvp.Runtime", "Unity.InputSystem", "Unity.InputSystem.TestFramework", "UnityEngine.UI"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

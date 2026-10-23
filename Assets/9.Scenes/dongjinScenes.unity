@@ -1027,7 +1027,7 @@ MonoBehaviour:
   bulletPrefab: {fileID: 5901758286112924367, guid: a74e4e93174fe98418c525a04614fd37, type: 3}
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   healthSlider: {fileID: 787302044}
 --- !u!58 &1107222926
 CircleCollider2D:

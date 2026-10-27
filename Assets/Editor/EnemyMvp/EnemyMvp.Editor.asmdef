@@ -1,5 +1,0 @@
-{
-  "name": "EnemyMvp.Editor",
-  "references": ["EnemyMvp.Runtime", "Boss.Runtime", "Encounter.Runtime", "Combat.Runtime", "PlayerMvp.Runtime", "Unity.InputSystem", "UnityEngine.UI"],
-  "includePlatforms": ["Editor"]
-}

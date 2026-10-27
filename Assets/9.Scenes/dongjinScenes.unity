@@ -508,11 +508,11 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 308082211}
-  m_BodyType: 0
+  m_BodyType: 1
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 100
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 0
@@ -526,7 +526,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 4
+  m_Constraints: 7
 --- !u!1 &344516903
 GameObject:
   m_ObjectHideFlags: 0
@@ -717,7 +717,7 @@ GameObject:
   - component: {fileID: 771635132}
   - component: {fileID: 771635131}
   - component: {fileID: 771635130}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -818,7 +818,7 @@ GameObject:
   m_Component:
   - component: {fileID: 787302043}
   - component: {fileID: 787302044}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: Player_HP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -912,7 +912,8 @@ GameObject:
   - component: {fileID: 1107222925}
   - component: {fileID: 1107222924}
   - component: {fileID: 1107222926}
-  m_Layer: 3
+  - component: {fileID: 1107222927}
+  m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1029,6 +1030,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   healthSlider: {fileID: 787302044}
+  parryWindow: 0.25
+  parryCooldown: 0.5
+  ParrySpeed: 0.8
 --- !u!58 &1107222926
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -1065,6 +1069,33 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
+--- !u!50 &1107222927
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1107222919}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!1 &1179740149
 GameObject:
   m_ObjectHideFlags: 0
@@ -1074,7 +1105,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1179740150}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: Handle Slide Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1226,7 +1257,7 @@ GameObject:
   - component: {fileID: 1343632247}
   - component: {fileID: 1343632249}
   - component: {fileID: 1343632248}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: Fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1336,7 +1367,7 @@ GameObject:
   - component: {fileID: 1674505178}
   - component: {fileID: 1674505180}
   - component: {fileID: 1674505179}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: Background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1409,7 +1440,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1741061666}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: Fill Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}

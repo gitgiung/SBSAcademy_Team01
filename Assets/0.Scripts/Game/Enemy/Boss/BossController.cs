@@ -57,7 +57,7 @@ public sealed class BossController : MonoBehaviour
             return;
 
         nextPatternTime = Time.time + Mathf.Max(0.01f, patternInterval);
-        BossPattern selected = patternSelector.SelectPattern(distance, health.CurrentHealth);
+        BossPattern selected = patternSelector.SelectPattern(distance, (int)health.CurrentHealth);
         LogPattern(selected);
     }
 

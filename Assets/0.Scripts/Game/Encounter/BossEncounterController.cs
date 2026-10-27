@@ -57,14 +57,22 @@ public sealed class BossEncounterController : MonoBehaviour
     private void BeginBossFight()
     {
         Phase = EncounterPhase.BossFight;
-        foreach (var spawner in spawners)
-            if (spawner != null) spawner.StopSpawning();
 
-        // Clean up only this encounter's scene, including inactive normal enemies.
-        foreach (var enemy in FindObjectsByType<EnemyFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var spawner in spawners)
         {
-            if (enemy.gameObject.scene != gameObject.scene || enemy.GetComponent<BossController>() != null)
+            if (spawner != null)
+                spawner.StopSpawning();
+        }
+
+        // 현재 Encounter와 같은 Scene에 있는 일반 몬스터 제거
+        // 비활성화된 몬스터도 검색에 포함
+        foreach (var enemy in FindObjectsByType<EnemyFollow>(
+            FindObjectsInactive.Include))
+        {
+            if (enemy.gameObject.scene != gameObject.scene ||
+                enemy.GetComponent<BossController>() != null)
                 continue;
+
             enemy.gameObject.SetActive(false);
             Destroy(enemy.gameObject);
         }

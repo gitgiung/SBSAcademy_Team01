@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,22 +20,50 @@ public class ResourceManager
         return null;
     }
 
+    /// <summary>기존 호출을 유지합니다. parent는 풀 사용 시에도 적용됩니다.</summary>
     public GameObject Instantiate(string key, Transform parent = null, bool pooling = false)
     {
-        GameObject prefab = Load<GameObject>(key);
+        GameObject prefab = FindPrefab(key);
         if (prefab == null)
-        {
-            Debug.LogError($"Failed to load prefab : {key}");
             return null;
-        }
 
         if (pooling)
-            return Managers.Pool.Pop(prefab);
+            return Managers.Pool.Pop(prefab, Vector3.zero, Quaternion.identity, parent);
 
         GameObject go = Object.Instantiate(prefab, parent);
         go.name = prefab.name;
-
         return go;
+    }
+
+    /// <summary>
+    /// 풀 전용 생성 경로입니다. 월드 좌표를 설정하고 initialize를 실행한 뒤 활성화합니다.
+    /// initialize에서는 SetActive/반납/Clear를 호출하지 않습니다.
+    /// UI 로컬 좌표는 parent를 넘기고 initialize에서 anchoredPosition을 설정합니다.
+    /// </summary>
+    public GameObject Instantiate(string key, Vector3 position, Quaternion rotation,
+        Transform parent = null, Action<GameObject> initialize = null)
+    {
+        GameObject prefab = FindPrefab(key);
+        if (prefab == null)
+            return null;
+
+        return Managers.Pool.Pop(prefab, position, rotation, parent, initialize);
+    }
+
+    /// <summary>첫 생성 전에 호출하면 프리팹별 대기 수량과 보관 한도를 설정합니다.</summary>
+    public void Prewarm(string key, int count, int maxSize = 256)
+    {
+        GameObject prefab = FindPrefab(key);
+        if (prefab != null)
+            Managers.Pool.Prewarm(prefab, count, maxSize);
+    }
+
+    private GameObject FindPrefab(string key)
+    {
+        GameObject prefab = Load<GameObject>(key);
+        if (prefab == null)
+            Debug.LogError($"Failed to load prefab : {key}. Addressables 로딩 완료 여부를 확인하세요.");
+        return prefab;
     }
 
     public void Destroy(GameObject go)
@@ -43,8 +71,15 @@ public class ResourceManager
         if (go == null)
             return;
 
-        if (Managers.Pool.Push(go))
+        PooledObject pooled = go.GetComponent<PooledObject>();
+        if (pooled != null && pooled.IsPoolOwned)
+        {
+            // 실제 소유자에게 반납합니다. 중복/콜백 중 반납 실패를 Destroy로 바꾸지 않습니다.
+            // 독립 풀의 객체도 다른 매니저에 섞지 않고 원래 풀로 돌아갑니다.
+            if (!pooled.ReturnToPool() && pooled.IsRented)
+                Debug.LogWarning("풀 콜백 안에서는 반납할 수 없습니다. 콜백 종료 후 반납하세요.", go);
             return;
+        }
 
         Object.Destroy(go);
     }
@@ -109,7 +144,7 @@ public class ResourceManager
         _resources.Clear();
 
         foreach (var handle in _handles)
-            Addressables.Release(handle);
+            Addressables.Release(handle.Value);
 
         _handles.Clear();
     }

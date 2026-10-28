@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,18 +8,22 @@ public class SceneManagerEx
 
     public void LoadScene(Define.EScene type)
     {
-        //Managers.Clear();
-        SceneManager.LoadScene(GetSceneName(type));
+        string sceneName = GetSceneName(type);
+        // 로드할 수 없는 씬이면 현재 플레이 객체를 먼저 지우지 않습니다.
+        if (string.IsNullOrEmpty(sceneName) || !Application.CanStreamedLevelBeLoaded(sceneName))
+            throw new InvalidOperationException($"로드할 수 없는 씬입니다: {type}. Build Profiles의 Scene List를 확인하세요.");
+
+        Managers.Clear();
+        SceneManager.LoadScene(sceneName);
     }
 
     private string GetSceneName(Define.EScene type)
     {
-        string name = System.Enum.GetName(typeof(Define.EScene), type);
-        return name;
+        return Enum.GetName(typeof(Define.EScene), type);
     }
 
     public void Clear()
     {
-        //CurrentScene.Clear();
+        // BaseScene 구현이 첨부되지 않아 기존처럼 비워 둡니다.
     }
 }

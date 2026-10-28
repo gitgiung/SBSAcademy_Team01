@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,7 +51,7 @@ public class UIManager
     public void SetCanvas(GameObject go, bool sort = true, int sortOrder = 0)
     {
         Canvas canvas = Util.GetOrAddComponent<Canvas>(go);
-        if (canvas == null)
+        if (canvas != null)
         {
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.overrideSorting = true;
@@ -191,7 +191,8 @@ public class UIManager
 
         UI_Popup popup = _popupStack.Pop();
 
-        popup.gameObject.SetActive(false);
+        if (popup != null)
+            popup.gameObject.SetActive(false);
         //Managers.Resource.Destroy(popup.gameObject);
 
         _order--;
@@ -211,6 +212,8 @@ public class UIManager
     public void Clear()
     {
         CloseAllPopupUI();
+        _popups.Clear();
         _sceneUI = null;
+        _order = 10;
     }
 }

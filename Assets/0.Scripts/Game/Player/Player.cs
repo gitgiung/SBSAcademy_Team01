@@ -1,118 +1,190 @@
 using System.Collections;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
+    [Header("플레이어 데이터 및 기본 설정")]
     public PlayerData data;
     public GameObject bulletPrefab;
-    public LayerMask enemyLayer;
     public Slider healthSlider;
 
-    [Header("테스트용 패링 설정")]
-    public float parryWindow = 0.25f;  // 패링 유효 시간 (초)
-    public float parryCooldown = 0.5f; // 패링 쿨타임 (초)
-    public float ParrySpeed = 0.8f; // 패링 중 이동속도 감소 비율 (기본 속도의 80%)
-    private bool isParrying = false;   // 현재 패링 상태인가?
-    private bool canParry = true;       // 패링 사용 가능한 상태인가?
+    [Header("태그 설정")]
+    public string enemyTag = "Enemy";
 
+    [Header("렌더러 설정")]
+    [SerializeField] private SpriteRenderer playerSpriteRenderer;
 
+    private readonly Color defaultColor = new Color(0.4f, 0.8f, 1f, 1f);
+
+    [Header("패링 타이밍 설정 (초 단위)")]
+    [SerializeField] private float parryStartup = 0.033f;   // 선행 시간
+    [SerializeField] private float parryActive = 0.133f;    // 유효 시간
+    [SerializeField] private float parryRecovery = 0.233f;  // 실패 후딜레이
+
+    [Header("일반 가드 설정 (초 단위)")]
+    [SerializeField] private float guardTransitionTime = 0.183f;
+    [SerializeField] private float maxGuardDuration = 2.0f;
+    [SerializeField] private float normalGuardCooldown = 0.5f;
+    [SerializeField] private float breakGuardCooldown = 1.5f;
+
+    [Header("이동 속도 조절")]
+    public float parrySpeedRatio = 0.8f;
+
+    private bool isParrying = false;
+    private bool isGuarding = false;
+    private bool canGuardOrParry = true;
+
+    [SerializeField] private BossParry boss;
 
     private float attackTimer;
+    private Coroutine guardParryCoroutine;
 
-    void Start()
+    private void Awake()
     {
+        if (playerSpriteRenderer == null)
+            playerSpriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (data == null)
+            data = GetComponent<PlayerData>();
+    }
+
+    private void Start()
+    {
+        if (data != null)
+        {
+            data.InitHealth();
+        }
+
+        SetPlayerColor(defaultColor);
         UpdateHealthUI();
     }
 
-    void Update()
+    private void Update()
     {
         Move();
         AutoAttack();
 
-        // [테스트] E키 누르면 패링 발동 (쿨타임 검사)
-        if (Input.GetKeyDown(KeyCode.E))
+        if (Input.GetKeyDown(KeyCode.E) && canGuardOrParry)
         {
-            if (canParry && !isParrying)
-            {
-                StartCoroutine(ParryRoutine());
-            }
+            if (guardParryCoroutine != null) StopCoroutine(guardParryCoroutine);
+            guardParryCoroutine = StartCoroutine(GuardParryProcess());
         }
     }
 
-    private IEnumerator ParryRoutine()
+    private IEnumerator GuardParryProcess()
     {
+        canGuardOrParry = false;
+
+        // [핵심] 키를 누르자마자 패링 무적 판정 시작
         isParrying = true;
-        canParry = false;
-        Debug.Log("[패링 발동] 패링 상태 시작! (이동속도 20% 감소)");
+        SetPlayerColor(Color.blue);
 
-        // 패링 유효 시간 동안 유지
-        yield return new WaitForSeconds(parryWindow);
+        // 선행 프레임 대기
+        if (parryStartup > 0f)
+            yield return new WaitForSeconds(parryStartup);
 
+        // 유효 창 동안 보스 패링 지속 감지
+        float activeTimer = 0f;
+        bool isSuccess = false;
+
+        while (activeTimer < parryActive)
+        {
+            if (boss != null && boss.TryParry())
+            {
+                isSuccess = true;
+                break;
+            }
+            activeTimer += Time.deltaTime;
+            yield return null;
+        }
+
+        // 패링 성공 시
+        if (isSuccess)
+        {
+            Debug.Log("[패링 성공] 공격을 무효화했습니다!");
+            yield return null; // 데미지 처리 프레임 동기화
+
+            isParrying = false;
+            SetPlayerColor(defaultColor);
+            canGuardOrParry = true;
+            yield break;
+        }
+
+        // 패링 실패 시
         isParrying = false;
-        Debug.Log("[패링 종료] 패링 상태 끝");
+        Debug.Log("[패링 실패] 판정 창 닫힘");
 
-        float remainingCooldown = parryCooldown - parryWindow;
-        if (remainingCooldown > 0f)
+        if (Input.GetKey(KeyCode.E))
         {
-            yield return new WaitForSeconds(remainingCooldown);
+            float extraWaitToGuard = guardTransitionTime - (parryStartup + parryActive);
+            if (extraWaitToGuard > 0f)
+            {
+                yield return new WaitForSeconds(extraWaitToGuard);
+            }
+
+            isGuarding = true;
+            SetPlayerColor(Color.red);
+
+            float guardTimer = 0f;
+            bool forceBroken = false;
+
+            while (Input.GetKey(KeyCode.E))
+            {
+                guardTimer += Time.deltaTime;
+                if (guardTimer >= maxGuardDuration)
+                {
+                    forceBroken = true;
+                    break;
+                }
+                yield return null;
+            }
+
+            isGuarding = false;
+            SetPlayerColor(defaultColor);
+
+            float cooldown = forceBroken ? breakGuardCooldown : normalGuardCooldown;
+            yield return new WaitForSeconds(cooldown);
+        }
+        else
+        {
+            SetPlayerColor(defaultColor);
+            yield return new WaitForSeconds(parryRecovery);
         }
 
-        canParry = true;
-        Debug.Log("[패링 쿨타임 종료] 패링 재사용 가능");
+        canGuardOrParry = true;
+        Debug.Log("[패링/가드 쿨타임 종료] 재사용 가능");
     }
 
-    // 적과 부딪혔을 때
-    private void OnCollisionEnter2D(Collision2D collision)
+    private void SetPlayerColor(Color color)
     {
-        if (collision.gameObject.layer == LayerMask.NameToLayer("Enemy"))
-        {
-            TakeDamage(10f, collision.gameObject);
-        }
+        if (playerSpriteRenderer != null)
+            playerSpriteRenderer.color = color;
     }
 
-    // 데미지 처리 및 패링 검사
     public void TakeDamage(float damage, GameObject attacker = null)
     {
         if (data == null) return;
 
-        // 패링 상태에서 데미지를 받는 경우
-        if (isParrying)
+        if (isParrying || isGuarding)
         {
-            Debug.Log("[패링 성공] 공격을 튕겨냈습니다.");
-            isParrying = false; // 성공 즉시 상태 해제
-            return; // 데미지 무효화
+            Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
+            return;
         }
 
-        // 패링 상태가 아닐 때 (일반 피격)
         data.currentHealth -= damage;
         UpdateHealthUI();
 
-        Debug.Log($"[데미지를 받았다] 받은 데미지: {damage} / 남은 체력: {data.currentHealth}");
+        Debug.Log($"[피격] 받은 데미지: {damage} / 남은 체력: {data.currentHealth}");
 
-        if (data.currentHealth <= 0)
+        if (data.currentHealth <= 0f)
         {
-            gameObject.SetActive(false);
             Debug.Log("[Player 사망] 플레이어가 사망했습니다.");
+            gameObject.SetActive(false);
         }
     }
 
-    void Move()
-    {
-        float h = Input.GetAxisRaw("Horizontal");
-        float v = Input.GetAxisRaw("Vertical");
-        Vector3 dir = new Vector3(h, v, 0).normalized;
-
-        if (data != null)
-        {
-            // 패링 중일 때는 이동속도 20% 감소 (기본 속도의 80% 적용)
-            float currentSpeed = isParrying ? data.speed * ParrySpeed : data.speed;
-            transform.position += dir * currentSpeed * Time.deltaTime;
-        }
-    }
-
-    void AutoAttack()
+    private void AutoAttack()
     {
         if (data == null) return;
 
@@ -120,33 +192,33 @@ public class Player : MonoBehaviour
 
         if (attackTimer <= 0f)
         {
-            Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, data.attackRange, enemyLayer);
+            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, data.attackRange);
 
-            if (enemies.Length > 0)
+            Transform closestEnemy = null;
+            float minDistance = float.MaxValue;
+
+            foreach (var col in hitColliders)
             {
-                Transform closestEnemy = null;
-                float minDistance = float.MaxValue;
-
-                foreach (var enemy in enemies)
+                if (col.CompareTag(enemyTag))
                 {
-                    float dist = Vector2.Distance(transform.position, enemy.transform.position);
+                    float dist = Vector2.Distance(transform.position, col.transform.position);
                     if (dist < minDistance)
                     {
                         minDistance = dist;
-                        closestEnemy = enemy.transform;
+                        closestEnemy = col.transform;
                     }
                 }
+            }
 
-                if (closestEnemy != null)
-                {
-                    Shoot(closestEnemy);
-                    attackTimer = data.attackCooldown;
-                }
+            if (closestEnemy != null)
+            {
+                Shoot(closestEnemy);
+                attackTimer = data.attackCooldown;
             }
         }
     }
 
-    void Shoot(Transform target)
+    private void Shoot(Transform target)
     {
         if (bulletPrefab != null)
         {
@@ -156,12 +228,42 @@ public class Player : MonoBehaviour
         }
     }
 
-    void UpdateHealthUI()
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (healthSlider != null && data != null)
+        if (collision.gameObject.CompareTag(enemyTag))
+        {
+            TakeDamage(10f, collision.gameObject);
+        }
+    }
+
+    private void Move()
+    {
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+        Vector3 dir = new Vector3(h, v, 0).normalized;
+
+        if (data != null)
+        {
+            bool isSlowed = isParrying || isGuarding;
+            float currentSpeed = isSlowed ? data.speed * parrySpeedRatio : data.speed;
+            transform.position += dir * currentSpeed * Time.deltaTime;
+        }
+    }
+
+    private void UpdateHealthUI()
+    {
+        if (healthSlider != null && data != null && data.maxHealth > 0f)
         {
             healthSlider.value = data.currentHealth / data.maxHealth;
         }
+    }
+
+    private void OnDisable()
+    {
+        isParrying = false;
+        isGuarding = false;
+        canGuardOrParry = true;
+        SetPlayerColor(defaultColor);
     }
 
     private void OnDrawGizmosSelected()

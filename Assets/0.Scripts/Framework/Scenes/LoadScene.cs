@@ -26,7 +26,7 @@ public class LoadScene : BaseScene
         // 2. 준비가 끝나면 게임 씬을 불러온다.
         AsyncOperation operation =
             SceneManager.LoadSceneAsync(
-                Define.EScene.GiungTestScene.ToString()
+                Define.EScene.MainTestScene.ToString()
             );
 
         while (!operation.isDone)

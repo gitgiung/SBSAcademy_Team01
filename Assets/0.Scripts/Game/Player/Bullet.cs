@@ -7,7 +7,12 @@ public class Bullet : MonoBehaviour
     private float speed;
     public float lifeTime = 3f;
 
-    public void Init(Transform target, float damage, float speed) // 총알 초기화
+    [Header("태그 설정")]
+    public string enemyTag = "Enemy";
+
+    private bool isHit = false; // 중복 충돌 처리 방지 플래그
+
+    public void Init(Transform target, float damage, float speed)
     {
         this.target = target;
         this.damage = damage;
@@ -16,24 +21,37 @@ public class Bullet : MonoBehaviour
         Destroy(gameObject, lifeTime);
     }
 
-    void Update() // 총알 이동
+    private void Update()
     {
-        if (target == null) return;
+        if (target == null)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
         transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+
+        if (Vector2.Distance(transform.position, target.position) < 0.1f)
+        {
+            Destroy(gameObject);
+        }
     }
 
-    private void OnTriggerEnter2D(Collider2D collision) // 총알이 적과 충돌했을 때
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        Debug.Log($"[Trigger 감지] 부딪힌 대상: {collision.gameObject.name} / 레이어: {LayerMask.LayerToName(collision.gameObject.layer)}");
+        // 이미 적을 맞춘 총알이면 중복 실행 방지
+        if (isHit) return;
 
-        if (collision.gameObject.layer == LayerMask.NameToLayer("enemy"))
+        if (collision.CompareTag(enemyTag))
         {
-            Enemy enemy = collision.gameObject.GetComponent<Enemy>();
-            if (enemy != null)
+            isHit = true; // 첫 충돌 시 즉시 감지 잠금
+
+            if (collision.TryGetComponent<IDamageable>(out var damageableTarget))
             {
-                enemy.TakeDamage(damage);
+                // (int) 형변환을 제거하고 float 데미지를 그대로 전달
+                damageableTarget.TakeDamage(damage);
             }
+
             Destroy(gameObject);
         }
     }

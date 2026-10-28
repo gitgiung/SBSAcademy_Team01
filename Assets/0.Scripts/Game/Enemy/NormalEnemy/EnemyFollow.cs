@@ -32,13 +32,14 @@ public sealed class EnemyFollow : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // A dynamic body retains velocity after MovePosition; stop stale motion before each decision.
         body.linearVelocity = Vector2.zero;
+
         if (target == null || !target.gameObject.activeInHierarchy)
             return;
 
         Vector2 offset = (Vector2)target.position - body.position;
         float distance = offset.magnitude;
+
         float remaining = distance - Mathf.Max(0f, stoppingDistance);
         if (remaining <= 0f || distance <= Mathf.Epsilon)
             return;

@@ -135,12 +135,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
-    internalID: 0
-    vertices: []
-    indices: 
-    edges: []
-    weights: []
+    spriteID: 
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []

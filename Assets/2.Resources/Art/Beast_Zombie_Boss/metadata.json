@@ -1,0 +1,107 @@
+{
+  "group_id": "880cdcf0-b5ba-4af6-b1df-1d2854ce2758",
+  "states": [
+    {
+      "character": {
+        "id": "45afeb63-7461-402b-9282-8d0bbcc7bdfe",
+        "name": "Idle",
+        "prompt": "huge bulky bald humanoid zombie boss, pale gray decaying skin, raw red wounds, glowing red eyes, clenched fists, red berserk sparks around the fists, torn dark pants, no fur, no hair",
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-28T05:22:00+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {
+          "move": {
+            "template": "walking-8-frames",
+            "frame_count": 8,
+            "directions": {
+              "south": "Idle/animations/move/south",
+              "south-east": "Idle/animations/move/south-east",
+              "east": "Idle/animations/move/east",
+              "north-east": "Idle/animations/move/north-east",
+              "north": "Idle/animations/move/north",
+              "north-west": "Idle/animations/move/north-west",
+              "west": "Idle/animations/move/west",
+              "south-west": "Idle/animations/move/south-west"
+            }
+          },
+          "run": {
+            "template": "running-8-frames",
+            "frame_count": 8,
+            "directions": {
+              "south": "Idle/animations/run/south",
+              "south-east": "Idle/animations/run/south-east",
+              "east": "Idle/animations/run/east",
+              "north-east": "Idle/animations/run/north-east",
+              "north": "Idle/animations/run/north",
+              "north-west": "Idle/animations/run/north-west",
+              "west": "Idle/animations/run/west",
+              "south-west": "Idle/animations/run/south-west"
+            }
+          },
+          "charge": {
+            "template": "v3",
+            "frame_count": 8,
+            "directions": {
+              "south": "Idle/animations/charge/south",
+              "south-east": "Idle/animations/charge/south-east",
+              "east": "Idle/animations/charge/east",
+              "north-east": "Idle/animations/charge/north-east",
+              "north": "Idle/animations/charge/north",
+              "north-west": "Idle/animations/charge/north-west",
+              "west": "Idle/animations/charge/west",
+              "south-west": "Idle/animations/charge/south-west"
+            }
+          },
+          "body-charge": {
+            "template": "v3",
+            "frame_count": 11,
+            "directions": {
+              "south": "Idle/animations/body-charge/south",
+              "south-east": "Idle/animations/body-charge/south-east",
+              "east": "Idle/animations/body-charge/east",
+              "north-east": "Idle/animations/body-charge/north-east",
+              "north": "Idle/animations/body-charge/north",
+              "north-west": "Idle/animations/body-charge/north-west",
+              "west": "Idle/animations/body-charge/west",
+              "south-west": "Idle/animations/body-charge/south-west"
+            }
+          },
+          "swipe": {
+            "template": "v3",
+            "frame_count": 8,
+            "directions": {
+              "south": "Idle/animations/swipe/south",
+              "south-east": "Idle/animations/swipe/south-east",
+              "east": "Idle/animations/swipe/east",
+              "north-east": "Idle/animations/swipe/north-east",
+              "north": "Idle/animations/swipe/north",
+              "north-west": "Idle/animations/swipe/north-west",
+              "west": "Idle/animations/swipe/west",
+              "south-west": "Idle/animations/swipe/south-west"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-28T08:05:00+00:00"
+}

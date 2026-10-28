@@ -27,7 +27,50 @@
           "west": "Idle/rotations/west.png",
           "south-west": "Idle/rotations/south-west.png"
         },
-        "animations": {}
+        "animations": {
+          "Idle": {
+            "template": "v3",
+            "frame_count": 9,
+            "directions": {
+              "south": "Animations/Idle/south",
+              "south-east": "Animations/Idle/south-east",
+              "east": "Animations/Idle/east",
+              "north-east": "Animations/Idle/north-east",
+              "north": "Animations/Idle/north",
+              "north-west": "Animations/Idle/north-west",
+              "west": "Animations/Idle/west",
+              "south-west": "Animations/Idle/south-west"
+            }
+          },
+          "Move": {
+            "template": "v3",
+            "frame_count": 9,
+            "directions": {
+              "south": "Animations/Move/south",
+              "south-east": "Animations/Move/south-east",
+              "east": "Animations/Move/east",
+              "north-east": "Animations/Move/north-east",
+              "north": "Animations/Move/north",
+              "north-west": "Animations/Move/north-west",
+              "west": "Animations/Move/west",
+              "south-west": "Animations/Move/south-west"
+            }
+          },
+          "Attack": {
+            "template": "v3",
+            "frame_count": 9,
+            "directions": {
+              "south": "Animations/Attack/south",
+              "south-east": "Animations/Attack/south-east",
+              "east": "Animations/Attack/east",
+              "north-east": "Animations/Attack/north-east",
+              "north": "Animations/Attack/north",
+              "north-west": "Animations/Attack/north-west",
+              "west": "Animations/Attack/west",
+              "south-west": "Animations/Attack/south-west"
+            }
+          }
+        }
       }
     }
   ],

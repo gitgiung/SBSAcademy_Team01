@@ -1,0 +1,36 @@
+{
+  "group_id": "119f4a88-d8c0-4c65-8196-76eadfdade20",
+  "states": [
+    {
+      "character": {
+        "id": "c6f858f9-e5e5-4870-99d2-f639b2611b10",
+        "name": "Zombie Nurse",
+        "prompt": "female zombie nurse, pale gray-green decaying skin, dark sunken eyes, messy black hair under a small white nurse cap, torn stained white nurse uniform dress with a red cross emblem, dirty white apron, white shoes, small neck wound, slender build, idle standing pose facing the viewer, hands empty, clear readable silhouette",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-28T04:22:00+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-28T04:25:00"
+}

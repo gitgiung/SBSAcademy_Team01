@@ -1,0 +1,36 @@
+{
+  "group_id": "e5b775c9-6db6-4671-86a1-d1d220957e87",
+  "states": [
+    {
+      "character": {
+        "id": "73206f15-f314-470c-9ac1-2d50e4655924",
+        "name": "Zombie Female",
+        "prompt": "female zombie survivor, pale gray-green decaying skin, dark sunken eyes, shoulder-length messy black hair, torn dusty gray hoodie, dark pants, worn shoes, small neck wound, slender feminine build, idle standing pose facing the viewer, hands empty, clear readable silhouette",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-28T04:20:00+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-28T04:25:00"
+}

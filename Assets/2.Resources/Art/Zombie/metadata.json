@@ -27,10 +27,39 @@
           "west": "Idle/rotations/west.png",
           "south-west": "Idle/rotations/south-west.png"
         },
-        "animations": {}
+        "animations": {
+          "idle": {
+            "template": "breathing-idle",
+            "frame_count": 4,
+            "directions": {
+              "south": "Idle/animations/idle/south",
+              "south-east": "Idle/animations/idle/south-east",
+              "east": "Idle/animations/idle/east",
+              "north-east": "Idle/animations/idle/north-east",
+              "north": "Idle/animations/idle/north",
+              "north-west": "Idle/animations/idle/north-west",
+              "west": "Idle/animations/idle/west",
+              "south-west": "Idle/animations/idle/south-west"
+            }
+          },
+          "move": {
+            "template": "walking-8-frames",
+            "frame_count": 8,
+            "directions": {
+              "south": "Idle/animations/move/south",
+              "south-east": "Idle/animations/move/south-east",
+              "east": "Idle/animations/move/east",
+              "north-east": "Idle/animations/move/north-east",
+              "north": "Idle/animations/move/north",
+              "north-west": "Idle/animations/move/north-west",
+              "west": "Idle/animations/move/west",
+              "south-west": "Idle/animations/move/south-west"
+            }
+          }
+        }
       }
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-10-22T13:50:25.123951"
+  "export_date": "2026-10-28T04:20:00"
 }

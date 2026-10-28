@@ -1,0 +1,36 @@
+{
+  "group_id": "b1ab4d5a-a9e2-4b96-b000-ecee2bff9459",
+  "states": [
+    {
+      "character": {
+        "id": "12203aea-fcf5-4af2-b49e-7cb2ee382afe",
+        "name": "Zombie Female Office",
+        "prompt": "female zombie office worker, pale gray-green decaying skin, dark sunken eyes, messy black hair in a loose bun, torn dark navy women's blazer, stained white blouse, dark pencil skirt, black heels, small neck wound, slender build, idle standing pose facing the viewer, hands empty, clear readable silhouette",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-28T04:20:00+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-28T04:25:00"
+}

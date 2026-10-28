@@ -10,20 +10,21 @@ GameObject:
   m_Component:
   - component: {fileID: 2801471059774490790}
   - component: {fileID: 6809795324689762170}
+  - component: {fileID: 7830109520742948854}
   - component: {fileID: 4136502555975581914}
   - component: {fileID: 4699635760903188121}
   - component: {fileID: 2432783780170617415}
   - component: {fileID: 7670373938179878916}
   - component: {fileID: 2381133541093242586}
   - component: {fileID: 40308472465134674}
-  - component: {fileID: 7830109520742948854}
+  - component: {fileID: 7655376826295206891}
   m_Layer: 0
   m_Name: BossMvp
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2801471059774490790
 Transform:
   m_ObjectHideFlags: 0
@@ -32,8 +33,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2240792168150154507}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 4, z: 0}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -89,7 +90,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 237e849d5f3c23a438717def3415c023, type: 3}
-  m_Color: {r: 0.7, g: 0.25, b: 1, a: 1}
+  m_Color: {r: 0.6295967, g: 0, b: 0.6320754, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -99,6 +100,42 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
+--- !u!58 &7830109520742948854
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240792168150154507}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.5
 --- !u!50 &4136502555975581914
 Rigidbody2D:
   serializedVersion: 5
@@ -198,9 +235,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c342803638bd6544977d012e6f17267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyHealth
-  maxHealth: 10
+  maxHealth: 25
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 1, b: 1, a: 1}
+  healthSlider: {fileID: 0}
 --- !u!114 &2381133541093242586
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,40 +267,21 @@ MonoBehaviour:
   patternSelector: {fileID: 2381133541093242586}
   attackDistance: 2
   patternInterval: 2
---- !u!58 &7830109520742948854
-CircleCollider2D:
+--- !u!114 &7655376826295206891
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2240792168150154507}
   m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 1
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
-
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bc860bbdede2704dacbbf9a3a4e8fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossParry
+  bossSpriteRenderer: {fileID: 6809795324689762170}
+  patternInterval: 5
+  yellowDuration: 0.5
+  orangeDuration: 0.3
+  redParryWindow: 0.133
+  PlayerObject: {fileID: 0}

@@ -1,18 +1,27 @@
 using UnityEngine;
 
-public class PlayerData : MonoBehaviour // í”Œë ˆì´ì–´ì˜ ë°ì´í„°
+public class PlayerData : MonoBehaviour
 {
+    [Header("ÇÃ·¹ÀÌ¾î ½ºÅÈ ¼³Á¤")]
     public float speed = 5f;
     public float maxHealth = 100f;
     public float currentHealth = 100f;
 
+    [Header("°ø°İ ¼³Á¤")]
     public float attackRange = 5f;
     public float attackCooldown = 1f;
     public float attackDamage = 10f;
-    public float bulletSpeed = 3f;
+    public float bulletSpeed = 10f;
 
-    void Awake()
+    private void Awake()
     {
+        InitHealth();
+    }
+
+    public void InitHealth()
+    {
+        // maxHealth°¡ 0 ÀÌÇÏ·Î ¼³Á¤µÇ¾î ÀÖ¾îµµ ÃÖ¼Ò 100À¸·Î ¾ÈÀü º¸Àå
+        if (maxHealth <= 0f) maxHealth = 100f;
         currentHealth = maxHealth;
     }
 }

@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 8365838480547670307}
   m_Layer: 0
   m_Name: EnemyMvp
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -153,6 +153,7 @@ MonoBehaviour:
   maxHealth: 3
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 1, b: 1, a: 1}
+  healthSlider: {fileID: 0}
 --- !u!58 &8488399946819189358
 CircleCollider2D:
   m_ObjectHideFlags: 0

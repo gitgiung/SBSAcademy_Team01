@@ -6,6 +6,7 @@ public sealed class BossController : MonoBehaviour
 {
     [SerializeField] private Transform target;
     [SerializeField] private BossPatternSelector patternSelector;
+
     [SerializeField, Min(0.01f)] private float attackDistance = 2f;
     [SerializeField, Min(0.01f)] private float patternInterval = 2f;
 
@@ -48,11 +49,13 @@ public sealed class BossController : MonoBehaviour
     private void Update()
     {
         follow.SetTarget(target, Mathf.Max(0.01f, attackDistance));
+
         if (health.IsDead || target == null || !target.gameObject.activeInHierarchy ||
             patternSelector == null || !patternSelector.isActiveAndEnabled || Time.timeScale <= 0f)
             return;
 
         float distance = Vector2.Distance(transform.position, target.position);
+
         if (distance > Mathf.Max(0.01f, attackDistance) + 0.001f || Time.time < nextPatternTime)
             return;
 
@@ -63,14 +66,15 @@ public sealed class BossController : MonoBehaviour
 
     private void LogPattern(BossPattern pattern)
     {
-        // This is the future execution boundary; no damage, projectiles or dash are performed yet.
         switch (pattern)
         {
             case BossPattern.Pattern1:
                 Debug.Log("[Boss] 임시 패턴1: 연속 근접 3연 공격 (로그 전용)", this);
+
                 break;
             case BossPattern.Pattern2:
                 Debug.Log("[Boss] 임시 패턴2: 중거리 견제 공격 (로그 전용)", this);
+
                 break;
             case BossPattern.Pattern3:
                 Debug.Log("[Boss] 임시 패턴3: 돌진 공격 (로그 전용)", this);

@@ -1,11 +1,11 @@
 using UnityEngine;
-
 public class Bullet : MonoBehaviour
 {
     private Transform target;
     private float damage;
     private float speed;
-    public float lifeTime = 3f;
+    [SerializeField] private float DeleteTime = 6f; //총알이 사라질 시간
+    private Vector3 moveDirection; // 발사될 직선 방향
 
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
@@ -18,23 +18,29 @@ public class Bullet : MonoBehaviour
         this.damage = damage;
         this.speed = speed;
 
-        Destroy(gameObject, lifeTime);
+        moveDirection = (target.position - transform.position).normalized; // 적 위치를 담을 변수(딱한번 적용, 유도시 제거)
+
     }
 
     private void Update()
     {
+        CameraBullet();
         if (target == null)
         {
             Destroy(gameObject);
             return;
         }
 
-        transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+
+        transform.position += moveDirection * speed * Time.deltaTime; // moveDirection에 담긴 위치값을 향애 Speed만큼 전진
+
+        //transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime); //유도(실시간 적 위치 추적)
 
         if (Vector2.Distance(transform.position, target.position) < 0.1f)
         {
             Destroy(gameObject);
         }
+        Destroy(gameObject, DeleteTime);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -55,4 +61,15 @@ public class Bullet : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    private void CameraBullet() //총알이 카메라 밖으로 나가면 제거
+    {
+        Vector3 viewPos = Camera.main.WorldToViewportPoint(transform.position);
+
+        if (viewPos.x < 0f || viewPos.x > 1f || viewPos.y < 0f || viewPos.y > 1f)
+        {
+            Destroy(gameObject);
+        }
+    }
+
 }

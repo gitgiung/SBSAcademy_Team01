@@ -18,6 +18,7 @@ public class PlayerData : MonoBehaviour
         InitHealth();
     }
 
+
     public void InitHealth()
     {
         // maxHealth가 0 이하로 설정되어 있어도 최소 100으로 안전 보장

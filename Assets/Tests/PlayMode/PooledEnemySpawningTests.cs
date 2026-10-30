@@ -374,6 +374,31 @@ public class PooledEnemySpawningTests
     }
 
     [Test]
+    public void QuittingAfterReuseDoesNotReparentSceneEnemiesOnDisable()
+    {
+        Component pool = NewPool();
+        GameObject prefab = NewPrefab();
+        Transform target = Create("target").transform;
+        Assert.That(Call(pool, "TrySpawn", prefab, Vector3.zero, target, prefab.scene), Is.True);
+        GameObject enemy = Spawned().Single();
+        Call(pool, "ReturnEnemy", enemy);
+        Assert.That(Call(pool, "TrySpawn", prefab, Vector3.one, target, prefab.scene), Is.True);
+        Assert.That(Spawned().Single(), Is.SameAs(enemy));
+        Scene enemyScene = enemy.scene;
+        objects.Add(enemy); // 모의 종료 후 남은 씬 객체는 테스트가 정리합니다.
+
+        // Play 종료 콜백 이후의 비활성화는 Unity의 씬 정리에 맡겨야 합니다.
+        pool.gameObject.SendMessage("OnApplicationQuit", SendMessageOptions.DontRequireReceiver);
+        pool.gameObject.SetActive(false);
+
+        Assert.That(enemy.transform.parent, Is.Null,
+            "quitting must not move a scene root into the persistent pool during teardown");
+        Assert.That(enemy.scene, Is.EqualTo(enemyScene));
+        pool.gameObject.SetActive(true);
+        Assert.That(Call(pool, "TrySpawn", prefab, Vector3.zero, target, prefab.scene), Is.False);
+    }
+
+    [Test]
     public void MultiplePrefabTypesShareTheSameActiveLimit()
     {
         Component pool = NewPool();

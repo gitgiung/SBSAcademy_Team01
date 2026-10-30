@@ -69,6 +69,14 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool
         item.ReturnToPool(lease);
     }
 
+    private void OnApplicationQuit()
+    {
+        // Play 종료 중 씬 루트를 영속 풀로 옮기면 Unity의 계층 정리와 충돌합니다.
+        // 종료 때는 엔진과 풀 소유자의 파괴에 맡기고, 평소 OnDisable 반납은 유지합니다.
+        closing = true;
+        activeEnemies.Clear();
+    }
+
     private void OnDisable() { ReturnAll(); }
 
     private void OnDestroy()

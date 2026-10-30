@@ -831,6 +831,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5b649f83919c8644aace3832ce73178, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
+  inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   data: {fileID: 1107222924}
   bulletPrefab: {fileID: 5901758286112924367, guid: a74e4e93174fe98418c525a04614fd37, type: 3}
   healthSlider: {fileID: 8136205438015651108}

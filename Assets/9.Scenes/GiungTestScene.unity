@@ -3380,6 +3380,10 @@ PrefabInstance:
       propertyPath: target
       value: 
       objectReference: {fileID: 454019995}
+    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Name
       value: BossMvp

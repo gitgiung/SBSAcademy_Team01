@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     public bool isPlaying => state == GameState.Playing;
 
     [SerializeField] private ButtonForEvent deathSource;
+    [SerializeField] private PlayerData playerData;
+    [SerializeField] private GameObject bossHealthUI;
     [SerializeField] private ButtonForEvent victorySource;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private GameObject victoryPanel;
@@ -42,6 +44,7 @@ public class GameManager : MonoBehaviour
         if (deathSource != null) deathSource.PlayerDeath += HandlePlayerDeath;
         if (victorySource != null) victorySource.BossDefeated += HandleBossDefeated;
         if (player != null) player.Died += HandlePlayerDeath;
+        if (playerData != null) playerData.PlayerDeath += HandlePlayerDeath;
     }
 
     private void OnDisable()
@@ -49,6 +52,7 @@ public class GameManager : MonoBehaviour
         if (deathSource != null) deathSource.PlayerDeath -= HandlePlayerDeath;
         if (victorySource != null) victorySource.BossDefeated -= HandleBossDefeated;
         if (player != null) player.Died -= HandlePlayerDeath;
+        if (playerData != null) playerData.PlayerDeath -= HandlePlayerDeath;
     }
 
     private void HandlePlayerDeath()
@@ -76,6 +80,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
         if (gameOverPanel != null) gameOverPanel.SetActive(result == GameState.Defeat);
         if (victoryPanel != null) victoryPanel.SetActive(result == GameState.Victory);
+        if (result == GameState.Defeat && bossHealthUI != null) bossHealthUI.SetActive(false);
         StateChanged?.Invoke(result);
 
         GameObject panel = result == GameState.Defeat ? gameOverPanel : victoryPanel;

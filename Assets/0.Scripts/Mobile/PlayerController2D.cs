@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerController2D : MonoBehaviour
 {
     public float speed = 5f;
-    public FixedJoystick fixedJoystick;
+    public VariableJoystick variableJoystick;
 
     private Rigidbody2D rb;
 
@@ -16,9 +16,9 @@ public class PlayerController2D : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (fixedJoystick == null) return;
+        if (variableJoystick == null) return;
 
-        Vector2 direction = new Vector2(fixedJoystick.Horizontal, fixedJoystick.Vertical);
+        Vector2 direction = new Vector2(variableJoystick.Horizontal, variableJoystick.Vertical);
         rb.linearVelocity = direction * speed;
     }
 }

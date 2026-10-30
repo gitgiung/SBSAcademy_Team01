@@ -18,6 +18,8 @@ GameObject:
   - component: {fileID: 2381133541093242586}
   - component: {fileID: 40308472465134674}
   - component: {fileID: 7655376826295206891}
+  - component: {fileID: 9012416883021147164}
+  - component: {fileID: 5106729134211795001}
   m_Layer: 0
   m_Name: BossMvp
   m_TagString: Enemy
@@ -248,9 +250,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2240792168150154507}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7fec1988f960c1d459f70fb386c9b26d, type: 3}
+  m_Script: {fileID: 11500000, guid: 2d91a20a420a4cf78a2f11a8c9e97d32, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Boss.Runtime::RandomBossPatternSelector
+  m_EditorClassIdentifier: Boss.Runtime::BossPatternRuleSelector
 --- !u!114 &40308472465134674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -265,8 +267,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Boss.Runtime::BossController
   target: {fileID: 0}
   patternSelector: {fileID: 2381133541093242586}
-  attackDistance: 2
-  patternInterval: 2
+  closeRange: 2
+  specialPatternDistance: 10
+  pattern1ToPattern2Delay: 3
+  pattern2ToPattern1Delay: 5
+  doubleSlashInterval: 0.5
+  slashRange: 2
+  slashAngle: 90
+  damage: 10
+  dashDuration: 3
+  dashEndDamageRadius: 2
 --- !u!114 &7655376826295206891
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -274,7 +284,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2240792168150154507}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0bc860bbdede2704dacbbf9a3a4e8fe2, type: 3}
   m_Name: 
@@ -285,3 +295,34 @@ MonoBehaviour:
   orangeDuration: 0.3
   redParryWindow: 0.133
   PlayerObject: {fileID: 0}
+--- !u!114 &9012416883021147164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240792168150154507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d44d0a6220b4a098ec7f390ed17f640, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyContactDamage
+  damage: 10
+  damageInterval: 0.5
+--- !u!114 &5106729134211795001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240792168150154507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a31e57069bc14565b0fac678a84b1d2c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Boss.Runtime::BossPatternRangeView
+  showInGameRanges: 1
+  startRangeLineWidth: 0.035
+  attackRangeAlpha: 0.22
+  startRangeLineAlpha: 0.85
+  pattern1RangeDisplayDuration: 0.25

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1232665185849996254}
   - component: {fileID: 7135910538861787281}
   - component: {fileID: 1385214210470336019}
+  - component: {fileID: 9012416883021147163}
   - component: {fileID: 8488399946819189358}
   - component: {fileID: 8365838480547670307}
   m_Layer: 0
@@ -154,6 +155,20 @@ MonoBehaviour:
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 1, b: 1, a: 1}
   healthSlider: {fileID: 0}
+--- !u!114 &9012416883021147163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5300548243203222094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d44d0a6220b4a098ec7f390ed17f640, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyContactDamage
+  damage: 10
+  damageInterval: 0.5
 --- !u!58 &8488399946819189358
 CircleCollider2D:
   m_ObjectHideFlags: 0

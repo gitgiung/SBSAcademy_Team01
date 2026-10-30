@@ -2,6 +2,21 @@
 
 최종 정리: **2026-10-30, Asia/Seoul**. 날짜가 지난 뒤에는 아래 사실을 코드·Git·설정과 다시 대조한다.
 
+## 최신 수정 — 몬스터 재사용 후 Play 종료 시 Transform Assertion
+
+- 사용자 보고: Play 종료 시 `Assertion failed on expression: 't.GetParent() == nullptr'`, Console 스택 없음.
+- 현재 `main`, HEAD `4792821`. 시작 시 MainTestScene.unity, NanumGothic Combat SDF.asset 수정 및 swipe-both/UI 이미지 meta 미추적 상태였으며 보존했다.
+- 프로젝트 `Logs/Editor.log`에서 같은 Assertion 3회 직후 `Temp/__Backupscenes/0.backup` 로드를 확인했다. 로그만으로 발생 오브젝트는 식별할 수 없다.
+- 추가 사용자 확인: 몬스터 자동 재등장까지 진행한 뒤 Play 종료 시 발생. 이후 검증 대상은 **MainTestScene만**이며 GiungTestScene의 별도 설정은 수정하지 않는다.
+- 원인 경로: 종료 중 SceneEnemyPool.OnDisable → ReturnAll → PooledObject.ReturnToPool → PoolManager.Release의 SetParent가 씬 루트 몬스터를 영속 풀로 이동한다. 별도 복사본에서 Managers를 먼저 생성한 뒤 사망·재대여 3회와 실제 Play 종료로 같은 Assertion을 재현했다. Managers를 나중에 생성한 순서에서는 발생하지 않았다.
+- SceneEnemyPool.OnApplicationQuit에서 closing을 설정하고 소유 목록을 비워 종료 중 재부모화를 막았다. 평소 OnDisable/OnDestroy 반납과 사망·재사용 동작은 유지한다. 새 회귀 테스트는 수정 전 0/1 실패(종료 후 부모가 생김), 수정 후 통과했다.
+- 별도 복사본의 실제 MainTestScene에서 정상 시간으로 5마리 생성 → 치명 피해로 반납 → 5마리 모두 같은 객체로 자동 재등장 → 실제 Play 종료를 확인했다. 수정 후 Assertion 없음. 직접 Main 씬에서 시작한 수정 전 비교 실행도 이번에는 Assertion이 없었으므로, Main에서 항상 재현됐다고 해석하지 않는다.
+- 현재 코드·테스트·MainTestScene의 원본/검증 복사본 SHA-256 일치를 확인했다. 원본 씬·프리팹·Project Settings·입력 설정은 수정하지 않았다. 코드 리뷰에서 중요 지적 없음, git diff --check 통과.
+- 최종 관련 PlayMode **4 통과 / 실패 0 / 생략 0**: 사망 후 체력·물리 복구 및 동일 객체 재사용, 소유자 파괴 시 반납, 평소 소유자 비활성화 반납, 종료 후 재부모화 방지. 이 실행은 다른 게임 씬을 열지 않았다. 결과는 `.utmp/ExitAssertion/focused.xml`이다.
+- 전체 PlayMode 실행은 **95 통과 / 19 실패 / 생략 0**이며 전체 통과가 아니다. 수정 전 비교는 94 통과 / 20 실패로 새 회귀 테스트만 추가 실패했다. 기존 Giung 입력 참조 누락 16건과 검증 복사본 Joystick 프리팹 누락으로 Main 로드 실패 3건이 있었고, Joystick은 이후 복사본에 동기화해 Main 실재생을 확인했다. 사용자 범위 지정 후 다른 씬 테스트를 재실행하거나 설정을 고치지 않았다. 실패 테스트 이름·상세는 [PlayExitAssertion.md](PlayExitAssertion.md)에 기록한다.
+- 임시 증거: `.utmp/ExitAssertion/`의 red.xml, baseline-early-managers.log, fixed-exit.log, main-before.log, main-after.log, final-current.xml, baseline-suite.xml. 영속 근거는 회귀 테스트와 이 기록이다. 검증 도구의 UnityEditor.Search.SearchDatabase 시작 시 IndexOutOfRangeException은 수정 전후 모두 발생한 별도 에디터 오류이며, 게임 Assertion과 구분한다.
+- 직접 확인: MainTestScene 열기 → 컴파일 완료 → Play → 일반 몬스터를 처치해 자동 재등장 확인 → Play 종료. Console에 해당 Assertion이 없어야 한다. 여전히 발생하면 종료 직전 활성 일반 몬스터 수, 시작 경로(직접 Main/타이틀 경유), Console의 첫 오류를 확인한다. 사용자 에디터에서의 재확인과 Android 빌드·실기기는 미검증이다.
+
 ## 최신 작업 — swipe-both 양손 할퀴기 다시 작성
 
 - 사용자가 북쪽 외 프레임을 삭제한 뒤, 북쪽과 같은 양손 할퀴기 기준으로 7방향을 다시 넣었다. 북쪽 PNG는 교체하지 않았다.

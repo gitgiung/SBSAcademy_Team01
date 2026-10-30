@@ -16,7 +16,7 @@
 - EnemyMvp 프리팹 / EnemyHealth: Max Health(3), Hit Flash Duration(0.1), Hit Color.
 - 플레이어 / PlayerMvpMovement: Input Actions(기존 InputSystem_Actions), Move Speed(4).
 - 플레이어 / PlayerMeleeAttack: Input Actions, Aim Camera, Attack Indicator, Damage(1), Attack Range(1.5), Attack Angle(100도), Attack Cooldown(0.3), Damage Layers.
-- 적의 CircleCollider2D는 공격 검출용 Trigger다. 별도 BoxCollider2D와 Dynamic Rigidbody2D가 적끼리의 몸체 충돌을 처리한다. 플레이어에는 몸체 콜라이더가 없어 플레이어·적 간 밀어내기는 없다.
+- 적의 CircleCollider2D는 공격 및 접촉 검출용 Trigger이고, 별도 BoxCollider2D와 Dynamic Rigidbody2D가 몸체 충돌을 처리한다. 플레이어와 적 사이의 물리 충돌은 활성화되어 있어 서로를 막는다. 적의 Circle Trigger는 EnemyContactDamage를 통해 접촉 중 0.5초 간격으로 기본 피해 10을 준다. 명시적인 Crowd_Control 넉백 동작은 별도 스킬 구현으로 남아 있다.
 
 공격 판정은 플레이어 중심의 원형 검색 범위와 마우스 방향의 각도 조건을 함께 사용한다. 여러 적을 동시에 맞힐 수 있고, 한 적에게 콜라이더가 여러 개 있어도 공격당 한 번만 피해를 전달한다. 범위 경계는 콜라이더 겹침, 각도는 콜라이더 중심을 기준으로 한다.
 

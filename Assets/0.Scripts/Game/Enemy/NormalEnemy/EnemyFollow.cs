@@ -26,7 +26,7 @@ public sealed class EnemyFollow : MonoBehaviour
 
     public void SetTarget(Transform newTarget, float newStoppingDistance)
     {
-        target = newTarget;
+        SetTarget(newTarget);
         stoppingDistance = Mathf.Max(0f, newStoppingDistance);
     }
 

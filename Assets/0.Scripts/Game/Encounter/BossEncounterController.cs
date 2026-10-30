@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI; // Slider ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
 
 public enum EncounterPhase
 {
@@ -14,6 +15,9 @@ public sealed class BossEncounterController : MonoBehaviour
     [SerializeField] private EnemySpawner[] spawners = new EnemySpawner[0];
     [SerializeField] private EnemySpawnDirector spawnDirector;
     [SerializeField, Min(0.01f)] private float bossAppearTime = 10f;
+
+    // [ï¿½ß°ï¿½] ï¿½Î½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã¼ï¿½Â¹ï¿½ UI (ï¿½Ç´ï¿½ Slider) ï¿½Ò´ï¿½
+    [SerializeField] private GameObject bossHealthSlider;
 
     public float ElapsedTime { get; private set; }
     public EncounterPhase Phase { get; private set; }
@@ -33,6 +37,10 @@ public sealed class BossEncounterController : MonoBehaviour
         }
         bossHealth = boss.GetComponent<EnemyHealth>();
         boss.gameObject.SetActive(false);
+
+        // [ï¿½ß°ï¿½] ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ã¼ï¿½Â¹ï¿½ ï¿½ï¿½ï¿½ï¿½
+        if (bossHealthSlider != null)
+            bossHealthSlider.SetActive(false);
     }
 
     private void OnEnable()
@@ -66,10 +74,7 @@ public sealed class BossEncounterController : MonoBehaviour
                 spawner.StopSpawning();
         }
 
-        // ÇöÀç Encounter¿Í °°Àº Scene¿¡ ÀÖ´Â ÀÏ¹Ý ¸ó½ºÅÍ Á¦°Å
-        // ºñÈ°¼ºÈ­µÈ ¸ó½ºÅÍµµ °Ë»ö¿¡ Æ÷ÇÔ
-        foreach (var enemy in FindObjectsByType<EnemyFollow>(
-            FindObjectsInactive.Include))
+        foreach (var enemy in FindObjectsByType<EnemyFollow>(FindObjectsInactive.Include))
         {
             if (enemy.gameObject.scene != gameObject.scene ||
                 enemy.GetComponent<BossController>() != null)
@@ -84,6 +89,11 @@ public sealed class BossEncounterController : MonoBehaviour
         }
 
         boss.gameObject.SetActive(true);
+
+        // [ï¿½ß°ï¿½] ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ì´ï¿½ È°ï¿½ï¿½È­
+        if (bossHealthSlider != null)
+            bossHealthSlider.SetActive(true);
+
         RefreshDisplay(true);
     }
 
@@ -91,6 +101,7 @@ public sealed class BossEncounterController : MonoBehaviour
     {
         if (Phase != EncounterPhase.BossFight) return;
         Phase = EncounterPhase.AfterBoss;
+        if (bossHealthSlider != null) bossHealthSlider.SetActive(false);
         if (spawnDirector != null) spawnDirector.SetPaused(false);
         else foreach (var spawner in spawners)
             if (spawner != null) spawner.RestartSpawning();

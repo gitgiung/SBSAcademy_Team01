@@ -97,6 +97,20 @@
               "west": "Idle/animations/swipe/west",
               "south-west": "Idle/animations/swipe/south-west"
             }
+          },
+          "swipe-left": {
+            "template": "v3",
+            "frame_count": 8,
+            "directions": {
+              "south": "Idle/animations/swipe-left/south",
+              "south-east": "Idle/animations/swipe-left/south-east",
+              "east": "Idle/animations/swipe-left/east",
+              "north-east": "Idle/animations/swipe-left/north-east",
+              "north": "Idle/animations/swipe-left/north",
+              "north-west": "Idle/animations/swipe-left/north-west",
+              "west": "Idle/animations/swipe-left/west",
+              "south-west": "Idle/animations/swipe-left/south-west"
+            }
           }
         }
       }

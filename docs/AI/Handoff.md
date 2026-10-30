@@ -2,6 +2,18 @@
 
 최종 정리: **2026-10-30, Asia/Seoul**. 날짜가 지난 뒤에는 아래 사실을 코드·Git·설정과 다시 대조한다.
 
+## 최신 완료 — 플레이어 중앙 고정 카메라
+
+- 사용자 요청: 기존 CameraPlayer의 Update 추적을 폐기하고 Cinemachine으로 교체. 후속 답변에서 **화면 중앙 고정**을 선택했다.
+- **맵 경계 제한과 화면 흔들림은 추후 추가 구현 범위로 보존한다.** 현재 구현 범위에 포함하지 않는다. 경계 형상·흔들림 수치·발생 조건은 미정이다.
+- 사용자 진행 승인 후 Cinemachine 3.1.7을 추가하고 MainTestScene에 Main Camera의 Brain 및 별도 `Player Follow Camera`(CinemachineCamera + Position Composer)를 구성했다. 두 갱신 방식은 LateUpdate, damping/dead zone/lookahead는 0이다. 직교 크기 10과 거리 10, 고정 회전을 유지한다. 구 CameraPlayer.cs/meta는 참조가 이 씬뿐임을 확인하고 제거했다.
+- 설계: `docs/superpowers/specs/2026-10-30-player-camera-design.md`. 구현 계획: `docs/superpowers/plans/2026-10-30-player-camera.md`. 상세 설정·실패 목록·확인 순서는 [PlayerCamera.md](PlayerCamera.md).
+- 작업 기준: main / 9b0d7f2. 기존 턴의 설계·Handoff 변경을 보존했다. GiungTestScene·프리팹·Project Settings는 변경하지 않았다. 패키지 lock에는 Cinemachine과 전이 의존 Splines 2.8.4 / Settings Manager 2.1.1만 추가됐다.
+- 별도 짧은 검증 복사본에서 Unity C# 컴파일 오류 없음. 새 실제 Main 씬 PlayMode 테스트는 수정 전 Brain 누락으로 0/2, 수정 후 **2/2 통과**. 이동·회전·큰 위치 변경·일시정지/재개·씬 재진입의 화면 중심·깊이·직교 크기·회전을 확인했다. 물리 입력에 의한 실제 대시 조작의 시각 확인은 사용자 확인으로 남긴다.
+- 이번 전체 PlayMode: **100 통과 / 16 실패 / 생략 0**. 실패 16개 모두 기존 baseline-suite.xml에도 있던 Giung Input Action Asset 참조 누락이며 카메라 테스트는 전체 실행에서도 통과했다. 전체 통과라고 보고하지 않는다. 영속 실패 목록은 PlayerCamera.md에 남겼다.
+- 독립 리뷰 중요 지적 없음, git diff --check 통과. 원본/복사본 씬과 테스트 해시 일치. 임시 증거는 `.utmp/PlayerCamera/`의 red.xml, green.xml, suite.xml 및 로그이며 영속 근거는 테스트 코드와 문서다. 원본 에디터를 종료하거나 같은 프로젝트에 두 번째 에디터를 열지 않았다. 복사본 PlayFromTitle에만 batch guard를 사용했다.
+- 직접 확인: 패키지 임포트가 끝나면 MainTestScene을 다시 열고 `Tools → Play From Title`을 확인한 뒤 Play. 이동·대시 중 플레이어 중앙 유지, 카메라 회전·확대율 유지, 정지/재개·씬 재진입 시 정상 추적을 확인한다. 오류 시 Console 첫 빨간 오류, Brain, Tracking Target, Position Composer를 확인한다. Android 빌드·실기기·사용자 화면 시각 검증은 미수행이다.
+
 ## 최신 수정 — 몬스터 재사용 후 Play 종료 시 Transform Assertion
 
 - 사용자 보고: Play 종료 시 `Assertion failed on expression: 't.GetParent() == nullptr'`, Console 스택 없음.

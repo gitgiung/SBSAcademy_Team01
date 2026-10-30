@@ -9,7 +9,8 @@ public static class Define
         Unknown,
         TitleTestScene,
         LoadTestScene,
-        MainTestScene
+        MainTestScene,
+        GiungTestScene
     }//테스트용 씬 이름이므로 나중에 변경 필요
 
     public enum EUIEvent

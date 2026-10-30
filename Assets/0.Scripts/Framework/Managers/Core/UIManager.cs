@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class UIManager
@@ -36,16 +34,15 @@ public class UIManager
     {
         var list = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => type.IsSubclassOf(typeof(UI_Popup)));
+            .Where(type => type.IsSubclassOf(typeof(UI_Popup)) && !type.IsAbstract && !type.ContainsGenericParameters);
 
         foreach (Type type in list)
         {
+            // Scene-authored popups need no Addressables entry. Only preload available prefabs.
+            if (Managers.Resource.Load<GameObject>(type.Name) == null)
+                continue;
             CachePopupUI(type);
         }
-
-        // ShowPopupUI<UI_WaypointPopup>();
-
-        CloseAllPopupUI();
     }
 
     public void SetCanvas(GameObject go, bool sort = true, int sortOrder = 0)
@@ -88,6 +85,8 @@ public class UIManager
             name = typeof(T).Name;
 
         GameObject go = Managers.Resource.Instantiate($"{name}");
+        if (go == null)
+            return null;
         if (parent != null)
             go.transform.SetParent(parent);
 
@@ -104,6 +103,8 @@ public class UIManager
             name = typeof(T).Name;
 
         GameObject go = Managers.Resource.Instantiate(name, parent, pooling);
+        if (go == null)
+            return null;
         go.transform.SetParent(parent);
 
         return Util.GetOrAddComponent<T>(go);
@@ -115,6 +116,8 @@ public class UIManager
             name = typeof(T).Name;
 
         GameObject go = Managers.Resource.Instantiate(name);
+        if (go == null)
+            return null;
         T baseUI = Util.GetOrAddComponent<T>(go);
 
         go.transform.SetParent(Root.transform);
@@ -128,6 +131,8 @@ public class UIManager
             name = typeof(T).Name;
 
         GameObject go = Managers.Resource.Instantiate(name);
+        if (go == null)
+            return null;
         T sceneUI = Util.GetOrAddComponent<T>(go);
         _sceneUI = sceneUI;
 
@@ -136,18 +141,66 @@ public class UIManager
         return sceneUI;
     }
 
+    /// <summary>씬에서 준비한 인스턴스를 기존 캐시에 등록합니다. Clear에서 함께 정리합니다.</summary>
+    public bool RegisterPopupUI(string name, UI_Popup popup)
+    {
+        if (string.IsNullOrEmpty(name) || popup == null)
+        {
+            Debug.LogError("RegisterPopupUI requires a name and a live popup.");
+            return false;
+        }
+        if (_popups.TryGetValue(name, out UI_Popup existing) && existing != null)
+        {
+            if (existing == popup) return true;
+            Debug.LogError($"Popup name already registered: {name}.");
+            return false;
+        }
+        if (_popups.Values.Any(item => item == popup))
+        {
+            Debug.LogError("Popup instance already registered under another name.");
+            return false;
+        }
+        popup.gameObject.SetActive(false);
+        popup.transform.SetParent(Root.transform, false);
+        _popups[name] = popup;
+        return true;
+    }
+
     public void CachePopupUI(Type type)
     {
-        string name = type.Name;
-
-        if (_popups.TryGetValue(name, out UI_Popup popup) == false)
+        if (type == null || !typeof(UI_Popup).IsAssignableFrom(type)
+            || type.IsAbstract || type.ContainsGenericParameters)
         {
-            GameObject go = Managers.Resource.Instantiate(name);
-            popup = go.GetComponent<UI_Popup>();
-            _popups[name] = popup;
+            Debug.LogError("CachePopupUI requires a concrete UI_Popup type.");
+            return;
         }
 
-        _popupStack.Push(popup);
+        RefreshPopupStack();
+        string name = type.Name;
+
+        if (_popups.TryGetValue(name, out UI_Popup popup) && popup != null)
+        {
+            if (!type.IsInstanceOfType(popup))
+                Debug.LogError($"Popup type mismatch: {name}.");
+            return;
+        }
+
+        _popups.Remove(name);
+        GameObject go = Managers.Resource.Instantiate(name);
+        if (go == null)
+            return;
+
+        popup = go.GetComponent(type) as UI_Popup;
+        if (popup == null)
+        {
+            Debug.LogError($"Popup prefab {name} does not contain {type.Name}.");
+            UnityEngine.Object.Destroy(go);
+            return;
+        }
+
+        go.transform.SetParent(Root.transform, false);
+        go.SetActive(false);
+        _popups[name] = popup;
     }
 
     public T ShowPopupUI<T>(string name = null) where T : UI_Popup
@@ -155,23 +208,38 @@ public class UIManager
         if (string.IsNullOrEmpty(name))
             name = typeof(T).Name;
 
-        if (_popups.TryGetValue(name, out UI_Popup popup) == false)
+        RefreshPopupStack();
+        if (!_popups.TryGetValue(name, out UI_Popup popup) || popup == null)
         {
+            _popups.Remove(name);
             GameObject go = Managers.Resource.Instantiate(name);
+            if (go == null)
+                return null;
             popup = Util.GetOrAddComponent<T>(go);
             _popups[name] = popup;
         }
 
+        if (!(popup is T result))
+        {
+            Debug.LogError($"Popup type mismatch: {name}.");
+            return null;
+        }
+
+        // Init may be deferred for an inactive prefab. Complete it before assigning order.
+        popup.Init();
+        RemovePopupFromStack(popup);
         _popupStack.Push(popup);
 
-        popup.transform.SetParent(Root.transform);
+        popup.transform.SetParent(Root.transform, false);
+        UpdatePopupOrder();
         popup.gameObject.SetActive(true);
 
-        return popup as T;
+        return result;
     }
 
     public void ClosePopupUI(UI_Popup popup)
     {
+        RefreshPopupStack();
         if (_popupStack.Count == 0)
             return;
 
@@ -186,6 +254,7 @@ public class UIManager
 
     public void ClosePopupUI()
     {
+        RefreshPopupStack();
         if (_popupStack.Count == 0)
             return;
 
@@ -193,26 +262,56 @@ public class UIManager
 
         if (popup != null)
             popup.gameObject.SetActive(false);
-        //Managers.Resource.Destroy(popup.gameObject);
-
-        _order--;
+        UpdatePopupOrder();
     }
 
     public void CloseAllPopupUI()
     {
+        RefreshPopupStack();
         while (_popupStack.Count > 0)
             ClosePopupUI();
     }
 
     public int GetPopupCount()
     {
+        RefreshPopupStack();
         return _popupStack.Count;
+    }
+
+    private void RemovePopupFromStack(UI_Popup popup)
+    {
+        UI_Popup[] remaining = _popupStack.Reverse().Where(item => item != popup).ToArray();
+        _popupStack.Clear();
+        foreach (UI_Popup item in remaining)
+            _popupStack.Push(item);
+    }
+
+    private void RefreshPopupStack()
+    {
+        // Unity destroyed objects compare equal to null. Hidden objects are cached, not open.
+        UI_Popup[] open = _popupStack.Reverse()
+            .Where(popup => popup != null && popup.gameObject.activeSelf).Distinct().ToArray();
+        _popupStack.Clear();
+        foreach (UI_Popup popup in open)
+            _popupStack.Push(popup);
+        UpdatePopupOrder();
+    }
+
+    private void UpdatePopupOrder()
+    {
+        int order = 10;
+        foreach (UI_Popup popup in _popupStack.Reverse())
+            SetCanvas(popup.gameObject, false, order++);
+        _order = order;
     }
 
     public void Clear()
     {
         CloseAllPopupUI();
+        UI_Popup[] cached = _popups.Values.Where(popup => popup != null).Distinct().ToArray();
         _popups.Clear();
+        foreach (UI_Popup popup in cached)
+            UnityEngine.Object.Destroy(popup.gameObject);
         _sceneUI = null;
         _order = 10;
     }

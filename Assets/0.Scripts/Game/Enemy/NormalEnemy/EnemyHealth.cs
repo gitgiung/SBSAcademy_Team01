@@ -22,9 +22,24 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     private SpriteRenderer[] visuals;
     private Color[] originalColors;
     private Coroutine hitFlash;
+    private Collider2D[] colliders;
+    private bool[] colliderStates;
+    private Rigidbody2D body;
+    private bool bodySimulated;
+    private EnemyFollow follow;
+    private bool followEnabled;
+    private bool initialized;
+    private IEnemySpawnPool spawnPool;
 
     private void Awake()
     {
+        EnsureInitialized();
+    }
+
+    private void EnsureInitialized()
+    {
+        if (initialized) return;
+        initialized = true;
         CurrentHealth = Mathf.Max(1f, maxHealth);
 
         // 자식 오브젝트를 포함한 모든 스프라이트 렌더러 수집 및 초기 색상 저장
@@ -33,6 +48,46 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         for (int i = 0; i < visuals.Length; i++)
         {
             originalColors[i] = visuals[i].color;
+        }
+        colliders = GetComponentsInChildren<Collider2D>(true);
+        colliderStates = new bool[colliders.Length];
+        for (int i = 0; i < colliders.Length; i++) colliderStates[i] = colliders[i].enabled;
+        body = GetComponent<Rigidbody2D>();
+        bodySimulated = body != null && body.simulated;
+        follow = GetComponent<EnemyFollow>();
+        followEnabled = follow != null && follow.enabled;
+    }
+
+    /// <summary>풀 initialize에서 호출합니다. 최초 Awake보다 먼저 호출돼도 안전합니다.</summary>
+    public void PrepareForSpawn(IEnemySpawnPool owner)
+    {
+        EnsureInitialized();
+        spawnPool = owner;
+        CurrentHealth = Mathf.Max(1f, maxHealth);
+        IsDead = false;
+        StopHitFlash();
+        for (int i = 0; i < colliders.Length; i++)
+            if (colliders[i] != null) colliders[i].enabled = colliderStates[i];
+        if (body != null)
+        {
+            body.simulated = bodySimulated;
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+        }
+        if (follow != null) follow.enabled = followEnabled;
+        UpdateHealthUI();
+    }
+
+    /// <summary>보스 전환 등 보상 없는 제거. 풀 소유 객체는 파괴하지 않습니다.</summary>
+    public void Despawn()
+    {
+        IEnemySpawnPool owner = spawnPool;
+        spawnPool = null;
+        if (owner != null) owner.ReturnEnemy(gameObject);
+        else
+        {
+            gameObject.SetActive(false);
+            Destroy(gameObject);
         }
     }
 
@@ -122,11 +177,16 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
         if (TryGetComponent<Rigidbody2D>(out var body)) body.simulated = false;
 
-        Died?.Invoke();
-        Destroy(gameObject);
+        try { Died?.Invoke(); }
+        finally { Despawn(); }
     }
 
     private void OnDisable()
+    {
+        StopHitFlash();
+    }
+
+    private void StopHitFlash()
     {
         if (hitFlash != null)
         {

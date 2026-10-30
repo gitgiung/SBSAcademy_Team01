@@ -1,5 +1,19 @@
 # Unity 프로젝트 컨텍스트
 
+## 최신 상태 — 2026-10-28
+
+- 새 세션의 시작 문서는 [Handoff.md](Handoff.md)와 루트 [AGENTS.md](../../AGENTS.md)다. 이 문서 아래의 10월 18일 내용은 역사 기록이며 최신 상태를 대신하지 않는다.
+- 확인 시점 HEAD `7f31651` (`초기화, 로딩, 리소스 로딩 수정`), 브랜치 `feature/poolmanager`. 복귀 시 실제 Git 상태를 재확인한다.
+- Unity 6000.5.0f1, URP 17.5.0, Addressables 2.9.1, Input System 1.19.0, Unity Test Framework 1.7.0.
+- 현재 `activeInputHandler: 2` (Both)다. 아래의 `1`은 이전 기록이다.
+- 현재 활성 빌드 씬은 `Assets/9.Scenes/TitleTestScene.unity`, `LoadTestScene.unity`, `MainTestScene.unity`다. 과거 SampleScene 누락 설명은 현재 상태가 아니다.
+- Managers/Core 초기화·준비 상태 분리와 리소스 로딩 통합 완료. 다음은 UIManager 팝업 중복·표시 순서 수정이다.
+- 마지막 실행 검증은 2026-10-28 PlayMode 36/36 통과다. 아래 26/33/41은 당시 다른 시점의 기록이며 현재 테스트 수가 아니다.
+- MP 명칭 통일, 미정 기획 유지, 완료 시 사용자 직접 확인 절차 안내를 적용한다.
+- 작업 경로·임시 폴더·에디터 실행 상태는 매 세션 확인한다. 상세 사용법은 [CoreInitialization.md](CoreInitialization.md), [ResourceLoading.md](ResourceLoading.md)를 참고한다.
+
+## 2026-10-18 역사 기록
+
 확인일: 2026-10-18. 기준 커밋: `8373720`.
 
 - 프로젝트 루트: `C:/GitHub/SBSAcademy_Team01`.

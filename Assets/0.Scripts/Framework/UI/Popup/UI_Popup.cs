@@ -9,7 +9,8 @@ public class UI_Popup : UI_Base
         if (base.Init() == false)
             return false;
 
-        Managers.UI.SetCanvas(gameObject, true);
+        // The manager assigns the current display order on every Show, including reuse.
+        Managers.UI.SetCanvas(gameObject, false, 10);
         return true;
     }
 

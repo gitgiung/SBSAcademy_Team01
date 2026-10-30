@@ -136,7 +136,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25917665923e68c45a9c1774c59d4b06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyFollow
-  moveSpeed: 2
+  moveSpeed: 4
   stoppingDistance: 0.5
 --- !u!114 &1385214210470336019
 MonoBehaviour:

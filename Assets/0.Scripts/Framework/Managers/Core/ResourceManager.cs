@@ -4,12 +4,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceLocations;
 using Object = UnityEngine.Object;
 
 public class ResourceManager
 {
     private Dictionary<string, UnityEngine.Object> _resources = new Dictionary<string, UnityEngine.Object>();
     private Dictionary<string, AsyncOperationHandle> _handles = new Dictionary<string, AsyncOperationHandle>();
+    private readonly Dictionary<string, IResourceLocation> _assetLocations = new Dictionary<string, IResourceLocation>();
+    private readonly Dictionary<string, PendingAsset> _pending = new Dictionary<string, PendingAsset>();
+    private readonly HashSet<LoadBatch> _batches = new HashSet<LoadBatch>();
+    private int _generation;
+    internal int Generation => _generation;
 
     #region Load Resource
     public T Load<T>(string key) where T : Object
@@ -86,67 +92,284 @@ public class ResourceManager
     #endregion
 
     #region Addressable
-    private void LoadAsync<T>(string key, Action<T> callback = null) where T : UnityEngine.Object
+    /// <summary>콜백 API와 같은 로딩 작업을 기다립니다. 중단된 대기자가 핸들을 소유하지 않습니다.</summary>
+    public IEnumerator PreloadAsync(string label, Action<bool, string> completed)
     {
-        // Cache
-        if (_resources.TryGetValue(key, out Object resource))
+        LoadBatch batch = BeginBatch(label, typeof(Object), null, null);
+        while (!batch.Finished)
+            yield return null;
+        InvokeSafely(() => completed?.Invoke(batch.Error == null, batch.Error));
+    }
+
+    /// <summary>기존 진행 콜백 API입니다. 실패는 Console에 기록합니다.</summary>
+    public void LoadAllAsync<T>(string label, Action<string, int, int> callback) where T : Object
+    {
+        LoadAllAsync<T>(label, callback, (success, error) =>
         {
-            callback?.Invoke(resource as T);
+            if (!success) Debug.LogError($"Resource load failed: {error}");
+        });
+    }
+
+    /// <summary>진행 수는 처리된 개수입니다. 전체 성공 여부는 completed로 판단합니다.</summary>
+    public void LoadAllAsync<T>(string label, Action<string, int, int> callback,
+        Action<bool, string> completed) where T : Object
+    {
+        BeginBatch(label, typeof(T), callback, completed);
+    }
+
+    private LoadBatch BeginBatch(string label, Type type, Action<string, int, int> progress,
+        Action<bool, string> completed)
+    {
+        var batch = new LoadBatch { Generation = _generation, Progress = progress, Completed = completed };
+        _batches.Add(batch);
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            FinishEmptyBatch(batch, "리소스 라벨이 비어 있습니다.");
+            return batch;
+        }
+
+        try
+        {
+            var locations = Addressables.LoadResourceLocationsAsync(label.Trim(), type);
+            batch.Locations = locations;
+            batch.OwnsLocations = true;
+            locations.Completed += operation => OnLocationsLoaded(batch, label, operation);
+        }
+        catch (Exception exception) { FinishEmptyBatch(batch, exception.Message); }
+        return batch;
+    }
+
+    private void OnLocationsLoaded(LoadBatch batch, string label,
+        AsyncOperationHandle<IList<IResourceLocation>> operation)
+    {
+        if (batch.Finished) return;
+        try
+        {
+            if (operation.Status != AsyncOperationStatus.Succeeded || operation.Result == null || operation.Result.Count == 0)
+            {
+                FinishEmptyBatch(batch, $"리소스 라벨 '{label}'의 로딩 대상이 없거나 조회에 실패했습니다.");
+                return;
+            }
+
+            var selected = new Dictionary<string, IResourceLocation>();
+            foreach (IResourceLocation location in operation.Result)
+            {
+                if (string.IsNullOrEmpty(location.PrimaryKey))
+                {
+                    FinishEmptyBatch(batch, "주소가 없는 리소스를 로드할 수 없습니다.");
+                    return;
+                }
+                if (selected.TryGetValue(location.PrimaryKey, out IResourceLocation previous))
+                {
+                    // 같은 주소의 Sprite와 원본 Texture는 기존처럼 Sprite를 우선합니다.
+                    bool spriteAndTexture = (previous.ResourceType == typeof(Texture2D) && location.ResourceType == typeof(Sprite))
+                        || (previous.ResourceType == typeof(Sprite) && location.ResourceType == typeof(Texture2D));
+                    if (spriteAndTexture && SameSource(previous, location))
+                    {
+                        if (location.ResourceType == typeof(Sprite)) selected[location.PrimaryKey] = location;
+                    }
+                    else if (!SameLocation(previous, location))
+                    {
+                        FinishEmptyBatch(batch, $"서로 다른 리소스가 같은 주소를 사용합니다: {location.PrimaryKey}");
+                        return;
+                    }
+                }
+                else selected.Add(location.PrimaryKey, location);
+            }
+
+            batch.Total = selected.Count;
+            foreach (IResourceLocation location in selected.Values)
+            {
+                if (batch.Finished) break;
+                RequestAsset(location, (asset, error) => OnAssetSettled(batch, location.PrimaryKey, error));
+            }
+        }
+        catch (Exception exception) { FinishBatch(batch, exception.Message); }
+        finally { ReleaseLocations(batch); }
+    }
+
+    private void RequestAsset(IResourceLocation location, Action<Object, string> completed)
+    {
+        string key = location.PrimaryKey;
+        if (_resources.TryGetValue(key, out Object cached) && cached != null)
+        {
+            bool matches = _assetLocations.TryGetValue(key, out IResourceLocation previous)
+                && SameLocation(previous, location) && location.ResourceType.IsInstanceOfType(cached);
+            completed(matches ? cached : null, matches ? null : $"캐시 주소 또는 타입 충돌: {key}");
+            return;
+        }
+        if (_pending.TryGetValue(key, out PendingAsset existing))
+        {
+            if (SameLocation(existing.Location, location)) existing.Waiters.Add(completed);
+            else completed(null, $"로딩 중인 리소스의 주소 충돌: {key}");
             return;
         }
 
-        var asyncOperation = Addressables.LoadAssetAsync<T>(key);
-        asyncOperation.Completed += (op) =>
+        // 외부에서 파괴된 캐시 객체의 이전 핸들도 새 요청 전에 해제합니다.
+        _resources.Remove(key);
+        _assetLocations.Remove(key);
+        if (_handles.TryGetValue(key, out AsyncOperationHandle oldHandle))
         {
-            _resources.Add(key, op.Result);
-            _handles.Add(key, asyncOperation);
-            callback?.Invoke(op.Result);
-        };
+            _handles.Remove(key);
+            if (oldHandle.IsValid()) Addressables.Release(oldHandle);
+        }
+
+        var pending = new PendingAsset { Location = location, Generation = _generation };
+        pending.Waiters.Add(completed);
+        _pending.Add(key, pending);
+        try
+        {
+            pending.Handle = Addressables.LoadAssetAsync<Object>(location);
+            pending.OwnsHandle = true;
+            pending.Handle.Completed += operation => OnAssetLoaded(pending, operation);
+        }
+        catch (Exception exception)
+        {
+            _pending.Remove(key);
+            ReleaseAsset(pending);
+            InvokeSafely(() => completed(null, exception.Message));
+        }
     }
 
-    public void LoadAllAsync<T>(string label, Action<string, int, int> callback) where T : UnityEngine.Object
+    private void OnAssetLoaded(PendingAsset pending, AsyncOperationHandle<Object> operation)
     {
-        var opHandle = Addressables.LoadResourceLocationsAsync(label, typeof(T));
-        opHandle.Completed += (op) =>
+        if (!pending.OwnsHandle) return; // Clear가 이미 소유권을 회수한 이전 작업입니다.
+        string key = pending.Location.PrimaryKey;
+        _pending.Remove(key);
+        var waiters = pending.Waiters.ToArray();
+        pending.Waiters.Clear();
+        Object asset = null;
+        string error = null;
+        if (pending.Generation == _generation && operation.Status == AsyncOperationStatus.Succeeded
+            && operation.Result != null && pending.Location.ResourceType.IsInstanceOfType(operation.Result))
         {
-            var locations = op.Result;
-            var spriteKeys = new HashSet<string>();
-            foreach (var loc in locations)
-            {
-                if (loc.ResourceType == typeof(Sprite))
-                    spriteKeys.Add(loc.PrimaryKey);
-            }
+            asset = operation.Result;
+            _resources[key] = asset;
+            _assetLocations[key] = pending.Location;
+            _handles[key] = pending.Handle;
+            pending.OwnsHandle = false; // 한 번 취득한 참조를 캐시로 이전합니다.
+        }
+        else
+        {
+            error = $"리소스 '{key}' 로딩 실패: {operation.OperationException?.Message ?? "결과 또는 타입이 유효하지 않습니다."}";
+            ReleaseAsset(pending);
+        }
+        foreach (Action<Object, string> waiter in waiters)
+            InvokeSafely(() => waiter(asset, error));
+    }
 
-            int loadCount = 0;
-            int totalCount = 0;
-            foreach (var loc in locations)
-            {
-                if (loc.ResourceType == typeof(Texture2D) && spriteKeys.Contains(loc.PrimaryKey))
-                    continue;
-                totalCount++;
-            }
+    private void OnAssetSettled(LoadBatch batch, string key, string error)
+    {
+        if (batch.Finished || batch.Generation != _generation) return;
+        batch.Count++;
+        if (error != null && batch.Error == null) batch.Error = error;
+        InvokeSafely(() => batch.Progress?.Invoke(key, batch.Count, batch.Total));
+        if (batch.Count == batch.Total) FinishBatch(batch, batch.Error);
+    }
 
-            foreach (var result in locations)
-            {
-                if (result.ResourceType == typeof(Texture2D) && spriteKeys.Contains(result.PrimaryKey))
-                    continue;
-                LoadAsync<T>(result.PrimaryKey, (obj) =>
-                {
-                    loadCount++;
-                    callback?.Invoke(result.PrimaryKey, loadCount, totalCount);
-                });
-            }
-        };
+    private void FinishEmptyBatch(LoadBatch batch, string error)
+    {
+        InvokeSafely(() => batch.Progress?.Invoke(null, 0, 0));
+        FinishBatch(batch, error);
+    }
+
+    private void FinishBatch(LoadBatch batch, string error)
+    {
+        if (batch.Finished) return;
+        batch.Finished = true;
+        batch.Error = error;
+        _batches.Remove(batch);
+        ReleaseLocations(batch);
+        InvokeSafely(() => batch.Completed?.Invoke(error == null, error));
+    }
+
+    private static bool SameLocation(IResourceLocation first, IResourceLocation second)
+        => first.ResourceType == second.ResourceType && SameSource(first, second);
+
+    private static bool SameSource(IResourceLocation first, IResourceLocation second)
+    {
+        if (first.InternalId != second.InternalId || first.ProviderId != second.ProviderId)
+            return false;
+        // 주소와 파일이 같아도 의존 번들 버전이 다르면 다른 로딩 대상입니다.
+        IList<IResourceLocation> firstDependencies = first.Dependencies;
+        IList<IResourceLocation> secondDependencies = second.Dependencies;
+        int count = firstDependencies?.Count ?? 0;
+        if (count != (secondDependencies?.Count ?? 0)) return false;
+        for (int index = 0; index < count; index++)
+            if (!SameLocation(firstDependencies[index], secondDependencies[index])) return false;
+        return true;
+    }
+
+    private static void ReleaseLocations(LoadBatch batch)
+    {
+        if (!batch.OwnsLocations) return;
+        batch.OwnsLocations = false;
+        if (batch.Locations.IsValid()) Addressables.Release(batch.Locations);
+    }
+
+    private static void ReleaseAsset(PendingAsset pending)
+    {
+        if (!pending.OwnsHandle) return;
+        pending.OwnsHandle = false;
+        if (pending.Handle.IsValid()) Addressables.Release(pending.Handle);
+    }
+
+    private static void InvokeSafely(Action callback)
+    {
+        try { callback?.Invoke(); }
+        catch (Exception exception) { Debug.LogException(exception); }
     }
 
     public void Clear()
     {
+        _generation++;
+        var batches = new List<LoadBatch>(_batches);
+        var pending = new List<PendingAsset>(_pending.Values);
+        var handles = new List<AsyncOperationHandle>(_handles.Values);
+        _batches.Clear();
+        _pending.Clear();
         _resources.Clear();
-
-        foreach (var handle in _handles)
-            Addressables.Release(handle.Value);
-
         _handles.Clear();
+        _assetLocations.Clear();
+
+        // 사용자 콜백 전에 이전 상태를 모두 분리합니다. 콜백이 시작한 새 요청은 유지합니다.
+        foreach (LoadBatch batch in batches)
+        {
+            batch.Finished = true;
+            batch.Error = "Resource loading canceled: 리소스 캐시가 정리되었습니다.";
+            ReleaseLocations(batch);
+        }
+        foreach (PendingAsset request in pending)
+        {
+            request.Waiters.Clear();
+            ReleaseAsset(request);
+        }
+        foreach (AsyncOperationHandle handle in handles)
+            if (handle.IsValid()) Addressables.Release(handle);
+        foreach (LoadBatch batch in batches)
+            InvokeSafely(() => batch.Completed?.Invoke(false, batch.Error));
+    }
+
+    private sealed class LoadBatch
+    {
+        public int Generation;
+        public int Count;
+        public int Total;
+        public bool Finished;
+        public string Error;
+        public bool OwnsLocations;
+        public AsyncOperationHandle Locations;
+        public Action<string, int, int> Progress;
+        public Action<bool, string> Completed;
+    }
+
+    private sealed class PendingAsset
+    {
+        public int Generation;
+        public IResourceLocation Location;
+        public AsyncOperationHandle<Object> Handle;
+        public bool OwnsHandle;
+        public readonly List<Action<Object, string>> Waiters = new List<Action<Object, string>>();
     }
     #endregion
 }

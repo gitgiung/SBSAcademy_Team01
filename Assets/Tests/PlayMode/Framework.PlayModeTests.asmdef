@@ -1,0 +1,6 @@
+{
+  "name": "Framework.PlayModeTests",
+  "references": ["Unity.Addressables", "Unity.ResourceManager", "UnityEngine.UI", "Unity.TextMeshPro"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

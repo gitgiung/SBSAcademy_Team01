@@ -39,6 +39,8 @@ public class Player : MonoBehaviour
 
     private float attackTimer;
     private Coroutine guardParryCoroutine;
+    private bool hasDied;
+    public event System.Action Died;
 
     private void Awake()
     {
@@ -62,6 +64,8 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
+        // Scaled time alone does not stop Update input or an attack whose cooldown is already ready.
+        if (Time.timeScale <= 0f) return;
         Move();
         AutoAttack();
 
@@ -90,6 +94,11 @@ public class Player : MonoBehaviour
 
         while (activeTimer < parryActive)
         {
+            if (Time.timeScale <= 0f)
+            {
+                yield return null;
+                continue;
+            }
             if (boss != null && boss.TryParry())
             {
                 isSuccess = true;
@@ -129,8 +138,13 @@ public class Player : MonoBehaviour
             float guardTimer = 0f;
             bool forceBroken = false;
 
-            while (Input.GetKey(KeyCode.E))
+            while (Time.timeScale <= 0f || Input.GetKey(KeyCode.E))
             {
+                if (Time.timeScale <= 0f)
+                {
+                    yield return null;
+                    continue;
+                }
                 guardTimer += Time.deltaTime;
                 if (guardTimer >= maxGuardDuration)
                 {
@@ -164,7 +178,7 @@ public class Player : MonoBehaviour
 
     public void TakeDamage(float damage, GameObject attacker = null)
     {
-        if (data == null) return;
+        if (data == null || hasDied) return;
 
         if (isParrying || isGuarding)
         {
@@ -179,6 +193,8 @@ public class Player : MonoBehaviour
 
         if (data.currentHealth <= 0f)
         {
+            hasDied = true;
+            Died?.Invoke();
             Debug.Log("[Player 사망] 플레이어가 사망했습니다.");
             gameObject.SetActive(false);
         }

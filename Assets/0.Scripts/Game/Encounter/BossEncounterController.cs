@@ -12,6 +12,7 @@ public sealed class BossEncounterController : MonoBehaviour
 {
     [SerializeField] private BossController boss;
     [SerializeField] private EnemySpawner[] spawners = new EnemySpawner[0];
+    [SerializeField] private EnemySpawnDirector spawnDirector;
     [SerializeField, Min(0.01f)] private float bossAppearTime = 10f;
 
     public float ElapsedTime { get; private set; }
@@ -58,7 +59,8 @@ public sealed class BossEncounterController : MonoBehaviour
     {
         Phase = EncounterPhase.BossFight;
 
-        foreach (var spawner in spawners)
+        if (spawnDirector != null) spawnDirector.SetPaused(true);
+        else foreach (var spawner in spawners)
         {
             if (spawner != null)
                 spawner.StopSpawning();
@@ -73,8 +75,12 @@ public sealed class BossEncounterController : MonoBehaviour
                 enemy.GetComponent<BossController>() != null)
                 continue;
 
-            enemy.gameObject.SetActive(false);
-            Destroy(enemy.gameObject);
+            if (enemy.TryGetComponent<EnemyHealth>(out var health)) health.Despawn();
+            else
+            {
+                enemy.gameObject.SetActive(false);
+                Destroy(enemy.gameObject);
+            }
         }
 
         boss.gameObject.SetActive(true);
@@ -85,7 +91,8 @@ public sealed class BossEncounterController : MonoBehaviour
     {
         if (Phase != EncounterPhase.BossFight) return;
         Phase = EncounterPhase.AfterBoss;
-        foreach (var spawner in spawners)
+        if (spawnDirector != null) spawnDirector.SetPaused(false);
+        else foreach (var spawner in spawners)
             if (spawner != null) spawner.RestartSpawning();
         RefreshDisplay(true);
     }

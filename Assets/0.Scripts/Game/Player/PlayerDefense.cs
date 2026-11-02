@@ -43,7 +43,7 @@ internal sealed class PlayerDefense
         int version = ++actionVersion;
         canStart = false;
         isParrying = true;
-        view.SetParryColor();
+        view.PlayParryAnimation();
         if (parryStartup > 0f) yield return new WaitForSeconds(parryStartup);
         if (version != actionVersion) yield break;
 
@@ -67,7 +67,7 @@ internal sealed class PlayerDefense
             Debug.Log("[패링 성공] 공격을 무효화했습니다!");
             yield return null;
             if (version != actionVersion) yield break;
-            view.SetDefaultColor();
+            view.SetGuardAnimation(false);
             canStart = true;
             yield break;
         }
@@ -80,7 +80,7 @@ internal sealed class PlayerDefense
             if (version != actionVersion) yield break;
 
             isGuarding = true;
-            view.SetGuardColor();
+            view.SetGuardAnimation(true);
             float guardTimer = 0f;
             bool broken = false;
             while (isGuardHeld())
@@ -96,13 +96,13 @@ internal sealed class PlayerDefense
             }
 
             isGuarding = false;
-            view.SetDefaultColor();
+            view.SetGuardAnimation(false);
             yield return new WaitForSeconds(broken ? breakGuardCooldown : normalGuardCooldown);
             if (version != actionVersion) yield break;
         }
         else
         {
-            view.SetDefaultColor();
+            view.SetGuardAnimation(false);
             if (parryRecovery > 0f) yield return new WaitForSeconds(parryRecovery);
             if (version != actionVersion) yield break;
         }
@@ -118,7 +118,7 @@ internal sealed class PlayerDefense
         isParrying = false;
         isGuarding = false;
         canStart = true;
-        view.SetDefaultColor();
+        view.SetGuardAnimation(false);
     }
 
     public void Reset()
@@ -127,5 +127,6 @@ internal sealed class PlayerDefense
         isParrying = false;
         isGuarding = false;
         canStart = true;
+        view.SetGuardAnimation(false);
     }
 }

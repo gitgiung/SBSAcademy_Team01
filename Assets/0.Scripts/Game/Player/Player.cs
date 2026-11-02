@@ -20,6 +20,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     [Header("렌더러 설정")]
     [SerializeField] private SpriteRenderer playerSpriteRenderer;
+    [SerializeField] private Animator playerAnimator;
 
     [Header("패링 타이밍 설정 (초 단위)")]
     [SerializeField] private float parryStartup = 0.033f;
@@ -75,6 +76,10 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (data == null) data = GetComponent<PlayerData>();
         if (playerSpriteRenderer == null) playerSpriteRenderer = GetComponent<SpriteRenderer>();
+        if (playerAnimator == null) playerAnimator = GetComponent<Animator>();
+        if (playerAnimator == null) playerAnimator = gameObject.AddComponent<Animator>();
+        if (playerAnimator.runtimeAnimatorController == null)
+            playerAnimator.runtimeAnimatorController = Resources.Load<RuntimeAnimatorController>("PlayerAnimator/Player");
 
         if (data == null)
         {
@@ -83,7 +88,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
             return;
         }
 
-        view = new PlayerView(playerSpriteRenderer, healthSlider, data);
+        view = new PlayerView(playerSpriteRenderer, healthSlider, data, playerAnimator);
         defense = new PlayerDefense(boss, view, parryStartup, parryActive, parryRecovery,
             guardTransitionTime, maxGuardDuration, normalGuardCooldown, breakGuardCooldown);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
@@ -109,6 +114,8 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         }
 
         movement.Tick(moveDirection);
+        view.SetMovementAnimation(moveDirection, moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
+            movement.IsDashing, dashDuration);
         combat.Tick(Time.deltaTime);
 
         if (!movement.IsDashing && parryInput.WasPressedThisFrame() && defense.CanStart)

@@ -7,11 +7,17 @@ using UnityEditor;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyFollow), typeof(EnemyHealth), typeof(Rigidbody2D))]
+// Normal melee damage is synchronized to Animation Events on the directional swipe clips.
 public sealed class BossController : MonoBehaviour
 {
+    private static readonly int IsMovingParameter = Animator.StringToHash("IsMoving");
+    private static readonly int FacingXParameter = Animator.StringToHash("FacingX");
+    private static readonly int FacingYParameter = Animator.StringToHash("FacingY");
+
     [Header("참조")]
     [SerializeField] private Transform target;
     [SerializeField] private BossPatternSelector patternSelector;
+    [SerializeField] private Animator animator;
 
     [Header("패턴 선택 거리")]
     [SerializeField, Min(0.01f)] private float closeRange = 2f;
@@ -38,6 +44,12 @@ public sealed class BossController : MonoBehaviour
     private Coroutine patternRoutine;
     private BossPattern nextNormalPattern = BossPattern.Pattern1;
     private float nextPatternTime;
+    private bool attackAnimationRunning;
+    private bool attackAnimationFinished;
+    private bool attackHitApplied;
+    private bool locomotionMoving;
+    private Vector2 attackForward;
+    private Vector2 facingDirection = Vector2.down;
 
     public Transform Target => target;
     public float CloseRange => closeRange;
@@ -60,6 +72,7 @@ public sealed class BossController : MonoBehaviour
         follow = GetComponent<EnemyFollow>();
         health = GetComponent<EnemyHealth>();
         body = GetComponent<Rigidbody2D>();
+        if (animator == null) animator = GetComponent<Animator>();
         if (patternSelector == null) patternSelector = GetComponent<BossPatternSelector>();
     }
 
@@ -83,7 +96,14 @@ public sealed class BossController : MonoBehaviour
         follow.enabled = true;
         nextNormalPattern = BossPattern.Pattern1;
         nextPatternTime = Time.time;
+        locomotionMoving = false;
+        UpdateAnimatorLocomotion();
         patternRoutine = StartCoroutine(PatternLoop());
+    }
+
+    private void Update()
+    {
+        UpdateAnimatorLocomotion();
     }
 
     public void SetTarget(Transform newTarget)
@@ -116,9 +136,7 @@ public sealed class BossController : MonoBehaviour
             {
                 case BossPattern.Pattern1:
                     ActivePattern = BossPattern.Pattern1;
-                    Debug.Log("패턴 1 시작!", this);
-                    PerformForwardSlash();
-                    yield return null;
+                    yield return PlaySlashAnimation(false);
                     ActivePattern = BossPattern.None;
                     nextNormalPattern = BossPattern.Pattern2;
                     nextPatternTime = Time.time + pattern1ToPattern2Delay;
@@ -126,12 +144,10 @@ public sealed class BossController : MonoBehaviour
 
                 case BossPattern.Pattern2:
                     ActivePattern = BossPattern.Pattern2;
-                    Debug.Log("패턴 2 시작!", this);
-                    PerformForwardSlash();
+                    yield return PlaySlashAnimation(false);
                     if (doubleSlashInterval > 0f)
                         yield return new WaitForSeconds(doubleSlashInterval);
-                    if (CanAttackTarget()) PerformForwardSlash();
-                    yield return null;
+                    if (CanAttackTarget()) yield return PlaySlashAnimation(true);
                     ActivePattern = BossPattern.None;
                     nextNormalPattern = BossPattern.Pattern1;
                     nextPatternTime = Time.time + pattern2ToPattern1Delay;
@@ -160,16 +176,68 @@ public sealed class BossController : MonoBehaviour
         return patternSelector.SelectPattern(distance, (int)health.CurrentHealth, nextNormalPattern);
     }
 
-    private void PerformForwardSlash()
+    private IEnumerator PlaySlashAnimation(bool useLeftHand)
+    {
+        if (!CanAttackTarget()) yield break;
+
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+        {
+            Debug.LogError("Boss attack animation requires an enabled Animator with the Boss Animator Controller.", this);
+            yield break;
+        }
+
+        Vector2 targetOffset = (Vector2)target.position - body.position;
+        if (targetOffset.sqrMagnitude <= Mathf.Epsilon) yield break;
+
+        // Lock facing at the start so the visible attack and hit arc stay aligned during windup.
+        attackForward = targetOffset.normalized;
+        string direction = GetAttackDirection(attackForward);
+        string stateName = useLeftHand ? $"Base Layer.Boss_SwipeLeft_{direction}" : $"Base Layer.Boss_Swipe_{direction}";
+        int stateHash = Animator.StringToHash(stateName);
+        if (!animator.HasState(0, stateHash))
+        {
+            Debug.LogError($"Boss Animator Controller is missing state '{stateName}'.", this);
+            yield break;
+        }
+
+        bool wasFollowing = follow.enabled;
+        follow.enabled = false;
+        attackAnimationRunning = true;
+        attackAnimationFinished = false;
+        attackHitApplied = false;
+        animator.Play(stateHash, 0, 0f);
+        animator.Update(0f);
+
+        while (CanAttackTarget() && !attackAnimationFinished)
+            yield return null;
+
+        attackAnimationRunning = false;
+        if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
+        {
+            follow.SetTarget(target, closeRange);
+            follow.enabled = true;
+        }
+    }
+
+    /// <summary>Animation Event at the impact frame of each swipe clip.</summary>
+    public void AnimationEvent_ApplySlashDamage()
+    {
+        if (!attackAnimationRunning || attackHitApplied || !CanAttackTarget()) return;
+        attackHitApplied = true;
+        PerformForwardSlash(attackForward);
+    }
+
+    /// <summary>Animation Event at the end of each swipe clip.</summary>
+    public void AnimationEvent_AttackAnimationFinished()
+    {
+        if (attackAnimationRunning) attackAnimationFinished = true;
+    }
+
+    private void PerformForwardSlash(Vector2 forward)
     {
         if (!CanAttackTarget()) return;
 
         Vector2 origin = body.position;
-        Vector2 targetOffset = (Vector2)target.position - origin;
-        if (targetOffset.sqrMagnitude <= Mathf.Epsilon) return;
-
-        // 할퀴기가 시작되는 순간 플레이어 위치를 향해 공격 방향을 정한다.
-        Vector2 forward = targetOffset.normalized;
         float minimumDot = Mathf.Cos(Mathf.Clamp(slashAngle, 1f, 360f) * 0.5f * Mathf.Deg2Rad);
         var damagedReceivers = new HashSet<IContactDamageReceiver>();
 
@@ -184,6 +252,67 @@ public sealed class BossController : MonoBehaviour
             if (offset.sqrMagnitude > Mathf.Epsilon && Vector2.Dot(forward, offset.normalized) < minimumDot) continue;
             receiver.TakeContactDamage(damage, gameObject);
         }
+    }
+
+    private static string GetAttackDirection(Vector2 forward)
+    {
+        float angle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
+        if (angle < 0f) angle += 360f;
+        int octant = Mathf.RoundToInt(angle / 45f) % 8;
+        switch (octant)
+        {
+            case 0: return "East";
+            case 1: return "NorthEast";
+            case 2: return "North";
+            case 3: return "NorthWest";
+            case 4: return "West";
+            case 5: return "SouthWest";
+            case 6: return "South";
+            default: return "SouthEast";
+        }
+    }
+
+    private void UpdateAnimatorLocomotion()
+    {
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled) return;
+
+        bool hasTarget = target != null && target.gameObject.activeInHierarchy;
+        float distance = hasTarget ? Vector2.Distance(body.position, target.position) : 0f;
+        if (hasTarget)
+        {
+            Vector2 offset = (Vector2)target.position - body.position;
+            if (offset.sqrMagnitude > Mathf.Epsilon)
+                facingDirection = GetOctantDirection(offset);
+        }
+
+        animator.SetFloat(FacingXParameter, facingDirection.x);
+        animator.SetFloat(FacingYParameter, facingDirection.y);
+        if (!hasTarget || !follow.enabled)
+        {
+            locomotionMoving = false;
+        }
+        else if (ActivePattern == BossPattern.Pattern3)
+        {
+            locomotionMoving = true;
+        }
+        else if (locomotionMoving)
+        {
+            locomotionMoving = distance > closeRange + 0.02f;
+        }
+        else
+        {
+            locomotionMoving = distance > closeRange + 0.1f;
+        }
+
+        animator.SetBool(IsMovingParameter, locomotionMoving);
+    }
+
+    private static Vector2 GetOctantDirection(Vector2 direction)
+    {
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        int octant = Mathf.RoundToInt(angle / 45f);
+        float quantizedAngle = octant * 45f * Mathf.Deg2Rad;
+        return new Vector2(Mathf.Cos(quantizedAngle), Mathf.Sin(quantizedAngle));
     }
 
     private IEnumerator DashToTrackedTarget()
@@ -236,6 +365,10 @@ public sealed class BossController : MonoBehaviour
             StopCoroutine(patternRoutine);
             patternRoutine = null;
         }
+        attackAnimationRunning = false;
+        locomotionMoving = false;
+        if (animator != null && animator.runtimeAnimatorController != null)
+            animator.SetBool(IsMovingParameter, false);
         enabled = false;
     }
 
@@ -248,7 +381,12 @@ public sealed class BossController : MonoBehaviour
             StopCoroutine(patternRoutine);
             patternRoutine = null;
         }
+        attackAnimationRunning = false;
+        attackAnimationFinished = false;
+        locomotionMoving = false;
         if (follow != null) follow.enabled = false;
+        if (animator != null && animator.runtimeAnimatorController != null)
+            animator.SetBool(IsMovingParameter, false);
     }
 
     private void OnValidate()

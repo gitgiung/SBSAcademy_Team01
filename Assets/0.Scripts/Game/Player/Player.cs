@@ -149,13 +149,17 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     public void TakeContactDamage(float damage, GameObject source)
     {
+        Debug.Log("TakeContactDamage 실행", this);
         TakeDamage(damage, source);
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag(enemyTag))
+        {
+            Debug.Log("OnCollisionEnter2D TakeDamage 실행", this);
             TakeDamage(10f, collision.gameObject);
+        }
     }
 
     private void OnDisable()

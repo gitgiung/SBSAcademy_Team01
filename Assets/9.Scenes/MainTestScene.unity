@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 100
+  bossAppearTime: 30
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:

@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 2026-11-03 CombatPopupController CS0618 경고 수정
+
+- 현재 브랜치 `main`, HEAD `756c2ee`. 이전 작업은 `dcc8e43`에 커밋됐고 이후 보스 병합이 들어온 상태다. 시작 시 Player_GiungTest 스크립트/asmdef 및 meta 삭제, Boss.controller·MainTestScene·NanumGothic Combat SDF 사용자 변경이 있었으며 건드리지 않았다.
+- CombatPopupController.ShowPause의 `FindObjectsByType<Player>(FindObjectsSortMode.None)`를 Unity6000.5의 인자 없는 `FindObjectsByType<Player>()`로 한 줄 변경했다. 같은 씬 필터와 첫 Player 선택 동작은 유지한다. 다른 파일의 검색 호출이나 사용자 변경은 일괄 수정하지 않았다.
+- 검증: 이전 임시 Unity6000.5 검증본에 해당 파일을 반영해 C# 컴파일 및 CombatPopupTests13 + PlayerStatusTests9 = **22/22 통과**, 실패/생략0. 해당 파일의 CS0618/컴파일 오류 로그가 없는지 확인했다. git diff --check 통과. 현재 보스 병합·사용자 변경까지 포함한 원본 전체 프로젝트 검증은 아니다.
+- 결과 `.utmp/PopupApiWarning/final.xml`, `final.log`. 새 테스트는 추가하지 않고 기존 관련 회귀를 실행했다. 커밋·브랜치 전환 없음.
+- 직접 확인: Unity 재컴파일 완료 → Console에서 CombatPopupController의 해당 CS0618 경고가 새로 발생하지 않는지 확인 → MainTestScene → Play → 일시정지 상태창 열기/뒤로가기. 기존과 같이 스탯·보유 목록 표시 및 전투 정지/재개가 정상이어야 한다. 오류가 남으면 파일/줄 번호가 같은지, Console 첫 새 오류와 상세 스택을 확인한다.
+- 다음 작업은 기존 우선순위를 유지한다: 실제 스킬 실행/약공격 버튼·애니메이션·타격 연결. 병합 후 전체 프로젝트 기준 검증과 실제 원본 씬/기기 검증은 별도다.
+
 ## 2026-11-03 보유/장착 모델·일시정지 상태창·음량 옵션
 
 - 사용자 참고 이미지의 상태창 요청을 구현했다. 첫 이미지는 배치/색상, 두 번째는 영역 설명으로 사용했다. 기존 옵션 창이 없음을 확인한 뒤 사용자에게 음량 옵션 포함 승인을 받았다. `main`, HEAD `f3fd42c` 유지, 커밋/브랜치 전환 없음.

@@ -1,4 +1,0 @@
-{
-  "name": "PlayerMvp.Runtime",
-  "references": ["Combat.Runtime", "Unity.InputSystem"]
-}

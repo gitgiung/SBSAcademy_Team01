@@ -33,6 +33,9 @@ public class PlayerData : MonoBehaviour
     public float CurrentEXP => currentEXP;
     public event System.Action<float, float> EXPChanged;
 
+    [Header("EXP 획득 범위 설정")]
+    [Min(0f)] public float experiencePickupDistance;
+
     public bool IsDead => currentHealth <= 0f;
     public event System.Action<float, float> HealthChanged;
     public event System.Action PlayerDeath;
@@ -59,6 +62,17 @@ public class PlayerData : MonoBehaviour
         maxEXP = maximum;
         EXPChanged?.Invoke(currentEXP, maxEXP);
         return true;
+    }
+
+    /// <summary>줍기 등에서 EXP를 더합니다. 레벨업 요구량을 넘는 EXP도 보존합니다.</summary>
+    public bool AddEXP(float amount)
+    {
+        if (IsDead || !IsValidAmount(amount) || amount <= 0f ||
+            !IsValidAmount(currentEXP) || !IsValidAmount(maxEXP))
+            return false;
+
+        float updatedEXP = currentEXP + amount;
+        return IsValidAmount(updatedEXP) && SetEXP(updatedEXP, maxEXP);
     }
 
     [ContextMenu("MP/현재 설정으로 초기화")]

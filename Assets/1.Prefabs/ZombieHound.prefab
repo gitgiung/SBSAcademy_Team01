@@ -157,6 +157,7 @@ MonoBehaviour:
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 1, b: 1, a: 1}
   healthSlider: {fileID: 0}
+  experiencePickupPrefab: {fileID: 667000001, guid: a99aa10095504c88b1039952cf5f1925, type: 3}
 --- !u!114 &1000007
 MonoBehaviour:
   m_ObjectHideFlags: 0

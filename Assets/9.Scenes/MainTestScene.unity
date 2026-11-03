@@ -1101,6 +1101,7 @@ GameObject:
   - component: {fileID: 454020004}
   - component: {fileID: 454020001}
   - component: {fileID: 454020000}
+  - component: {fileID: 454020005}
   m_Layer: 0
   m_Name: Player Target
   m_TagString: Player
@@ -1538,6 +1539,7 @@ MonoBehaviour:
   parryMPRecovery: 10
   maxEXP: 10
   currentEXP: 4
+  experiencePickupDistance: 0
 --- !u!61 &454020003
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1598,6 +1600,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
   variableJoystick: {fileID: 1269801976}
   playerData: {fileID: 0}
+--- !u!114 &454020005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454019994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a852ca3937e4a6fbc53dd0e3f91cbb8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldWrap2D
+  sourceTilemap: {fileID: 1127740548}
+  boundsRect:
+    serializedVersion: 2
+    x: -37
+    y: -21
+    width: 67
+    height: 37
 --- !u!1 &496842390
 GameObject:
   m_ObjectHideFlags: 0
@@ -3047,8 +3068,8 @@ Transform:
   m_GameObject: {fileID: 1127740545}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 1.5264, y: 1.778, z: 0}
+  m_LocalScale: {x: 1.0413, y: 1.0847, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 284775363}

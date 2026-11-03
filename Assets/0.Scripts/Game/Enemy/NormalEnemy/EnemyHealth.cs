@@ -15,6 +15,9 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     [Header("UI 설정(보스한테만 해당)")]
     [SerializeField] private Slider healthSlider;
 
+    [Header("경험치 드랍")]
+    [SerializeField] private GameObject experiencePickupPrefab; // 적 사망 시 드랍할 경험치 오브젝트 프리팹. null이면 드랍하지 않음
+
     public float CurrentHealth { get; private set; }
     public bool IsDead { get; private set; }
     public event System.Action Died;
@@ -177,8 +180,21 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
         if (TryGetComponent<Rigidbody2D>(out var body)) body.simulated = false;
 
-        try { Died?.Invoke(); }
+        try
+        {
+            SpawnExperiencePickup();
+            Died?.Invoke();
+        }
         finally { Despawn(); }
+    }
+
+    private void SpawnExperiencePickup()
+    {
+        if (experiencePickupPrefab == null) return;
+
+        GameObject pickupObject = Instantiate(experiencePickupPrefab, transform.position, Quaternion.identity);
+        if (pickupObject.TryGetComponent<IExperiencePickup>(out var pickup))
+            pickup.Initialize(follow != null ? follow.Target : null);
     }
 
     private void OnDisable()

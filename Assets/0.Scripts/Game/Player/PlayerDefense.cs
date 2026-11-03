@@ -18,6 +18,8 @@ internal sealed class PlayerDefense
     private bool canStart = true;
     private bool isParrying;
     private bool isGuarding;
+    private bool parrySucceeded;
+    private bool parryVfxPlayed;
 
     public bool CanStart => canStart;
     public bool IsBlockingDamage => isParrying || isGuarding;
@@ -43,6 +45,8 @@ internal sealed class PlayerDefense
         int version = ++actionVersion;
         canStart = false;
         isParrying = true;
+        parrySucceeded = false;
+        parryVfxPlayed = false;
         view.PlayParryAnimation();
         if (parryStartup > 0f) yield return new WaitForSeconds(parryStartup);
         if (version != actionVersion) yield break;
@@ -52,9 +56,10 @@ internal sealed class PlayerDefense
         while (activeTimer < parryActive)
         {
             if (version != actionVersion) yield break;
-            if (boss != null && boss.TryParry())
+            if ((boss != null && boss.TryParry()) || parrySucceeded)
             {
                 succeeded = true;
+                if (!parryVfxPlayed) view.PlayParryVfx();
                 break;
             }
             activeTimer += Time.deltaTime;
@@ -109,6 +114,16 @@ internal sealed class PlayerDefense
 
         canStart = true;
         Debug.Log("[패링/가드 쿨타임 종료] 재사용 가능");
+    }
+
+    /// <summary>Marks an incoming attack blocked during the parry window as a successful parry.</summary>
+    public void NotifyIncomingAttackBlocked()
+    {
+        if (!isParrying) return;
+        parrySucceeded = true;
+        if (parryVfxPlayed) return;
+        parryVfxPlayed = true;
+        view.PlayParryVfx();
     }
 
     /// <summary>Immediately ends defense when a dash takes priority over parry or guard.</summary>

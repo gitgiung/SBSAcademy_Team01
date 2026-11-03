@@ -9,7 +9,17 @@ public sealed class EnemyContactDamage : MonoBehaviour
 
     private float nextDamageTime;
 
-    private void OnTriggerStay2D(Collider2D other)
+    private void OnTriggerStay2D(Collider2D other) // ºÎµúÇû³Ä °Ë»ç¿ë
+    {
+        TryApplyContactDamage(other);
+    }
+
+    private void OnCollisionStay2D(Collision2D collision) // ºÎµúÇû³Ä °Ë»ç¿ë
+    {
+        TryApplyContactDamage(collision.collider);
+    }
+
+    private void TryApplyContactDamage(Collider2D other)
     {
         if (Time.time < nextDamageTime) return;
         var receiver = other.GetComponentInParent(typeof(IContactDamageReceiver)) as IContactDamageReceiver;

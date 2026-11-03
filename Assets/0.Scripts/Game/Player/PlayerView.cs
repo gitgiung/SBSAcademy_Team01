@@ -9,13 +9,17 @@ internal sealed class PlayerView
     private readonly Slider healthSlider;
     private readonly PlayerData data;
     private readonly Animator animator;
+    private readonly PlayerDefenseVfx defenseVfx;
     private Vector2 facingDirection = Vector2.down;
+    public Vector2 FacingDirection => facingDirection;
 
-    public PlayerView(SpriteRenderer spriteRenderer, Slider healthSlider, PlayerData data, Animator animator)
+    public PlayerView(Transform player, SpriteRenderer spriteRenderer, Slider healthSlider, PlayerData data, Animator animator)
     {
         this.healthSlider = healthSlider;
         this.data = data;
         this.animator = animator;
+        defenseVfx = player.gameObject.AddComponent<PlayerDefenseVfx>();
+        defenseVfx.Initialize(player, spriteRenderer);
         data.HealthChanged += OnHealthChanged;
         RefreshHealth();
     }
@@ -26,8 +30,11 @@ internal sealed class PlayerView
             animator.SetTrigger(ParryParameter);
     }
 
+    public void PlayParryVfx() => defenseVfx.PlayParry();
+
     public void SetGuardAnimation(bool isGuarding)
     {
+        defenseVfx.SetGuard(isGuarding);
         if (HasParameter(IsGuardingParameter, AnimatorControllerParameterType.Bool))
             animator.SetBool(IsGuardingParameter, isGuarding);
     }
@@ -53,6 +60,7 @@ internal sealed class PlayerView
 
     public void Reset()
     {
+        defenseVfx.ResetVfx();
         if (animator != null && animator.runtimeAnimatorController != null)
         {
             animator.SetBool("IsMoving", false);

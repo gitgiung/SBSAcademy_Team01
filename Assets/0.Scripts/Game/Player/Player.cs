@@ -49,9 +49,13 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     private PlayerMovement movement;
     private PlayerCombat combat;
     private PlayerDefense defense;
+    private PlayerController2D joystickController;
     private InputAction moveInput;
     private InputAction dashInput;
     private InputAction parryInput;
+    private bool lastExternalMoving;
+
+    public bool IsDashing => movement != null && movement.IsDashing;
 
     private void OnEnable()
     {
@@ -74,6 +78,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     private void Awake()
     {
+        joystickController = GetComponent<PlayerController2D>();
         if (data == null) data = GetComponent<PlayerData>();
         if (playerSpriteRenderer == null) playerSpriteRenderer = GetComponent<SpriteRenderer>();
         if (playerAnimator == null) playerAnimator = GetComponent<Animator>();
@@ -88,7 +93,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
             return;
         }
 
-        view = new PlayerView(playerSpriteRenderer, healthSlider, data, playerAnimator);
+        view = new PlayerView(transform, playerSpriteRenderer, healthSlider, data, playerAnimator);
         defense = new PlayerDefense(boss, view, parryStartup, parryActive, parryRecovery,
             guardTransitionTime, maxGuardDuration, normalGuardCooldown, breakGuardCooldown);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
@@ -105,17 +110,33 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (Time.timeScale <= 0f) return;
 
+        bool useJoystick = joystickController != null && joystickController.enabled;
         Vector2 moveDirection = moveInput.ReadValue<Vector2>();
-        if (dashInput.WasPressedThisFrame() && movement.TryBeginDash(moveDirection,
-                dashDuration, dashSpeedMultiplier, dashCooldown))
+        if (useJoystick)
         {
-            defense.CancelForDash();
-            StartCoroutine(movement.DashRoutine());
+            Vector2 dashDirection = joystickController.MovementDirection.sqrMagnitude > 0.0001f
+                ? joystickController.MovementDirection
+                : view.FacingDirection;
+            if (dashInput.WasPressedThisFrame() && movement.TryBeginDash(dashDirection,
+                    dashDuration, dashSpeedMultiplier, dashCooldown))
+            {
+                defense.CancelForDash();
+                StartCoroutine(movement.DashRoutine());
+            }
         }
+        else
+        {
+            if (dashInput.WasPressedThisFrame() && movement.TryBeginDash(moveDirection,
+                    dashDuration, dashSpeedMultiplier, dashCooldown))
+            {
+                defense.CancelForDash();
+                StartCoroutine(movement.DashRoutine());
+            }
 
-        movement.Tick(moveDirection);
-        view.SetMovementAnimation(moveDirection, moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
-            movement.IsDashing, dashDuration);
+            movement.Tick(moveDirection);
+            view.SetMovementAnimation(moveDirection, moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
+                movement.IsDashing, dashDuration);
+        }
         combat.Tick(Time.deltaTime);
 
         if (!movement.IsDashing && parryInput.WasPressedThisFrame() && defense.CanStart)
@@ -131,7 +152,10 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         if (movement.IsDashing || defense.IsBlockingDamage)
         {
             if (defense.IsBlockingDamage)
+            {
+                defense.NotifyIncomingAttackBlocked();
                 Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
+            }
             return;
         }
 
@@ -153,12 +177,14 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         TakeDamage(damage, source);
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    /// <summary>Updates player visuals from an external movement source such as the mobile joystick.</summary>
+    public void SetExternalMovementAnimation(Vector2 moveDirection, bool isDashing = false)
     {
-        if (collision.gameObject.CompareTag(enemyTag))
+        bool isMoving = moveDirection.sqrMagnitude > 0.0001f;
+        view?.SetMovementAnimation(moveDirection, isMoving && !isDashing, isDashing, dashDuration);
+        if (isMoving != lastExternalMoving)
         {
-            Debug.Log("OnCollisionEnter2D TakeDamage 실행", this);
-            TakeDamage(10f, collision.gameObject);
+            lastExternalMoving = isMoving;
         }
     }
 

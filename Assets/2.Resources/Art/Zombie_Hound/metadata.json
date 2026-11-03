@@ -1,0 +1,14 @@
+{
+  "character_id": "03ec94f8-74fe-493c-8d9b-f1ccd9e283c6",
+  "name": "Zombie Hound",
+  "role": "Vampire Survivors bat equivalent. Fast quadruped contact enemy. Spawn timing and a speed above the basic monster are not set in the monster design.",
+  "size": { "width": 64, "height": 64 },
+  "view": "low top-down",
+  "frames": {
+    "rotations": "Idle/rotations",
+    "idle": "Idle/animations/idle",
+    "run": "Idle/animations/run"
+  },
+  "frame_count": 8,
+  "directions": ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
+}

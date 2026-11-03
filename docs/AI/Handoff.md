@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-03 좀비 들개
+
+- 시작 상태: `main`, HEAD `13e4abe`. 몬스터 기획서에는 기본 좀비 HP 3·공격력 10만 확정돼 있고, 들개·박쥐 대응 수치는 없다. `EnemyDatatable.xlsx`는 엑셀이 열어 둔 상태라 읽거나 수정하지 않음.
+- 완료: 64px 8방향 좀비 들개. 회전, idle 8프레임, run 8프레임. 클립 `HoundIdle_*`·`HoundRun_*`, 컨트롤러 `ZombieHound.controller`, 프리팹 `Assets/1.Prefabs/ZombieHound.prefab`. 이동 방향에 따라 idle/run이 바뀐다. 체력 3, 접촉 피해 10, 이동 속도 3은 기본 일반 몬스터와 `EnemyMvp`와 같다. 스폰 타임라인에는 넣지 않음.
+- 검증: 남·동·북 회전과 남쪽 idle·run 프레임을 눈으로 확인. PNG 136장, Point 메타 136개, 클립 16개. Unity 테스트 0개. 에디터 재생, 씬, 빌드, 기기는 확인하지 않음.
+- 다음 확인: Unity 임포트 후 `ZombieHound` 프리팹을 테스트 씬에 두거나 `Enemy Spawn System`의 Enemy Prefabs에 넣는다. 플레이어를 따라 달리면 run, 붙으면 idle. 그림이 비면 `Zombie_Hound` Reimport.
+- 속도·무리 스폰 수치는 기획 미정이라 확정하지 않음.
+
 ## 2026-11-03 Beast Zombie Boss idle 모션
 
 - 시작 상태: `main`, HEAD `7cd15af`. Beast Zombie Boss의 8방향 `BossIdle_*` 클립은 회전 스프라이트 1장을 두 번 붙잡은 정지 클립이었다.

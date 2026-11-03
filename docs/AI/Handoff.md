@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-03 EnemyMvp 애니메이션 및 유실 설정 복원
+
+- 시작 상태: EnemyEXP,MAP, HEAD b71b791. Git 변경은 Assets/_Recovery 및 meta만 있었고 이전 대화에서 추가한 애니메이션과 사용자 수정이 사라진 상태였다. _Recovery는 보존했다.
+- 복원: Zombie/Animator에 8방향 대기 4프레임·이동 8프레임의 12fps 루프 클립 16개와 Zombie.controller 재생성. EnemyMvp에 Animator와 기존 EnemyDirectionAnimator 연결. 대기·이동 상태 Speed 0.5로 실효 6fps(프레임 간격 약 0.167초).
+- 대화에서 확인한 사용자 설정 복원: EnemyMvp의 남쪽 좀비 스프라이트, maxHealth 10, 빨간 피격 색, 콜라이더 oldSize 0.3×0.6, EnemyHealth UI 헤더. 콜라이더 실제 크기와 이동 속도 3 유지. 컴포넌트 직렬화 순서는 현재 순서 유지. 씬과 복구 파일은 수정하지 않음.
+- 검증: 클립 16개·소스 스프라이트 96개 참조와 컨트롤러 참조 16개, Speed 0.5 두 상태, 프리팹 ID 중복 없음 검사 통과. Unity 테스트 0개. 에디터 임포트·컴파일·재생 및 빌드·기기 미검증. 이전 Unity 먹통 원인은 확정하지 못함.
+- 다음 확인: Unity 임포트 완료 → Assets/1.Prefabs/EnemyMvp 선택 → Animator Controller Zombie, EnemyDirectionAnimator 연결, EnemyHealth Max Health 10과 빨간 Hit Color 확인 → MainTestScene 등 EnemyMvp 사용 씬에서 Play → 8방향 추적 중 이동 모션, 정지 시 대기 모션을 느리게 반복하는지 확인. 오류 시 Console과 Controller 참조 확인. 모르는 미저장 씬 변경은 이 복원에 포함되지 않음.
+
 ## 2026-11-03 좀비 들개
 
 - 시작 상태: `main`, HEAD `13e4abe`. 몬스터 기획서에는 기본 좀비 HP 3·공격력 10만 확정돼 있고, 들개·박쥐 대응 수치는 없다. `EnemyDatatable.xlsx`는 엑셀이 열어 둔 상태라 읽거나 수정하지 않음.

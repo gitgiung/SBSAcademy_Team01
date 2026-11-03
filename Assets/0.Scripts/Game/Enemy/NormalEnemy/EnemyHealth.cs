@@ -12,7 +12,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     [SerializeField, Min(0f)] private float hitFlashDuration = 0.1f;
     [SerializeField] private Color hitColor = Color.white;
 
-    [Header("UI 설정")]
+    [Header("UI 설정(보스한테만 해당)")]
     [SerializeField] private Slider healthSlider;
 
     public float CurrentHealth { get; private set; }

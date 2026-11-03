@@ -28,6 +28,20 @@
           "south-west": "Idle/rotations/south-west.png"
         },
         "animations": {
+          "idle": {
+            "template": "breathing-idle",
+            "frame_count": 4,
+            "directions": {
+              "south": "Idle/animations/idle/south",
+              "south-east": "Idle/animations/idle/south-east",
+              "east": "Idle/animations/idle/east",
+              "north-east": "Idle/animations/idle/north-east",
+              "north": "Idle/animations/idle/north",
+              "north-west": "Idle/animations/idle/north-west",
+              "west": "Idle/animations/idle/west",
+              "south-west": "Idle/animations/idle/south-west"
+            }
+          },
           "move": {
             "template": "walking-8-frames",
             "frame_count": 8,

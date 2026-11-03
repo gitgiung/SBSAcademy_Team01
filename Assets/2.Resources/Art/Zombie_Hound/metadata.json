@@ -1,8 +1,9 @@
 {
-  "character_id": "03ec94f8-74fe-493c-8d9b-f1ccd9e283c6",
+  "character_id": "30e3b20a-c9f2-4ed9-aca7-cda990aae8c0",
   "name": "Zombie Hound",
+  "breed": "English foxhound, scent-hound lineage",
   "role": "Vampire Survivors bat equivalent. Fast quadruped contact enemy. Spawn timing and a speed above the basic monster are not set in the monster design.",
-  "size": { "width": 64, "height": 64 },
+  "size": { "width": 96, "height": 96 },
   "view": "low top-down",
   "frames": {
     "rotations": "Idle/rotations",

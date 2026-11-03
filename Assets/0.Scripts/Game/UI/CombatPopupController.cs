@@ -13,6 +13,8 @@ public sealed class CombatPopupController : MonoBehaviour
     [SerializeField] private UI_CombatPopup pausePopup;
     [SerializeField] private UI_CombatPopup levelUpPopup;
     [SerializeField] private GameManager gameManager;
+    [SerializeField] private Player statusPlayer;
+    private PlayerStatusPanel statusPanel;
 
     private readonly HashSet<UI_CombatPopup> activePopups = new HashSet<UI_CombatPopup>();
     private float previousTimeScale;
@@ -49,6 +51,18 @@ public sealed class CombatPopupController : MonoBehaviour
     public UI_CombatPopup ShowPause()
     {
         if (!CanShow() || pausePopup == null) return null;
+        if (pausePopup.ContentRoot != null && pausePopup.CloseButton != null)
+        {
+            if (statusPlayer == null)
+                foreach (Player candidate in FindObjectsByType<Player>(FindObjectsSortMode.None))
+                    if (candidate.gameObject.scene == gameObject.scene) { statusPlayer = candidate; break; }
+            if (statusPanel == null)
+                statusPanel = Util.GetOrAddComponent<PlayerStatusPanel>(pausePopup.gameObject);
+            TMPro.TMP_FontAsset font = null;
+            foreach (var label in pausePopup.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                if (label.font != null) { font = label.font; break; }
+            statusPanel.Initialize(pausePopup.ContentRoot, pausePopup.CloseButton, statusPlayer != null ? statusPlayer.data : null, font);
+        }
         UI_CombatPopup popup = Managers.UI.ShowPopupUI<UI_CombatPopup>(PauseKey);
         if (popup != null) popup.Focus();
         return popup;

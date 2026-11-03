@@ -5,6 +5,28 @@ public class SoundManager
     private AudioSource[] _audioSources = new AudioSource[(int)Define.ESound.Max];
     private GameObject _soundRoot = null;
     private Transform soundParent;
+    private readonly float[] volumes = { 1f, 1f };
+
+    public float MasterVolume
+    {
+        get => AudioListener.volume;
+        set { if (!float.IsNaN(value) && !float.IsInfinity(value)) AudioListener.volume = Mathf.Clamp01(value); }
+    }
+
+    public float GetVolume(Define.ESound type)
+    {
+        int index = (int)type;
+        return index >= 0 && index < volumes.Length ? volumes[index] : 0f;
+    }
+
+    public void SetVolume(Define.ESound type, float value)
+    {
+        int index = (int)type;
+        if (index < 0 || index >= volumes.Length || float.IsNaN(value) || float.IsInfinity(value)) return;
+        volumes[index] = Mathf.Clamp01(value);
+        AudioSource source = GetSource(type);
+        if (source != null) source.volume = volumes[index];
+    }
 
     public void Init()
     {
@@ -44,6 +66,7 @@ public class SoundManager
 
             _audioSources[index] = Util.GetOrAddComponent<AudioSource>(child.gameObject);
             _audioSources[index].playOnAwake = false;
+            _audioSources[index].volume = volumes[index];
         }
 
         _audioSources[(int)Define.ESound.Bgm].loop = true;

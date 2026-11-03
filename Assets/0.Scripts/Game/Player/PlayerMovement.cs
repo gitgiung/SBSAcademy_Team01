@@ -29,10 +29,12 @@ internal sealed class PlayerMovement
         transform.position += (Vector3)(direction * data.speed * speedMultiplier() * Time.deltaTime);
     }
 
+    public bool CanBeginDash(Vector2 direction) =>
+        !IsDashing && Time.time >= nextDashTime && direction.sqrMagnitude >= 0.0001f;
+
     public bool TryBeginDash(Vector2 direction, float duration, float speedMultiplier, float cooldown)
     {
-        if (IsDashing || Time.time < nextDashTime || direction.sqrMagnitude < 0.0001f)
-            return false;
+        if (!CanBeginDash(direction)) return false;
 
         dashDirection = direction.normalized;
         dashDuration = Mathf.Max(0.01f, duration);
@@ -45,7 +47,7 @@ internal sealed class PlayerMovement
     public IEnumerator DashRoutine()
     {
         float elapsed = 0f;
-        while (elapsed < dashDuration)
+        while (IsDashing && elapsed < dashDuration)
         {
             float deltaTime = Time.deltaTime;
             transform.position += (Vector3)(dashDirection * data.speed * dashSpeedMultiplier * deltaTime);

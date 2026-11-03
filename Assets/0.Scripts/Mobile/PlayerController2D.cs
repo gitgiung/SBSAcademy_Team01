@@ -21,12 +21,22 @@ public class PlayerController2D : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (player != null && (!player.CanAcceptGameplayInput || player.IsDashing))
+        {
+            StopMovement();
+            return;
+        }
         joystickDirection = variableJoystick == null
             ? Vector2.zero
             : new Vector2(variableJoystick.Horizontal, variableJoystick.Vertical);
-        rb.linearVelocity = player != null && player.IsDashing
-            ? Vector2.zero
-            : joystickDirection * playerData.speed;
+        rb.linearVelocity = joystickDirection * playerData.speed;
+    }
+
+    public void StopMovement()
+    {
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        rb.linearVelocity = Vector2.zero;
+        joystickDirection = Vector2.zero;
     }
 
     private void Update()

@@ -1,5 +1,17 @@
 # 작업 인수인계
 
+## 최신 작업 상태 — 2026-11-03 종료 요청: 강공격 차징 구현 중
+
+**다음 세션은 이 절과 `docs/AI/HeavyChargeHandoff.md`부터 읽는다.** 사용자가 컴퓨터를 끄기 위해 작업을 중단하고 인수인계를 요청했다. 강공격은 아직 완료/컴파일 검증되지 않았다. 아래의 이전 완료 기록을 현재 차징 변경의 통과 결과로 쓰지 않는다.
+
+- 실제 확인한 상태: `feat/PlayerSkill`, HEAD `3da8308` (`테스트용 불꽃 탄환`). 앞선 약공격·패시브·보스 HP 수정은 이 커밋에 포함되어 현재 작업 트리 변경 목록에는 없음. 다음 세션에서도 git 상태를 새로 확인한다.
+- 미커밋 변경: Player.cs 및 Mobile/PlayerController2D.cs. 미추적: Player.HeavyCharge.cs, PlayerHeavyCharge.cs, PlayerHeavyAttackButton.cs, PlayerHeavyChargeTests.cs, PlayerHeavyChargeIntegrationTests.cs, 강공격 계획 문서. 이 인수인계 문서 변경도 추가됨. reset/clean/restore 또는 브랜치 전환으로 없애지 않는다.
+- 승인 완료: 차징 중 이동 차단·조준 변경 허용. 방어/회피/피격 취소 시 MP 반환 없음. 테스트 MP10, 단계 진입0/.4/.8초, 누적 배율1.1/1.2/1.7. 이 수치는 Inspector에서 변경 가능하게 한다. 정식 데이터 테이블 연결은 준비될 때까지 미룬다.
+- 구현 초안: 비용1회/스냅샷/3단계/해제 결과/취소 엔진, C_Attack 포인터 bridge, Player partial 연결, 모바일 이동·조준 분리까지 작성. 실제 강공격 피해/스킬 ID/공격 애니메이션/그로기는 이번 기반 범위가 아님.
+- **현재 막힌 지점:** Player.HeavyCharge.cs가 호출하는 `PlayerView.SetHeavyChargeIndicator`가 아직 구현되지 않음. 현 소스는 컴파일 가능한 완료 상태가 아니며 실제 변경 후 컴파일은 아직 실행하지 않았다. PlayerView 표시/정리, MainTestScene의 C_Attack 참조와 승인 설정, 새 파일 meta가 미완료.
+- 검증: 구현 전 새 단위 테스트12개 모두 실패(차징 타입 부재)를 확인한 것뿐. 구현 후 재컴파일/통과 테스트/통합 테스트/리뷰는 미실행. 마지막 상태 확인 시 실행 중 Unity 프로세스 없음. 컴퓨터 종료/재시작 명령을 실행한 적 없음.
+- 다음 순서: 표시 메서드와 정리 구현 → C_Attack/테스트 설정 최소 연결 → meta 준비 → 별도 검증 프로젝트에 최신 파일 반영 → 차징 단위·통합 및 관련 회귀 테스트 → 코드 리뷰/수정 → 실제 확인 절차·Handoff 갱신. 상세 API/파일/주의점은 HeavyChargeHandoff.md에 기록함.
+
 ## 2026-11-03 첫 약공격 불꽃 탄환 연결
 
 - 사용자 요청으로 이전 작업순서1(병합 전체 선행 재검증)을 생략하고2(첫 스킬 연결)를 진행했다. 시작/현재 `feat/PlayerSkill`, HEAD `ccac76f`, 시작 작업 트리 깨끗함. 임의 브랜치 전환·커밋 없음.

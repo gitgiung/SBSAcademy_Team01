@@ -142,7 +142,12 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void Update()
     {
-        if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
+        if (hasDied || data.IsDead) return;
+        if (Time.timeScale <= 0f)
+        {
+            CancelReleasedHeavyKey();
+            return;
+        }
         data.TickMPRecovery(Time.deltaTime);
         lightSkill.CheckAnimation();
         if (IsInputLocked)
@@ -154,25 +159,19 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         }
 
         bool useJoystick = joystickController != null && joystickController.enabled;
-        TickHeavyCharge();
         Vector2 moveDirection = moveInput.ReadValue<Vector2>();
-        if (useJoystick)
+        Vector2 dashDirection = useJoystick ? ReadAimDirection() : moveDirection;
+        // 실제 시작한 방어/회피가 같은 프레임의 키 해제보다 먼저 차징을 취소합니다.
+        if (dashInput.WasPressedThisFrame()) TryDash(dashDirection);
+        if (parryInput.WasPressedThisFrame()) TryParry();
+        TickHeavyCharge();
+        if (!useJoystick)
         {
-            Vector2 dashDirection = joystickController.MovementDirection.sqrMagnitude > 0.0001f
-                ? joystickController.MovementDirection
-                : view.FacingDirection;
-            if (dashInput.WasPressedThisFrame()) TryDash(dashDirection);
-        }
-        else
-        {
-            if (dashInput.WasPressedThisFrame()) TryDash(moveDirection);
-
             if (CanMove) movement.Tick(moveDirection);
             view.SetMovementAnimation(IsHeavyCharging ? heavyCharge.Direction : moveDirection,
                 CanMove && moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
                 movement.IsDashing, dashDuration);
         }
-        if (parryInput.WasPressedThisFrame()) TryParry();
         if (AttackPressedOutsideUI()) TryUseLightSkill();
         if (!defense.IsInDefenseMotion && !IsHeavyCharging) combat.Tick(Time.deltaTime);
     }

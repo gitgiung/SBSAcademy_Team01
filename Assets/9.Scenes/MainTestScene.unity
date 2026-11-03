@@ -1228,6 +1228,19 @@ MonoBehaviour:
   mpSlider: {fileID: 1395659084}
   expSlider: {fileID: 1801941379}
   lightAttackButton: {fileID: 1415531113}
+  heavyAttackButton: {fileID: 452539071}
+  heavyChargeSettings:
+    Configured: 1
+    MPCost: 10
+    StageTimes:
+    - 0
+    - 0.4
+    - 0.8
+    StageBonuses:
+    - 0.1
+    - 0.1
+    - 0.5
+    SuperArmor: 0
   lightAttackProjectile: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
   passiveProjectiles:
   - Key: FlameBullet

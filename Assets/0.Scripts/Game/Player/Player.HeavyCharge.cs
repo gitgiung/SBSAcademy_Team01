@@ -27,7 +27,7 @@ public sealed partial class Player
     {
         Vector2 aim = joystickController != null && joystickController.enabled
             ? joystickController.AimDirection : (moveInput != null ? moveInput.ReadValue<Vector2>() : Vector2.zero);
-        return aim.sqrMagnitude > .0001f ? aim : view.FacingDirection;
+        return aim.sqrMagnitude > .0001f ? aim : (IsHeavyCharging ? heavyCharge.Direction : view.FacingDirection);
     }
     private void InitializeHeavyCharge()
     {
@@ -67,6 +67,13 @@ public sealed partial class Player
     private void ResetHeavyCharge()
     {
         heavyCharge?.Cancel(); keyboardChargeId = 0; RefreshHeavyIndicator();
+    }
+    private void CancelReleasedHeavyKey()
+    {
+        if (keyboardChargeId == 0 || heavyInput == null || heavyInput.IsPressed()) return;
+        int id = keyboardChargeId;
+        keyboardChargeId = 0;
+        CancelHeavyCharge(id);
     }
     private void TickHeavyCharge()
     {

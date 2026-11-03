@@ -1,6 +1,21 @@
 # 작업 인수인계
 
-## 최신 작업 상태 — 2026-11-03 종료 요청: 강공격 차징 구현 중
+## 최신 작업 상태 — 2026-11-03 강공격 차징 기반 완료
+
+- `docs/AI/HeavyChargeHandoff.md`, 사용법 `docs/AI/HeavyCharge.md`, 상세 검증 `docs/AI/HeavyChargeValidation.md`를 함께 읽는다. 아래의 ‘종료 요청: 구현 중’ 기록은 이전 세션의 역사이며 현재 상태가 아니다.
+- 시작/종료 브랜치 `feat/PlayerSkill`, HEAD `526aaf6` (`강공격 작업중`), 시작 작업 트리 깨끗함. 이전 초안은 이미 커밋되어 있었다. 이번 작업은 미커밋으로 유지했으며 브랜치 전환 없음.
+- PlayerView의 빠진 SetHeavyChargeIndicator를 구현했다. 재사용하는 LineRenderer 화살표가 청록/노랑/주황으로 세 단계를 표시하고 진행도에 따라 길이가 늘어난다. 해제/취소/비활성화 시 숨김, Dispose 시 자식과 Material 정리. 이 길이는 피해 범위가 아니다.
+- MainTestScene에 C_Attack Button452539071과 승인 설정 MP10/단계0,.4,.8초/증분.1,.1,.5/SuperArmor=false만 13줄 추가했다. 새 런타임3·테스트2개의 Unity 생성 meta를 반영했다. 기존 GUID·다른 씬·프리팹·설정·패키지 보존.
+- 리뷰 결함4개를 실패 테스트로 재현 후 수정: 정지 중 Q 해제 즉시취소, 키 해제와 동시 입력된 실제 방어/회피 우선취소, 포커스 복귀 후 누락된 PointerUp 예약 정리, 조이스틱 중립에서 마지막 실제 각도 유지. 실패한 회피는 유지하고 취소 MP는 반환하지 않는다.
+- Unity6000.5.0f1 별도 전체 자산 검증본에서 C# 컴파일 성공. 최종 차징 **32/32 통과**(단위12+통합20). 전체 PlayMode **249개 중231통과/18실패/생략0**. HEAD 입력 코드를 검증본에만 적용한 기준 비교는227통과/22실패였고, 차징4개만 통과로 바뀌었으며 나머지18개는 같은 실패다. 원래 HEAD는 View 메서드가 없어 컴파일 불가이므로 기준 비교에도 완성 View를 유지했다.
+- 기존18실패: GiungTestScene Player의 InputAction 참조 누락으로 CombatPopupSceneTests7/GameResultFlowTests8/풀링 씬1, 전체 실행 시 이전 씬 카메라·탄환 영향 PlayerPassiveSkillTests1, EventSystem 포커스 간섭 PlayerStatusTests1. 이름과 실제 메시지는 HeavyChargeValidation.md에 기록. 이번 차징 범위 밖의 씬/기존 테스트를 일괄 수정하지 않았다.
+- 별도 전체 자산 검증본에서 MainTestScene을 실제 PlayMode 로드해 직렬화된 C_Attack의 PointerDown/Up → MP10 차감 → 3단계/1.7배 해제 → 표시 숨김을 확인했다. 씬 연결 smoke **1/1 통과**. 원본 에디터 수동 조작/실제 터치 검증은 아니다.
+- 그래픽 사용 오프스크린 화살표 검증1/1 통과 및 PNG 직접 확인. 독립 리뷰4건 모두 수정·재검증. 실제 원본 에디터 수동 플레이/실제 터치·Android/실제 카탈로그·번들은 미검증. 실제 피해·스킬ID·공격 애니메이션·그로기는 승인된 후속 범위다.
+- 직접 확인: Tools > Play From Title 끄기 → MainTestScene Play → C_Attack 홀드 → MP10 한 번 차감·청록→.4초 노랑→.8초 주황·이동 고정/조준 변경 → 해제 시 숨김·이동/패시브 복구. PC는 PlayerController2D를 Play 중 끄고 Q+이동 키. 방어/회피 성공·피격/사망·정지 중 해제/포커스 취소도 확인한다. 오류 시 Console 첫 새 오류와 C_Attack 참조/Configured/배열/MP/입력 소스를 확인한다. 자세한 순서는 HeavyCharge.md.
+- 다음: 사용자 실제 조작 피드백 확인. 별도 작업으로 기존 씬 입력 연결/테스트 간 간섭18개를 정리하고, 정식 테이블이 준비되면 강공격 결과 이벤트를 실제 스킬 실행에 연결한다. 미정 수치·보상·피격 경직·그로기 조건은 임의 구현하지 않는다.
+
+
+## 이전 세션 기록 — 2026-11-03 종료 요청: 강공격 차징 구현 중
 
 **다음 세션은 이 절과 `docs/AI/HeavyChargeHandoff.md`부터 읽는다.** 사용자가 컴퓨터를 끄기 위해 작업을 중단하고 인수인계를 요청했다. 강공격은 아직 완료/컴파일 검증되지 않았다. 아래의 이전 완료 기록을 현재 차징 변경의 통과 결과로 쓰지 않는다.
 

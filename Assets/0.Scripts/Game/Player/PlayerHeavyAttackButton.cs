@@ -10,6 +10,8 @@ public sealed class PlayerHeavyAttackButton : MonoBehaviour, IPointerDownHandler
     public void Bind(Player player) { owner = player; }
     public void OnPointerDown(PointerEventData eventData)
     {
+        // 포커스/피격 취소로 PointerUp을 잃어도 다음 손가락의 입력을 막지 않습니다.
+        if (owner != null && chargeId != owner.HeavyChargeId) chargeId = 0;
         if (chargeId != 0 || eventData.button != PointerEventData.InputButton.Left || owner == null) return;
         if (!owner.TryBeginHeavyCharge()) return;
         pointerId = eventData.pointerId; chargeId = owner.HeavyChargeId;

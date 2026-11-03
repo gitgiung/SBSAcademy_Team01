@@ -10,6 +10,7 @@ public sealed class PlayerMvpMovement : MonoBehaviour
 
     private Rigidbody2D body;
     private InputAction move;
+    private CollisionMovement2D movement;
 
     private void Awake()
     {
@@ -17,6 +18,7 @@ public sealed class PlayerMvpMovement : MonoBehaviour
         body.bodyType = RigidbodyType2D.Kinematic;
         body.gravityScale = 0;
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
+        movement = new CollisionMovement2D(body);
     }
 
     private void OnEnable()
@@ -37,7 +39,7 @@ public sealed class PlayerMvpMovement : MonoBehaviour
     {
         if (move == null) return;
         Vector2 direction = Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f);
-        body.MovePosition(body.position + direction * (Mathf.Max(0f, moveSpeed) * Time.fixedDeltaTime));
+        movement.Move(direction * (Mathf.Max(0f, moveSpeed) * Time.fixedDeltaTime));
     }
 
     private void OnDisable()

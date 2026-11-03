@@ -50,8 +50,11 @@ internal sealed class PlayerCombat
     private void FireAt(Transform target)
     {
         if (bulletPrefab == null) return;
-        GameObject bulletObject = Object.Instantiate(bulletPrefab, owner.position, Quaternion.identity);
-        if (bulletObject.TryGetComponent<Bullet>(out Bullet bullet))
-            bullet.Init(target, data.attackDamage, data.bulletSpeed);
+        Managers.Pool.Pop(bulletPrefab, owner.position, Quaternion.identity,
+            initialize: bulletObject =>
+            {
+                if (bulletObject.TryGetComponent<Bullet>(out Bullet bullet))
+                    bullet.Init(target, data.attackDamage, data.bulletSpeed);
+            });
     }
 }

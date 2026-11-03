@@ -21,6 +21,9 @@ internal sealed class PlayerDefense
     private bool parrySucceeded;
     private bool parryVfxPlayed;
 
+    public event Action ParrySucceeded;
+    public bool IsInDefenseMotion { get; private set; }
+
     public bool CanStart => canStart;
     public bool IsBlockingDamage => isParrying || isGuarding;
     public bool IsMovementSlowed => IsBlockingDamage;
@@ -44,6 +47,7 @@ internal sealed class PlayerDefense
     {
         int version = ++actionVersion;
         canStart = false;
+        IsInDefenseMotion = true;
         isParrying = true;
         parrySucceeded = false;
         parryVfxPlayed = false;
@@ -58,6 +62,7 @@ internal sealed class PlayerDefense
             if (version != actionVersion) yield break;
             if ((boss != null && boss.TryParry()) || parrySucceeded)
             {
+                NotifyIncomingAttackBlocked();
                 succeeded = true;
                 if (!parryVfxPlayed) view.PlayParryVfx();
                 break;
@@ -73,6 +78,7 @@ internal sealed class PlayerDefense
             yield return null;
             if (version != actionVersion) yield break;
             view.SetGuardAnimation(false);
+            IsInDefenseMotion = false;
             canStart = true;
             yield break;
         }
@@ -101,6 +107,7 @@ internal sealed class PlayerDefense
             }
 
             isGuarding = false;
+            IsInDefenseMotion = false;
             view.SetGuardAnimation(false);
             yield return new WaitForSeconds(broken ? breakGuardCooldown : normalGuardCooldown);
             if (version != actionVersion) yield break;
@@ -113,14 +120,16 @@ internal sealed class PlayerDefense
         }
 
         canStart = true;
+        IsInDefenseMotion = false;
         Debug.Log("[패링/가드 쿨타임 종료] 재사용 가능");
     }
 
     /// <summary>Marks an incoming attack blocked during the parry window as a successful parry.</summary>
     public void NotifyIncomingAttackBlocked()
     {
-        if (!isParrying) return;
+        if (!isParrying || parrySucceeded) return;
         parrySucceeded = true;
+        ParrySucceeded?.Invoke();
         if (parryVfxPlayed) return;
         parryVfxPlayed = true;
         view.PlayParryVfx();
@@ -132,6 +141,7 @@ internal sealed class PlayerDefense
         actionVersion++;
         isParrying = false;
         isGuarding = false;
+        IsInDefenseMotion = false;
         canStart = true;
         view.SetGuardAnimation(false);
     }
@@ -141,6 +151,7 @@ internal sealed class PlayerDefense
         actionVersion++;
         isParrying = false;
         isGuarding = false;
+        IsInDefenseMotion = false;
         canStart = true;
         view.SetGuardAnimation(false);
     }

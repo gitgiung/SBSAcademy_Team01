@@ -329,7 +329,9 @@ public sealed class BossController : MonoBehaviour
             elapsed += Time.fixedDeltaTime;
             float progress = Mathf.Clamp01(elapsed / dashDuration);
             Vector2 trackedTargetPosition = target.position;
-            body.MovePosition(Vector2.Lerp(dashStartPosition, trackedTargetPosition, progress));
+            Vector2 nextPosition = Vector2.Lerp(dashStartPosition, trackedTargetPosition, progress);
+            if (follow.MoveTo(nextPosition).sqrMagnitude < 0.00000001f)
+                break; // A solid body blocks the dash; do not wait forever behind it.
         }
 
         // 플레이어와 적의 충돌을 유지한 상태로 마지막 돌진 이동을 처리한다.

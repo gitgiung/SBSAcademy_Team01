@@ -9,14 +9,19 @@ public sealed class EnemyFollow : MonoBehaviour
 
     private Rigidbody2D body;
     private Transform target;
+    private CollisionMovement2D movement;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
-        body.bodyType = RigidbodyType2D.Dynamic;
+        // Enemies and bosses move through code, not impulses from player contact.
+        body.bodyType = RigidbodyType2D.Kinematic;
+        // Keep solid contact callbacks, including against a kinematic player.
+        body.useFullKinematicContacts = true;
         body.gravityScale = 0f;
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        movement = new CollisionMovement2D(body);
     }
 
     public void SetTarget(Transform newTarget)
@@ -45,7 +50,13 @@ public sealed class EnemyFollow : MonoBehaviour
             return;
 
         float step = Mathf.Min(Mathf.Max(0f, moveSpeed) * Time.fixedDeltaTime, remaining);
-        body.MovePosition(body.position + offset / distance * step);
+        MoveTo(body.position + offset / distance * step);
+    }
+
+    /// <summary>Also used by boss movement while following is disabled during a pattern.</summary>
+    public Vector2 MoveTo(Vector2 position)
+    {
+        return movement.Move(position - body.position);
     }
 
     private void OnDisable()

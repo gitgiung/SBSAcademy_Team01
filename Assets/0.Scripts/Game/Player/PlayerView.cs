@@ -7,6 +7,8 @@ internal sealed class PlayerView
     private static readonly int ParryParameter = Animator.StringToHash("Parry");
     private static readonly int IsGuardingParameter = Animator.StringToHash("IsGuarding");
     private readonly Slider healthSlider;
+    private Slider mpSlider;
+    private Slider expSlider;
     private readonly PlayerData data;
     private readonly Animator animator;
     private readonly PlayerDefenseVfx defenseVfx;
@@ -18,10 +20,41 @@ internal sealed class PlayerView
         this.healthSlider = healthSlider;
         this.data = data;
         this.animator = animator;
+        ConfigureDisplayBar(healthSlider);
         defenseVfx = player.gameObject.AddComponent<PlayerDefenseVfx>();
         defenseVfx.Initialize(player, spriteRenderer);
         data.HealthChanged += OnHealthChanged;
+        data.MPChanged += OnMPChanged;
+        data.EXPChanged += OnEXPChanged;
         RefreshHealth();
+    }
+
+    public void BindResourceSliders(Slider mp, Slider exp)
+    {
+        mpSlider = mp;
+        expSlider = exp;
+        ConfigureDisplayBar(mpSlider);
+        ConfigureDisplayBar(expSlider);
+        RefreshMP();
+        RefreshEXP();
+    }
+
+    private static void ConfigureDisplayBar(Slider slider)
+    {
+        if (slider == null) return;
+        // HP 등을 선택한 뒤 좌우 UI 입력으로 값이 바뀌거나 비활성 색으로 흐려지지 않게 합니다.
+        slider.transition = UnityEngine.UI.Selectable.Transition.None;
+        slider.navigation = new UnityEngine.UI.Navigation { mode = UnityEngine.UI.Navigation.Mode.None };
+        slider.interactable = false;
+    }
+
+    private static void UpdateBar(Slider slider, float current, float maximum)
+    {
+        if (slider == null) return;
+        float ratio = maximum > 0f && !float.IsNaN(maximum) && !float.IsInfinity(maximum)
+            && !float.IsNaN(current) && !float.IsInfinity(current)
+            ? Mathf.Clamp01(current / maximum) : 0f;
+        slider.SetValueWithoutNotify(Mathf.Lerp(slider.minValue, slider.maxValue, ratio));
     }
 
     public void PlayParryAnimation()
@@ -41,8 +74,17 @@ internal sealed class PlayerView
 
     public void RefreshHealth()
     {
-        if (healthSlider != null && data.maxHealth > 0f)
-            healthSlider.value = Mathf.Clamp01(data.currentHealth / data.maxHealth);
+        UpdateBar(healthSlider, data.currentHealth, data.maxHealth);
+    }
+
+    public void RefreshMP() => UpdateBar(mpSlider, data.CurrentMP, data.maxMP);
+    public void RefreshEXP() => UpdateBar(expSlider, data.CurrentEXP, data.maxEXP);
+
+    public void RefreshResources()
+    {
+        RefreshHealth();
+        RefreshMP();
+        RefreshEXP();
     }
 
     public void SetMovementAnimation(Vector2 moveDirection, bool isMoving, bool isDashing, float dashDuration)
@@ -75,10 +117,15 @@ internal sealed class PlayerView
 
     public void Dispose()
     {
-        if (data != null) data.HealthChanged -= OnHealthChanged;
+        if (data == null) return;
+        data.HealthChanged -= OnHealthChanged;
+        data.MPChanged -= OnMPChanged;
+        data.EXPChanged -= OnEXPChanged;
     }
 
     private void OnHealthChanged(float current, float maximum) => RefreshHealth();
+    private void OnMPChanged(float current, float maximum) => RefreshMP();
+    private void OnEXPChanged(float current, float maximum) => RefreshEXP();
 
     private static Vector2 QuantizeDirection(Vector2 direction)
     {

@@ -656,7 +656,7 @@ GameObject:
   - component: {fileID: 284775363}
   - component: {fileID: 284775362}
   m_Layer: 0
-  m_Name: Grid
+  m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 60
+  bossAppearTime: 100
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -1225,6 +1225,8 @@ MonoBehaviour:
   data: {fileID: 454020001}
   bulletPrefab: {fileID: 7471816246809313549, guid: ca61cadf05c05be42aac42e0884ec18b, type: 3}
   healthSlider: {fileID: 496842392}
+  mpSlider: {fileID: 1395659084}
+  expSlider: {fileID: 1801941379}
   inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   enemyTag: Enemy
   playerSpriteRenderer: {fileID: 454019996}
@@ -1253,6 +1255,275 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15ba8fec7071bdc4d8566b5caee8488e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerData
+  loadout:
+    unlockedAttackSlots: 6
+    attackSkills:
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    tacticalSkills:
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    - DataId: 0
+      Name: 
+      ClassName: 
+      Description: 
+      ProjectileId: 0
+      PrefabLabel: 
+      IconLabel: 
+      AnimName: 
+      CoolTime: 0
+      DamageMultiplier: 0
+      Duration: 0
+      AnimImpactDuration: 0
+      CastingSound: 
+      SkillRange: 0
+      ScaleMultiplier: 0
+      TargetCount: 0
+      EffectIds: 
+      NextLevelId: 0
+      AoEId: 0
+      EffectSize: 0
+    relics: []
+    augments: []
+    lightSkillId: 0
+    heavySkillId: 0
+    tacticalSkillId: 0
   speed: 5
   maxHealth: 100
   currentHealth: 100
@@ -1260,6 +1531,13 @@ MonoBehaviour:
   attackCooldown: 1
   attackDamage: 3
   bulletSpeed: 3
+  maxMP: 100
+  currentMP: 100
+  mpRecoveryPerSecond: 1
+  dashMPCost: 10
+  parryMPRecovery: 10
+  maxEXP: 10
+  currentEXP: 4
 --- !u!61 &454020003
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1313,7 +1591,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 454019994}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
   m_Name: 
@@ -2635,7 +2913,7 @@ GameObject:
   - component: {fileID: 1125569981}
   - component: {fileID: 1125569980}
   m_Layer: 5
-  m_Name: Spint
+  m_Name: Sprint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27892,7 +28170,7 @@ PrefabInstance:
       objectReference: {fileID: 454019995}
     - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: closeRange
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: slashAngle
@@ -27900,7 +28178,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: slashRange
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: leapDuration
@@ -27924,7 +28202,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: pattern2ToPattern1Delay
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Name
@@ -27932,11 +28210,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2432783780170617415, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: moveSpeed
-      value: 2.5
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2801471059774490790, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_LocalScale.x

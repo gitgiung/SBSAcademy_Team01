@@ -7,6 +7,7 @@ internal sealed class PlayerMovement
     private readonly Transform transform;
     private readonly PlayerData data;
     private readonly System.Func<float> speedMultiplier;
+    private readonly CollisionMovement2D collisionMovement;
     private Vector2 dashDirection;
     private float dashDuration;
     private float dashSpeedMultiplier;
@@ -19,6 +20,8 @@ internal sealed class PlayerMovement
         this.transform = transform;
         this.data = data;
         this.speedMultiplier = speedMultiplier;
+        Rigidbody2D body = transform.GetComponent<Rigidbody2D>();
+        if (body != null) collisionMovement = new CollisionMovement2D(body);
     }
 
     public void Tick(Vector2 inputDirection)
@@ -26,13 +29,15 @@ internal sealed class PlayerMovement
         if (IsDashing) return;
 
         Vector2 direction = Vector2.ClampMagnitude(inputDirection, 1f);
-        transform.position += (Vector3)(direction * data.speed * speedMultiplier() * Time.deltaTime);
+        Move(direction * data.speed * speedMultiplier() * Time.deltaTime);
     }
+
+    public bool CanBeginDash(Vector2 direction) =>
+        !IsDashing && Time.time >= nextDashTime && direction.sqrMagnitude >= 0.0001f;
 
     public bool TryBeginDash(Vector2 direction, float duration, float speedMultiplier, float cooldown)
     {
-        if (IsDashing || Time.time < nextDashTime || direction.sqrMagnitude < 0.0001f)
-            return false;
+        if (!CanBeginDash(direction)) return false;
 
         dashDirection = direction.normalized;
         dashDuration = Mathf.Max(0.01f, duration);
@@ -45,10 +50,10 @@ internal sealed class PlayerMovement
     public IEnumerator DashRoutine()
     {
         float elapsed = 0f;
-        while (elapsed < dashDuration)
+        while (IsDashing && elapsed < dashDuration)
         {
             float deltaTime = Time.deltaTime;
-            transform.position += (Vector3)(dashDirection * data.speed * dashSpeedMultiplier * deltaTime);
+            Move(dashDirection * data.speed * dashSpeedMultiplier * deltaTime);
             elapsed += deltaTime;
             yield return null;
         }
@@ -58,5 +63,11 @@ internal sealed class PlayerMovement
     public void Reset()
     {
         IsDashing = false;
+    }
+
+    private void Move(Vector2 displacement)
+    {
+        if (collisionMovement != null) collisionMovement.Move(displacement);
+        else transform.position += (Vector3)displacement;
     }
 }

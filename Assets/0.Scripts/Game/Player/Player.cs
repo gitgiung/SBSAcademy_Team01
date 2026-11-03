@@ -13,6 +13,8 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     public PlayerData data;
     public GameObject bulletPrefab;
     public Slider healthSlider;
+    [SerializeField] private Slider mpSlider;
+    [SerializeField] private Slider expSlider;
     [SerializeField] private InputActionAsset inputActions;
 
     [Header("태그 설정")]
@@ -49,13 +51,19 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     private PlayerMovement movement;
     private PlayerCombat combat;
     private PlayerDefense defense;
+    private PlayerActionGate actions;
     private PlayerController2D joystickController;
     private InputAction moveInput;
     private InputAction dashInput;
     private InputAction parryInput;
     private bool lastExternalMoving;
+    private bool startingDash;
+    private int lifecycleVersion;
 
     public bool IsDashing => movement != null && movement.IsDashing;
+    public bool IsInputLocked => actions != null && actions.IsInputLocked;
+    public bool CanAcceptGameplayInput => isActiveAndEnabled && !hasDied && data != null
+        && !data.IsDead && !IsInputLocked && !startingDash && Time.timeScale > 0f;
 
     private void OnEnable()
     {
@@ -74,6 +82,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         moveInput.Enable();
         dashInput.Enable();
         parryInput.Enable();
+        view?.RefreshResources();
     }
 
     private void Awake()
@@ -94,8 +103,11 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         }
 
         view = new PlayerView(transform, playerSpriteRenderer, healthSlider, data, playerAnimator);
+        view.BindResourceSliders(mpSlider, expSlider);
         defense = new PlayerDefense(boss, view, parryStartup, parryActive, parryRecovery,
             guardTransitionTime, maxGuardDuration, normalGuardCooldown, breakGuardCooldown);
+        defense.ParrySucceeded += HandleParrySucceeded;
+        actions = new PlayerActionGate(data);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
         combat = new PlayerCombat(transform, data, bulletPrefab, enemyTag);
     }
@@ -108,7 +120,15 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     private void Update()
     {
-        if (Time.timeScale <= 0f) return;
+        if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
+        data.TickMPRecovery(Time.deltaTime);
+        if (IsInputLocked)
+        {
+            view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
+            // 약공격 입력 잠금과 자동 패시브 발사 금지는 별개입니다.
+            combat.Tick(Time.deltaTime);
+            return;
+        }
 
         bool useJoystick = joystickController != null && joystickController.enabled;
         Vector2 moveDirection = moveInput.ReadValue<Vector2>();
@@ -117,31 +137,71 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
             Vector2 dashDirection = joystickController.MovementDirection.sqrMagnitude > 0.0001f
                 ? joystickController.MovementDirection
                 : view.FacingDirection;
-            if (dashInput.WasPressedThisFrame() && movement.TryBeginDash(dashDirection,
-                    dashDuration, dashSpeedMultiplier, dashCooldown))
-            {
-                defense.CancelForDash();
-                StartCoroutine(movement.DashRoutine());
-            }
+            if (dashInput.WasPressedThisFrame()) TryDash(dashDirection);
         }
         else
         {
-            if (dashInput.WasPressedThisFrame() && movement.TryBeginDash(moveDirection,
-                    dashDuration, dashSpeedMultiplier, dashCooldown))
-            {
-                defense.CancelForDash();
-                StartCoroutine(movement.DashRoutine());
-            }
+            if (dashInput.WasPressedThisFrame()) TryDash(moveDirection);
 
             movement.Tick(moveDirection);
             view.SetMovementAnimation(moveDirection, moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
                 movement.IsDashing, dashDuration);
         }
-        combat.Tick(Time.deltaTime);
-
-        if (!movement.IsDashing && parryInput.WasPressedThisFrame() && defense.CanStart)
-            StartCoroutine(defense.GuardParryProcess(() => parryInput != null && parryInput.IsPressed()));
+        if (parryInput.WasPressedThisFrame()) TryParry();
+        if (!defense.IsInDefenseMotion) combat.Tick(Time.deltaTime);
     }
+
+    /// <summary>후속 스킬 실행부가 애니메이션 시작 전에 호출합니다. 실패하면 시전하지 않습니다.</summary>
+    public bool TryBeginLightAttack(float mpCost, out int actionId)
+    {
+        actionId = 0;
+        if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
+        if (!actions.TryBeginLightAttack(mpCost, out actionId)) return false;
+        joystickController?.StopMovement();
+        view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
+        return true;
+    }
+
+    /// <summary>애니메이션 실행에 보관한 ID를 반환합니다. 이전 동작의 늦은 종료는 무시합니다.</summary>
+    public bool CompleteLightAttack(int actionId) => actions != null && actions.CompleteLightAttack(actionId);
+
+    public bool TryDash(Vector2 direction)
+    {
+        if (!CanAcceptGameplayInput || !movement.CanBeginDash(direction)) return false;
+        float cost = data.dashMPCost;
+        int version = lifecycleVersion;
+        bool paid = false;
+        bool started = false;
+        // MPChanged는 동기 알림입니다. 알림 중 다른 행동이 시작되지 않도록 예약합니다.
+        startingDash = true;
+        try
+        {
+            paid = data.TrySpendMP(cost);
+            if (!paid || version != lifecycleVersion || !isActiveAndEnabled || hasDied
+                || data.IsDead || IsInputLocked || Time.timeScale <= 0f) return false;
+            if (!movement.TryBeginDash(direction, dashDuration, dashSpeedMultiplier, dashCooldown)) return false;
+            started = true;
+            defense.CancelForDash();
+            joystickController?.StopMovement();
+            StartCoroutine(movement.DashRoutine());
+            return true;
+        }
+        finally
+        {
+            // 아직 시작하지 못한 회피만 되돌립니다. 강공격의 취소 환불 정책과 별개입니다.
+            try { if (paid && !started) data.RestoreMP(cost); }
+            finally { startingDash = false; }
+        }
+    }
+
+    public bool TryParry()
+    {
+        if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
+        StartCoroutine(defense.GuardParryProcess(() => parryInput != null && parryInput.IsPressed()));
+        return true;
+    }
+
+    private void HandleParrySucceeded() => data.RestoreMP(data.parryMPRecovery);
 
     /// <summary>Compatibility entry point used by boss attacks and existing scene logic.</summary>
     public void TakeDamage(float damage, GameObject attacker = null)
@@ -179,6 +239,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     /// <summary>Updates player visuals from an external movement source such as the mobile joystick.</summary>
     public void SetExternalMovementAnimation(Vector2 moveDirection, bool isDashing = false)
     {
+        if (!CanAcceptGameplayInput) moveDirection = Vector2.zero;
         bool isMoving = moveDirection.sqrMagnitude > 0.0001f;
         view?.SetMovementAnimation(moveDirection, isMoving && !isDashing, isDashing, dashDuration);
         if (isMoving != lastExternalMoving)
@@ -189,6 +250,10 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     private void OnDisable()
     {
+        unchecked { lifecycleVersion++; }
+        StopAllCoroutines();
+        actions?.Reset();
+        joystickController?.StopMovement();
         movement?.Reset();
         defense?.Reset();
         view?.Reset();

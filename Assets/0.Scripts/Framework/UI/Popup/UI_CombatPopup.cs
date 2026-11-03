@@ -10,6 +10,7 @@ public sealed class UI_CombatPopup : UI_Popup
     private CombatPopupController owner;
 
     public RectTransform ContentRoot => contentRoot;
+    public Button CloseButton => closeButton;
 
     public void Bind(CombatPopupController controller)
     {

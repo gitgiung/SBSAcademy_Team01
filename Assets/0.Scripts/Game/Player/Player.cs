@@ -173,7 +173,6 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     public void TakeContactDamage(float damage, GameObject source)
     {
-        Debug.Log("TakeContactDamage 실행", this);
         TakeDamage(damage, source);
     }
 

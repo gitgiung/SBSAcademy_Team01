@@ -31,6 +31,17 @@ namespace Data
         public int NextLevelId;
         public int AoEId;
         public EEffectSize EffectSize;
+        // 메타데이터만 작성된 스킬은 비용0/피해0의 실행 스킬로 취급하지 않습니다.
+        public bool ActiveConfigured;
+        public float MPCost;
+        public float BaseDamage;
+        // 패시브와 액티브의 피해/주기는 서로 독립적인 설정입니다.
+        public bool PassiveConfigured;
+        public string PassivePrefabKey;
+        public float PassiveDamage;
+        public float PassiveInterval;
+        public float PassiveSpeed;
+        public float PassiveRange;
     }
 
     [Serializable]

@@ -56,6 +56,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         bodySimulated = body != null && body.simulated;
         follow = GetComponent<EnemyFollow>();
         followEnabled = follow != null && follow.enabled;
+        UpdateHealthUI();
     }
 
     /// <summary>풀 initialize에서 호출합니다. 최초 Awake보다 먼저 호출돼도 안전합니다.</summary>
@@ -147,10 +148,15 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     /// </summary>
     private void UpdateHealthUI()
     {
-        if (healthSlider != null && maxHealth > 0f)
-        {
-            healthSlider.value = CurrentHealth / maxHealth;
-        }
+        if (healthSlider == null) return;
+        // 보스/적의 체력 표시는 좌우 UI 탐색이나 포인터로 편집할 수 없습니다.
+        healthSlider.transition = Selectable.Transition.None;
+        healthSlider.navigation = new Navigation { mode = Navigation.Mode.None };
+        healthSlider.interactable = false;
+        float ratio = maxHealth > 0f && !float.IsNaN(maxHealth) && !float.IsInfinity(maxHealth)
+            && !float.IsNaN(CurrentHealth) && !float.IsInfinity(CurrentHealth)
+            ? Mathf.Clamp01(CurrentHealth / maxHealth) : 0f;
+        healthSlider.SetValueWithoutNotify(Mathf.Lerp(healthSlider.minValue, healthSlider.maxValue, ratio));
     }
 
     /// <summary>

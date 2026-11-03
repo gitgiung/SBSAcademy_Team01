@@ -14,6 +14,22 @@ internal sealed class PlayerView
     private readonly PlayerDefenseVfx defenseVfx;
     private Vector2 facingDirection = Vector2.down;
     public Vector2 FacingDirection => facingDirection;
+    public RuntimeAnimatorController AnimationController => animator != null ? animator.runtimeAnimatorController : null;
+    public bool AnimationAvailable => animator != null && animator.isActiveAndEnabled && AnimationController != null;
+
+    private int AnimationHash(string state) => Animator.StringToHash(animator.GetLayerName(0) + "." + state);
+    public bool CanPlayLightAttack(string state) => AnimationAvailable && !string.IsNullOrEmpty(state)
+        && animator.HasState(0, AnimationHash(state)) && animator.HasState(0, AnimationHash("Idle"));
+
+    public void PlayLightAttack(string state, Vector2 direction)
+    {
+        SetMovementAnimation(direction, false, false, 1f);
+        // 중단했던 같은 상태를 다시 실행해도 새로운 OnStateEnter/실행 ID를 받도록 경계를 확정합니다.
+        animator.Play(AnimationHash("Idle"), 0, 0f);
+        animator.Update(0f);
+        animator.Play(AnimationHash(state), 0, 0f);
+        animator.Update(0f);
+    }
 
     public PlayerView(Transform player, SpriteRenderer spriteRenderer, Slider healthSlider, PlayerData data, Animator animator)
     {

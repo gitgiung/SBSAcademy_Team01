@@ -1,5 +1,24 @@
 # 작업 인수인계
 
+## 2026-11-03 첫 약공격 불꽃 탄환 연결
+
+- 사용자 요청으로 이전 작업순서1(병합 전체 선행 재검증)을 생략하고2(첫 스킬 연결)를 진행했다. 시작/현재 `feat/PlayerSkill`, HEAD `ccac76f`, 시작 작업 트리 깨끗함. 임의 브랜치 전환·커밋 없음.
+- 사용자 확정: 불꽃 탄환10001, MP10, 피해10, 기존 Bullet 재사용+임시 빨간 원, 기존8방향 Attack 프레임, 모바일 버튼 N_Attack. 기타 미정 스킬 수치를 채우지 않았다.
+- Data.SkillData에 ActiveConfigured/MPCost/BaseDamage를 추가하고 기존 DamageMultiplier와 함께 실행 설정을 검증한다. PlayerLightSkill이 보유/약공격 장착·리소스·애니메이션·MP를 확인한 뒤 방향/피해/속도/타이밍을 캡처해 시전한다. 메타데이터만 있는 스킬은 무소모·미발동.
+- PlayerView와 LightAttackAnimationState가 Animator의 실제 시작/진행/종료를 실행 ID로 연결한다. 초기 즉발 시점0에서 풀의 빨간 탄환을 한 번 발사하고 상태 종료 시 잠금을 해제한다. 약공격 중 이동/공격/방어/회피 거절, 중복/예약 입력 방지, 정지·사망·비활성화/Animator중단 정리. MP 알림 중 pause/Animator무효화는 시작 전 환불하며 수락한 설정은 스냅샷으로 유지한다.
+- 기존 Player/Attack을 선택 복제해 PC 입력을 재사용했다. N_Attack은 런타임 PointerDown/Submit bridge로 같은 API를 호출한다. Touchscreen의 일반 tap 입력은 중복 처리하지 않으며 Mouse는 현재 위치 GraphicRaycaster 검사로 UI 클릭을 배제한다. InputAction 에셋·기존 N_Attack onClick은 변경하지 않았다.
+- Bullet.InitDirection을 추가하되 기존 Init API와 풀링 계약 유지. 새 FlameBullet은 기존 Bullet/Collider/Rigidbody를 복제 재사용하고 빨간 Sprite로 표시한다. 원본 Bullet.prefab 해시 유지.
+- 기존 Player.controller20개 객체를 모두 보존하고 LightAttack 상태/트리/Behaviour/종료 전이4개를 추가했다. Controller meta/GUID 유지. 새8방향 클립은9프레임/12fps, Unity 조회0.75초의 초기 연출값이다. 처음에는 끝 중복 키로0.8333초였음을 검사로 발견해 중복 제거/stopTime 명시 후 재검증했다. 기존 Animator 전체 Generate는 실행하지 않았다.
+- MainTestScene의 기존 스탯/MP설정(공격력3, 탄속3, 최대MP100·회복1/s 등)을 유지하고 Player N_Attack Button1415531113/새 투사체 참조, 첫 빈 보유 슬롯10001/LightAttack/MP10/Base10/ActiveConfigured, lightSkillId10001만 최소 변경했다(추가9줄/교체4줄). 이 씬의 승인된 검증 설정이며 모든 PlayerData 기본값에 자동 지급하지 않는다. 전투 피해는 Base10+기본공격력×Multiplier0=10이다.
+- 새 리소스 Assets/Resources/SkillProjectiles/FlameBullet.prefab·FlameBulletCircle.png, LightAttack_*.anim8개, Editor의 PlayerLightAttackSetup 및 런타임3개 클래스/테스트 추가. 원본 워크북/다른 씬/기존 프리팹/입력 에셋/패키지 수정 없음. 생성 작업은 이전 검증 복사본에서 Editor API로 수행해 확인 후 원본에 반영했다.
+- TDD: 최초7개 실패 → 구현7/7 통과. MP 알림 pause/Animator변경·메타데이터 스냅샷 실패를 추가 재현해 수정. PC WasPressed는 테스트 InputSystem 갱신 프레임에서 검사하도록 보완했다. UI 첫 클릭은 유효한 화면 배치/포인터 캐시 미갱신 상태로 재현해 현재 위치 Raycast로 수정했다.
+- 최종 Unity6000.5.0f1 변경 관련 검증 **73/73 통과**, 실패/생략0: 신규 PlayerLightSkillTests13 + MP19 + 탄환6 + HUD12 + 상태창9 + 팝업13 + 임시 그래픽 렌더1. 현재0.Scripts 소스를 검증본에 반영했고 원본에서 삭제된 과거 MVP파일은 검증 복사본에서만 정리했다. 이는 요청대로 전체 병합 회귀/보스 통합 검증은 아니다.
+- 독립 리뷰에서 MP 재진입 경계와 클립 길이를 확인해 수정 후 재검증했다. 추가 확정 런타임 결함은 없다는 정적 리뷰 결과를 받았다. 실제 공격 자세/빨간 원을 오프스크린 카메라로 렌더해 픽셀과 이미지로 확인했다. 원본 MainTestScene 실제 플레이/터치·보스 전체·Android 빌드/기기는 미검증.
+- 영속 테스트 Assets/Tests/PlayMode/PlayerLightSkillTests.cs(13), 계획 docs/superpowers/plans/2026-11-03-flame-light-skill.md, 사용법 docs/AI/FlameBullet.md. 결과 `.utmp/FlameSkill/red.xml`, `review-red.xml`, `final.xml`, `final.log`, `flame-cast.png`, 검증 위치 validation-path.txt. 렌더 헬퍼는 같은 임시 폴더에만 있으며 원본 테스트 에셋에는 넣지 않았다.
+- 직접 확인: 컴파일 완료 → MainTestScene → Play(필요하면 Tools > Play From Title 끄기) → N_Attack → 빨간 직선탄/MP10 차감/Attack 모션 중 이동·연타·패링·회피 거절/종료 후 복구 확인. PC는 PlayerController2D를 끄고 월드 마우스 왼쪽 클릭 또는 UI 선택이 없는 Enter. 이동 입력/마지막 바라본 방향이며 마우스 위치 유도는 아니다. 기존 MP회복1/s는 유지하므로 차감 후 서서히 회복한다. 일시정지 상태창 첫 칸의 불꽃 탄환 보유도 확인한다.
+- 오류 시 Console 첫 오류, Player Light Attack Button=N_Attack, Light Attack Projectile=FlameBullet, Loadout10001 장착/ActiveConfigured/MPCost/BaseDamage/AnimName 및 Animator LightAttack Behaviour/Idle 전이를 확인한다. 정상 자동 탄환은 별도로 계속 발사된다. 분리 검증은 Play 중 기존 Player.bulletPrefab만 잠시 비우고 저장하지 않는다.
+- 다음 우선순위: 사용자 실제 플레이 확인 후 첫 스킬 연출속도/조준·입력 피드백 조정, 스킬 테이블의 승인 수치/리소스 정식 로딩과 획득 경로 연결. 보유 전체 패시브 발사, 다른 약공격, 강공격·전략·성장·MP 부족 점멸·미정 그로기는 아직 후속이다.
+
 ## 2026-11-03 CombatPopupController CS0618 경고 수정
 
 - 현재 브랜치 `main`, HEAD `756c2ee`. 이전 작업은 `dcc8e43`에 커밋됐고 이후 보스 병합이 들어온 상태다. 시작 시 Player_GiungTest 스크립트/asmdef 및 meta 삭제, Boss.controller·MainTestScene·NanumGothic Combat SDF 사용자 변경이 있었으며 건드리지 않았다.
@@ -178,3 +197,30 @@
 - 직접 확인: Unity 컴파일 완료 후 Play 재시작 → MainTestScene에서 키보드와 조이스틱으로 적/보스 몸통을 계속 밀기 → 대시로 몸통을 넘으려 하기 → 보스 공격 대기 및 돌진 중 반복. 플레이어는 몸통 앞에서 멈추고 적/보스는 밀리지 않아야 함. 붙은 뒤 반대 방향 이동과 옆 이동은 가능하고 접촉 HP 감소/공격은 유지되는 것이 정상. 적끼리도 관통하지 않아야 함.
 - 오류 확인: Console 컴파일 오류, 양쪽의 활성 solid Collider 존재(Is Trigger=false), 충돌 레이어 및 IgnoreCollision, 실행 중 Enemy Rigidbody Kinematic+Full Kinematic Contacts, 이동 스크립트가 최신인지 확인. Collider가 Trigger뿐인 대상은 의도적으로 통과 가능.
 - 다음 작업: 사용자 실제 씬에서 모든 입력 경로·군집·벽·보스 공격/돌진 확인. 이번 작업에서 씬/프리팹/Project Settings/패키지를 수정하지 않음.
+
+## 2026-11-03 보유 스킬 패시브 자동 발사 연결
+
+- 시작 상태: feat/PlayerSkill, HEAD ccac76f. 이전 불꽃 탄환 약공격 관련 코드/씬/컨트롤러/리소스/테스트/문서 변경과 열린 테이블의 임시 잠금 파일을 보존. 커밋·브랜치 변경·테이블 수정 없음.
+- 사용자 승인: 불꽃 탄환10001 패시브 피해6/간격3초/탄속3/사거리6. 빨간 원 프리팹 재사용. 약공격 MP10/피해10 유지.
+- 완료: PlayerCombat의 기본탄 자동 발사를 보유 공격 스킬 순회로 교체. 장착 버튼과 무관하게 각 보유 스킬의 독립 주기로 발사. 빈 보유/미작성 패시브/잘못된 수치/누락 리소스는 발사하지 않음. 스킬 제거·교체 및 Player 비활성화에 실행 상태 반영. 첫 유효 표적에는 즉시 발사하며 지연 프레임의 누적 연사는 하지 않음.
+- 조준: 사거리 안이면서 MainCamera 화면 안의 Enemy 태그 대상 중 가장 가까운 위치를 매 발사 시점에 선택. 일반 적과 BossMvp의 Enemy 태그 확인. 이미 발사한 탄환은 기존 Bullet.InitDirection의 직선 비행 유지. 기존 풀을 사용하며 새 매니저/로딩 체계는 추가하지 않음.
+- 설정: Data.SkillData에 PassiveConfigured/PassivePrefabKey/PassiveDamage/PassiveInterval/PassiveSpeed/PassiveRange 추가. Player.Passive Projectiles 직접 바인딩 또는 기존 ResourceManager의 준비된 캐시를 사용. MainTestScene에는10001의 승인 설정과 FlameBullet 바인딩만 추가(이 작업의 씬 추가9줄). 기존 기본 공격 수치와 Player.bulletPrefab 참조는 보존하되 기본탄 중복 발사는 제거. bulletPrefab을 비워도 이제 패시브를 끄지 않음.
+- 시간/입력: MP 무소모. 일시정지·방어 모션 중 남은 패시브 주기 정지. 약공격 입력 잠금 중에는 기존대로 패시브 허용. 비활성화 후 재활성화는 첫 유효 표적부터 새 주기로 시작.
+- 재현/검증: 새13개 테스트가 기존 구현에서13개 실패(빈 보유 상태 기본탄 생성/패시브 정의 부재). 구현 후 관련85/85 통과. 실제 Player 바인딩/빨간 프리팹 물리 충돌 피해6/비활성화/방어와 약공격 잠금/씬 설정 테스트 추가 후 Unity6000.5.0f1 별도 검증 프로젝트에서 최종89/89 통과, 실패0·생략0. 패시브17, 기존 풀6/약공격13/MP행동19/HUD12/상태창9/팝업13. 이번 실행 결과이며 이전73개 기록 재사용 아님.
+- 검증 파일: .utmp/PassiveSkill/red.xml, final.xml, final.log. 변경 코드·테스트·MainTestScene은 테스트 복사본과 해시 동일. 전체0.Scripts의 차이는 검증 복사본 PlayFromTitle 배치 guard뿐. git diff --check 통과. 기존 테스트의 CS0618 경고가 남아 있으며 이번 패시브 코드/새 테스트에는 구 FindObjectsSortMode 호출 없음. 독립 코드 리뷰에서 중요한 결함 없음, 지적된 통합 검증 공백을 위 테스트로 보완.
+- 한계: 사용자 요청으로 생략한 병합 전체 선행 검증은 수행하지 않음. 실제 원본 MainTestScene 전투/보스 전체 패턴·전체 카탈로그·Android 빌드/기기 미확인. 다른 스킬의 수치·효과·획득/성장·강공격·전략·미정 그로기는 확정하지 않음.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 끄기 → MainTestScene Play → 버튼 없이 화면 안의 적에게 사거리6까지 접근. 빨간 원이 첫 발사 후3초마다 직진하며 MP가 줄지 않는지 확인. 적이 움직여도 기존 탄환은 꺾이지 않고 다음 탄환이 가까운 적을 다시 조준해야 함. N_Attack 약공격은 MP10/피해10·입력 잠금을 유지. 패링/가드 및 일시정지 중 주기가 멈추고 복귀 후 이어지는지 확인. PC 이동은 PlayerController2D 비활성화.
+- 오류 확인: Console 첫 오류, Player.Passive Projectiles의 Key=FlameBullet/Prefab=FlameBullet, PlayerData.Loadout의10001 보유와 PassiveConfigured·수치·키 일치, Enemy 태그/활성 Collider/MainCamera 태그·화면·거리를 확인. 패시브만 잠시 끄려면 Play 중10001의 PassiveConfigured를 해제하고 임시 설정은 저장하지 않음.
+- 문서: docs/AI/PlayerPassiveSkills.md 및 docs/superpowers/plans/2026-11-03-owned-passive-skills.md. 다음은 실제 플레이 피드백 반영 및 정식 스킬 테이블/리소스·획득 경로 연결, 이후 강공격 차징 구현. 해당 단계의 미작성 수치는 별도 사용자 결정이 필요함.
+
+## 2026-11-03 보스 HP 바 좌우 입력 버그 수정
+
+- 시작 상태: feat/PlayerSkill/ccac76f. 앞선 약공격·패시브 관련 코드/씬/리소스/테스트/문서 및 열린 테이블 잠금 파일을 보존.
+- 원인: MainTestScene의 Boss_HP Slider(1137732343553467738)가 Interactable=true, Navigation=Automatic으로 설정되어 있음. 보스는 PlayerView가 아닌 공용 EnemyHealth의 healthSlider 경로를 사용하여 앞선 플레이어 HUD 표시 전용 처리가 적용되지 않았음. 실제 HP와 무관하게 선택된 Slider가 좌우/포인터 입력으로 편집됨.
+- 재현: 실제 EnemyHealth+Slider+EventSystem 테스트에서 HP50 상태의 왼쪽 이동만으로 표시 비율0.5→0.4, 숨김 후 표시된 바도0.7→0.6, 포인터/드래그로0.5→1이 됨. 수정 전 새7개 중6개 실패·HP바 없는 적1개 통과.
+- 수정: EnemyHealth 초기화/Start/피격/풀 재등장 시 HP 바를 표시 전용으로 설정(Interactable=false, Navigation=None, Transition=None). 비활성 색상 전환을 제거하여 색상 유지. 체력 비율은 Slider의 min/max 범위로 매핑하고 SetValueWithoutNotify로 표시하여 조작 이벤트를 발생시키지 않음. 체력/피해/보스 패턴·스폰 수치 변경 없음.
+- 검증: Unity6000.5.0f1 별도 검증 프로젝트에서55/55 통과, 실패0·생략0. EnemyHealthHudTests7 + PlayerHudTests12 + PlayerPassiveSkillTests17 + PlayerBulletPoolingTests6 + PlayerLightSkillTests13. 좌우/포인터 차단, 실제 피격·사용자 지정 범위·이벤트 무발생, 풀 재등장, 숨김/표시, UI 없는 적 검증. 결과 .utmp/BossHealthHud/red.xml 및 final.xml/final.log. 새 결과이며 앞선89개 기록 재사용 아님.
+- 보존 확인: MainTestScene/BossMvp.prefab/EnemyMvp.prefab 작업 전후 해시 동일. 변경 소스·테스트는 검증 복사본과 해시 동일. git diff --check 통과. 씬·프리팹·Project Settings 변경 없음. 기존 다른 테스트의 CS0618 경고는 별개로 남아 있음.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 끄기 → MainTestScene Play 재시작 → 보스 출현 후 Boss_HP를 클릭/드래그한 다음 왼쪽·오른쪽 이동. 공격하지 않을 때 바가 입력만으로 줄거나 늘지 않고 실제 보스 피격에만 줄어야 함. 일시정지/복귀 후에도 반복. PC 이동 확인은 PlayerController2D 비활성화.
+- 오류 확인: Console 첫 컴파일 오류, 실행 중 보스 EnemyHealth.healthSlider가 Boss_HP Slider를 참조하는지, Boss_HP의 Interactable=false/Navigation=None인지 확인. 기존 Play를 종료하고 재시작하여 새 초기화 적용. 소스만으로 표시 전용을 보장하므로 씬에서 수동 참조 재연결이나 HP값 조정은 필요 없음.
+- 한계/다음: 실제 원본 MainTestScene 보스 전투 화면과 Android 기기는 미확인. 위 사용자 재현 절차 확인 후 기존 패시브 피드백/정식 데이터·획득 연결 및 강공격 후속으로 복귀.

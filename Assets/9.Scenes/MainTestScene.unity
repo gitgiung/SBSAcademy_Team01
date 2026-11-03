@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 5
+  bossAppearTime: 60
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -1318,8 +1318,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
-  speed: 5
   variableJoystick: {fileID: 1269801976}
+  playerData: {fileID: 0}
 --- !u!1 &496842390
 GameObject:
   m_ObjectHideFlags: 0

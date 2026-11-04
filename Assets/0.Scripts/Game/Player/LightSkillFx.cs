@@ -21,7 +21,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private bool projectile;
     private string enemyTag = "Enemy";
     private Sprite[] frames;
-    private readonly HashSet<int> hitIds = new HashSet<int>();
+    private readonly HashSet<EntityId> hitIds = new HashSet<EntityId>();
 
     public void OnPoolRent() => Cache();
     public void OnPoolReturn()
@@ -189,7 +189,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
 
     private void Damage(Collider2D hit)
     {
-        int id = hit.GetInstanceID();
+        EntityId id = hit.GetEntityId();
         if (!hitIds.Add(id)) return;
         if (hit.TryGetComponent<IDamageable>(out IDamageable damageable))
             damageable.TakeDamage(damage);

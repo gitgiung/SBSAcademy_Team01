@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 2026-11-04 재시작 컴파일 오류와 자동 테스트 삭제
+
+- 시작 상태: `main`, HEAD `acb7aab`, 작업 트리 깨끗함. 사용자 보고는 에디터 재시작 후 다수 오류이며, 테스트용 씬 복제가 원인인지 확인 요청이었다.
+- 원인: 씬을 로드하지 않는 C# 컴파일에서도 동일 오류 재현. `Player.cs`의 `partial` 누락(CS0260), `LightSkillCastTests`의 런타임 어셈블리 직접 참조 및 InputSystem 확장 메서드 using 누락으로 실패했다. 첫 오류를 고친 뒤에는 이전 약공격 버튼·Animator API와 PlayerCombat 생성자 연결 누락, Unity 6000.5에서 금지된 `GetInstanceID()` 호출 오류가 추가로 확인됐다. 확인된 컴파일 오류는 씬 복제에서 발생한 것이 아니다.
+- 사용자 요청으로 `Assets/Tests` 전체와 `Assets/Tests.meta` 삭제: C# 26개, 테스트 asmdef 2개 및 관련 meta 포함. 씬·프리팹·asset에서 삭제 대상 GUID 참조 없음 확인. `Assets/0.Scripts`의 테스트용 게임 컴포넌트와 테스트 씬은 유지했다. 자동 회귀 테스트는 현재 저장소에서 제거된 상태이며, 필요하면 이 변경 전 Git 기록에서 복구해야 한다. 과거 문서의 테스트 통과 수는 당시 기록이며 현재 실행 가능 수를 뜻하지 않는다.
+- 수정: Player의 partial 선언, 기존 직렬화 필드 `lightAttackButton`, `lightAttackProjectile`, `passiveProjectiles`와 버튼·Animator 콜백 연결을 이전 구현에서 복원. 기존 3인자 PlayerCombat 생성자와 투사체 바인딩 사용. 새 표 기반 `TryCastLightSkill` 경로는 유지했다. LightSkillFx의 중복 피격 식별은 `EntityId`/`GetEntityId()`로 교체했다. 씬·프리팹·Project Settings·패키지는 변경하지 않았다.
+- 검증: 설치된 Unity 6000.5.0f1의 Roslyn과 Unity 생성 응답 파일을 사용해 수정 전 Assembly-CSharp/Framework.PlayModeTests 컴파일 실패 재현. 수정 후 Assembly-CSharp 및 Assembly-CSharp-Editor 각각 종료 코드 0, C# 오류·경고 0. 출력은 `.utmp/EditorRestart`로 격리하여 Library의 DLL을 덮어쓰지 않았다. `git diff --check` 통과. 실행한 Unity 테스트 0개. 두 번째 에디터를 열지 않았으며, 열린 에디터의 재임포트·Safe Mode 해제·실제 플레이·빌드·기기는 미확인이다.
+- 다음 확인: Unity로 돌아가 임포트/컴파일을 기다린다. 갱신되지 않으면 `Assets > Refresh`를 실행한다. Safe Mode라면 오류가 사라진 뒤 `Exit Safe Mode`를 누른다. Console을 Clear하고 새 빨간 컴파일 오류가 없는지 확인한다. `MainTestScene` 또는 복제한 `GiungTestScene`을 열고 Play From Title을 끈 뒤 Play하여 이동과 Enter/마우스 왼쪽 약공격을 확인한다. MP가 충분하면 불꽃 탄환이 나가고 MP가 소모되며 잠금이 풀려야 한다. 오류가 다시 생기면 Console 첫 빨간 오류의 파일·행과 전체 메시지를 확인한다. 기존 버튼은 장착 SkillData의 ActiveConfigured 및 연결 프리팹·Animator 설정을 사용하는 별도 경로이므로 버튼 플레이 검증도 남아 있다.
+
 ## 2026-11-04 전투 수치 엑셀 변환
 
 - 시작 상태: 약공격 21개의 피해·MP·범위는 `LightSkillCatalog` 배열에 적혀 있었고, `SkillDatatable.xlsx`와 따로 놀 수 있었다. 기존 `Tools/ParseExcel`은 `Data.SkillData` 필드 순서로 CSV만 읽어서 이 표에 붙일 수 없다.

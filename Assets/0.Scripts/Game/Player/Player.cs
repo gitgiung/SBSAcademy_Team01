@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// Composition root and compatibility facade for the player.
 /// Input and Unity lifecycle stay here; gameplay rules and presentation are delegated.
 /// </summary>
-public sealed class Player : MonoBehaviour, IContactDamageReceiver
+public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 {
     [Header("플레이어 데이터 및 기본 설정")]
     public PlayerData data;
@@ -17,6 +17,11 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField] private Slider mpSlider;
     [SerializeField] private Slider expSlider;
     [SerializeField] private InputActionAsset inputActions;
+    [Header("약공격 연결")]
+    [SerializeField] private Button lightAttackButton;
+    [SerializeField] private GameObject lightAttackProjectile;
+    [Header("패시브 투사체 (Key는 SkillData.PassivePrefabKey와 일치)")]
+    [SerializeField] private PlayerProjectileBinding[] passiveProjectiles = new PlayerProjectileBinding[0];
 
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
@@ -53,6 +58,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     private PlayerCombat combat;
     private PlayerDefense defense;
     private PlayerActionGate actions;
+    private PlayerLightSkill lightSkill;
     private PlayerController2D joystickController;
     private InputAction moveInput;
     private InputAction dashInput;
@@ -64,6 +70,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     private int lifecycleVersion;
 
     public bool IsDashing => movement != null && movement.IsDashing;
+    public int ActiveLightAttackId => lightSkill != null ? lightSkill.ActionId : 0;
     public bool IsInputLocked => actions != null && actions.IsInputLocked;
     public bool CanAcceptGameplayInput => isActiveAndEnabled && !hasDied && data != null
         && !data.IsDead && !IsInputLocked && !startingDash && Time.timeScale > 0f;
@@ -95,6 +102,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         joystickController = GetComponent<PlayerController2D>();
         if (data == null) data = GetComponent<PlayerData>();
         if (playerSpriteRenderer == null) playerSpriteRenderer = GetComponent<SpriteRenderer>();
+        GroundShadow.Attach(playerSpriteRenderer);
         if (playerAnimator == null) playerAnimator = GetComponent<Animator>();
         if (playerAnimator == null) playerAnimator = gameObject.AddComponent<Animator>();
         if (playerAnimator.runtimeAnimatorController == null)
@@ -114,7 +122,13 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         defense.ParrySucceeded += HandleParrySucceeded;
         actions = new PlayerActionGate(data);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
-        combat = new PlayerCombat(transform, data, bulletPrefab, enemyTag);
+        combat = new PlayerCombat(transform, data, enemyTag);
+        if (passiveProjectiles != null)
+            foreach (PlayerProjectileBinding binding in passiveProjectiles)
+                if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);
+        lightSkill = new PlayerLightSkill(this, data, view);
+        if (lightAttackButton != null)
+            Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
     }
 
     private void Start()
@@ -127,6 +141,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
         data.TickMPRecovery(Time.deltaTime);
+        lightSkill?.CheckAnimation();
         if (IsInputLocked)
         {
             view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
@@ -157,6 +172,18 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
             TryCastLightSkill(CurrentAim());
         if (!defense.IsInDefenseMotion) combat.Tick(Time.deltaTime);
     }
+
+    public bool TryUseLightSkill()
+    {
+        if (lightSkill == null || !CanAcceptGameplayInput || IsHeavyCharging) return false;
+        Vector2 direction = joystickController != null && joystickController.enabled
+            ? joystickController.MovementDirection
+            : (moveInput != null ? moveInput.ReadValue<Vector2>() : Vector2.zero);
+        return lightSkill.TryCast(direction, lightAttackProjectile);
+    }
+
+    public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);
+    public void NotifyLightAttackAnimationFinished(int actionId) => lightSkill?.OnAnimationFinished(actionId);
 
     /// <summary>장착된 약공격이 없으면 불꽃 탄환을 시전합니다. 실패하면 MP를 쓰지 않습니다.</summary>
     public bool TryCastLightSkill(Vector2 aim)
@@ -349,6 +376,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     {
         unchecked { lifecycleVersion++; }
         StopAllCoroutines();
+        lightSkill?.Cancel();
         actions?.Reset();
         joystickController?.StopMovement();
         movement?.Reset();

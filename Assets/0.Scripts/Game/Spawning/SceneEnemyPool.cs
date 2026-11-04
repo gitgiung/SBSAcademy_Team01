@@ -29,6 +29,11 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool
 
     public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene)
     {
+        return TrySpawn(prefab, position, target, scene, null);
+    }
+
+    public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene, System.Action<GameObject> spawned)
+    {
         if (closing || !isActiveAndEnabled || target == null || prefab == null || !scene.IsValid() || !scene.isLoaded ||
             !prefab.TryGetComponent<EnemyHealth>(out _) ||
             !prefab.TryGetComponent<EnemyFollow>(out _) || ActiveEnemyCount >= MaxActiveEnemies)
@@ -36,24 +41,25 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool
 
         if (pool == null) pool = Managers.Pool;
         if (pool == null) return false;
-        GameObject spawned = null;
+        GameObject created = null;
         try
         {
             pool.Pop(prefab, position, Quaternion.identity, initialize: enemy =>
             {
-                spawned = enemy;
+                created = enemy;
                 // 활성 몬스터는 씬 루트에 두어 스포너 비활성화와 씬 종료 수명이 분리됩니다.
                 enemy.transform.SetParent(null, true);
                 SceneManager.MoveGameObjectToScene(enemy, scene);
                 enemy.GetComponent<EnemyHealth>().PrepareForSpawn(this);
                 enemy.GetComponent<EnemyFollow>().SetTarget(target);
                 activeEnemies.Add(enemy, enemy.GetComponent<PooledObject>().LeaseVersion);
+                spawned?.Invoke(enemy);
             });
             return true;
         }
         catch
         {
-            if (spawned != null) activeEnemies.Remove(spawned);
+            if (created != null) activeEnemies.Remove(created);
             throw;
         }
     }

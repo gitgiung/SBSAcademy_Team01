@@ -20,6 +20,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
     public float CurrentHealth { get; private set; }
     public bool IsDead { get; private set; }
+    public int SpawnGeneration { get; private set; }
     public event System.Action Died;
 
     private SpriteRenderer[] visuals;
@@ -45,13 +46,21 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         initialized = true;
         CurrentHealth = Mathf.Max(1f, maxHealth);
 
-        // 자식 오브젝트를 포함한 모든 스프라이트 렌더러 수집 및 초기 색상 저장
-        visuals = GetComponentsInChildren<SpriteRenderer>(true);
-        originalColors = new Color[visuals.Length];
-        for (int i = 0; i < visuals.Length; i++)
+        // 그림자는 피격 색을 따르지 않습니다.
+        SpriteRenderer[] found = GetComponentsInChildren<SpriteRenderer>(true);
+        int visualCount = 0;
+        for (int i = 0; i < found.Length; i++)
+            if (!GroundShadow.IsShadow(found[i])) visualCount++;
+        visuals = new SpriteRenderer[visualCount];
+        originalColors = new Color[visualCount];
+        for (int i = 0, visualIndex = 0; i < found.Length; i++)
         {
-            originalColors[i] = visuals[i].color;
+            if (GroundShadow.IsShadow(found[i])) continue;
+            visuals[visualIndex] = found[i];
+            originalColors[visualIndex] = found[i].color;
+            visualIndex++;
         }
+        GroundShadow.Attach(GetComponent<SpriteRenderer>());
         colliders = GetComponentsInChildren<Collider2D>(true);
         colliderStates = new bool[colliders.Length];
         for (int i = 0; i < colliders.Length; i++) colliderStates[i] = colliders[i].enabled;
@@ -67,6 +76,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     {
         EnsureInitialized();
         spawnPool = owner;
+        SpawnGeneration++;
         CurrentHealth = Mathf.Max(1f, maxHealth);
         IsDead = false;
         StopHitFlash();

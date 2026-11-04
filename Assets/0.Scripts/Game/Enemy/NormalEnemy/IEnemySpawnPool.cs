@@ -5,5 +5,6 @@ using UnityEngine.SceneManagement;
 public interface IEnemySpawnPool
 {
     bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene);
+    bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene, System.Action<GameObject> spawned);
     void ReturnEnemy(GameObject enemy);
 }

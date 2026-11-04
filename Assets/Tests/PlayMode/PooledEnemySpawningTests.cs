@@ -56,8 +56,7 @@ public class PooledEnemySpawningTests
         return prefab;
     }
 
-    private GameObject[] Spawned() => UnityEngine.Object.FindObjectsByType<MonoBehaviour>(
-            FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+    private GameObject[] Spawned() => UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude)
         .Where(c => c.GetType().Name == "EnemyHealth" && c.gameObject.name == "test enemy prefab")
         .Select(c => c.gameObject).ToArray();
 
@@ -72,8 +71,7 @@ public class PooledEnemySpawningTests
         if (loadedScene.IsValid() && loadedScene.isLoaded)
             yield return SceneManager.UnloadSceneAsync(loadedScene);
         loadedScene = default;
-        foreach (GameObject go in UnityEngine.Object.FindObjectsByType<GameObject>(
-                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (GameObject go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
             if (go.name == "@Managers") UnityEngine.Object.Destroy(go);
         yield return null;
     }
@@ -300,7 +298,7 @@ public class PooledEnemySpawningTests
         Call(director, "Tick", 0.1f);
         Call(director, "Tick", 40f);
         Assert.That(Read<int>(pool, "ActiveEnemyCount"), Is.EqualTo(5));
-        Assert.That(UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
+        Assert.That(UnityEngine.Object.FindObjectsByType<GameObject>()
             .Count(go => go.name == "second enemy prefab"), Is.EqualTo(1));
     }
 
@@ -491,7 +489,7 @@ public class PooledEnemySpawningTests
         yield return SceneManager.UnloadSceneAsync(loadedScene);
         loadedScene = default;
         Assert.That(Call(sharedPool, "GetActiveCount", enemyPrefab), Is.EqualTo(0));
-        Assert.That(UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+        Assert.That(UnityEngine.Object.FindObjectsByType<MonoBehaviour>()
             .Any(c => c != null && c.GetType().Name == "EnemyHealth"), Is.False,
             "scene-owned rented enemies must not survive the scene");
     }

@@ -61,7 +61,7 @@ public class GamePreparationTests
     public IEnumerator Cleanup()
     {
         provider?.CompletePending();
-        foreach (GameObject root in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (GameObject root in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
             if (root.name == "@Managers" || root.name == "@PreparationTest")
                 UnityEngine.Object.Destroy(root);
         yield return null;

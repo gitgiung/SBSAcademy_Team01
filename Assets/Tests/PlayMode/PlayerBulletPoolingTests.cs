@@ -71,8 +71,15 @@ public sealed class PlayerBulletPoolingTests
         var owner = Create("bullet test player");
         var data = owner.AddComponent(RuntimeType("PlayerData"));
         var combat = Activator.CreateInstance(RuntimeType("PlayerCombat"),
-            owner.transform, data, prefab, "Enemy");
-        Call(combat, "FireAt", target);
+            owner.transform, data, "Enemy");
+        var skill = Activator.CreateInstance(RuntimeType("Data.SkillData"));
+        Set(skill, "DataId", 10001); Set(skill, "PassiveConfigured", true);
+        Set(skill, "PassivePrefabKey", "pool test"); Set(skill, "PassiveDamage", 6f);
+        Set(skill, "PassiveInterval", 3f); Set(skill, "PassiveSpeed", 3f); Set(skill, "PassiveRange", 6f);
+        Call(data.GetType().GetProperty("Loadout").GetValue(data), "TryAddAttackSkill", skill);
+        Call(combat, "BindProjectile", "pool test", prefab);
+        target.gameObject.tag = "Enemy"; target.gameObject.AddComponent<BoxCollider2D>(); Physics2D.SyncTransforms();
+        Call(combat, "Tick", .01f);
         var managersType = RuntimeType("Managers");
         var sharedPool = managersType.GetProperty("Pool").GetValue(null);
         Assert.That(Call(sharedPool, "GetActiveCount", prefab), Is.EqualTo(1),

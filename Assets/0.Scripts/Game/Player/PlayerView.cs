@@ -12,11 +12,33 @@ internal sealed class PlayerView
     private readonly PlayerData data;
     private readonly Animator animator;
     private readonly PlayerDefenseVfx defenseVfx;
+    private readonly Transform owner;
+    private readonly SpriteRenderer playerRenderer;
+    private LineRenderer heavyChargeIndicator;
+    private Material heavyChargeMaterial;
     private Vector2 facingDirection = Vector2.down;
     public Vector2 FacingDirection => facingDirection;
+    public RuntimeAnimatorController AnimationController => animator != null ? animator.runtimeAnimatorController : null;
+    public bool AnimationAvailable => animator != null && animator.isActiveAndEnabled && AnimationController != null;
+
+    private int AnimationHash(string state) => Animator.StringToHash(animator.GetLayerName(0) + "." + state);
+    public bool CanPlayLightAttack(string state) => AnimationAvailable && !string.IsNullOrEmpty(state)
+        && animator.HasState(0, AnimationHash(state)) && animator.HasState(0, AnimationHash("Idle"));
+
+    public void PlayLightAttack(string state, Vector2 direction)
+    {
+        SetMovementAnimation(direction, false, false, 1f);
+        // 중단했던 같은 상태를 다시 실행해도 새로운 OnStateEnter/실행 ID를 받도록 경계를 확정합니다.
+        animator.Play(AnimationHash("Idle"), 0, 0f);
+        animator.Update(0f);
+        animator.Play(AnimationHash(state), 0, 0f);
+        animator.Update(0f);
+    }
 
     public PlayerView(Transform player, SpriteRenderer spriteRenderer, Slider healthSlider, PlayerData data, Animator animator)
     {
+        owner = player;
+        playerRenderer = spriteRenderer;
         this.healthSlider = healthSlider;
         this.data = data;
         this.animator = animator;
@@ -100,8 +122,46 @@ internal sealed class PlayerView
         animator.SetFloat("ChargeAnimationSpeed", isDashing ? (8f / 12f) / Mathf.Max(0.01f, dashDuration) : 1f);
     }
 
+    // 임시 조준 표시입니다. 선의 길이는 공격 사거리나 피해 범위가 아닙니다.
+    public void SetHeavyChargeIndicator(bool visible, Vector2 direction, float progress, int stage)
+    {
+        if (!visible)
+        {
+            if (heavyChargeIndicator != null) heavyChargeIndicator.enabled = false;
+            return;
+        }
+        if (heavyChargeIndicator == null)
+        {
+            var child = new GameObject("Heavy Charge Aim");
+            child.transform.SetParent(owner, false);
+            heavyChargeIndicator = child.AddComponent<LineRenderer>();
+            heavyChargeIndicator.useWorldSpace = false;
+            heavyChargeIndicator.positionCount = 5;
+            heavyChargeIndicator.startWidth = .07f;
+            heavyChargeIndicator.endWidth = .07f;
+            heavyChargeIndicator.numCornerVertices = 2;
+            heavyChargeMaterial = new Material(Shader.Find("Sprites/Default"));
+            heavyChargeIndicator.sharedMaterial = heavyChargeMaterial;
+            heavyChargeIndicator.sortingLayerID = playerRenderer != null ? playerRenderer.sortingLayerID : 0;
+            heavyChargeIndicator.sortingOrder = (playerRenderer != null ? playerRenderer.sortingOrder : 0) + 101;
+        }
+        Vector2 forward = direction.sqrMagnitude > .0001f ? direction.normalized : facingDirection;
+        Vector2 side = new Vector2(-forward.y, forward.x);
+        Vector2 tip = forward * Mathf.Lerp(.8f, 1.5f, Mathf.Clamp01(progress));
+        heavyChargeIndicator.SetPosition(0, forward * .35f);
+        heavyChargeIndicator.SetPosition(1, tip);
+        heavyChargeIndicator.SetPosition(2, tip - forward * .25f + side * .18f);
+        heavyChargeIndicator.SetPosition(3, tip);
+        heavyChargeIndicator.SetPosition(4, tip - forward * .25f - side * .18f);
+        Color color = stage >= 3 ? new Color(1f, .35f, .15f) : stage == 2 ? Color.yellow : Color.cyan;
+        heavyChargeIndicator.startColor = color;
+        heavyChargeIndicator.endColor = color;
+        heavyChargeIndicator.enabled = true;
+    }
+
     public void Reset()
     {
+        SetHeavyChargeIndicator(false, Vector2.zero, 0f, 0);
         defenseVfx.ResetVfx();
         if (animator != null && animator.runtimeAnimatorController != null)
         {
@@ -117,6 +177,8 @@ internal sealed class PlayerView
 
     public void Dispose()
     {
+        if (heavyChargeIndicator != null) Object.Destroy(heavyChargeIndicator.gameObject);
+        if (heavyChargeMaterial != null) Object.Destroy(heavyChargeMaterial);
         if (data == null) return;
         data.HealthChanged -= OnHealthChanged;
         data.MPChanged -= OnMPChanged;

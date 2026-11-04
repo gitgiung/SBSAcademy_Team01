@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 100
+  bossAppearTime: 30
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -1227,6 +1227,24 @@ MonoBehaviour:
   healthSlider: {fileID: 496842392}
   mpSlider: {fileID: 1395659084}
   expSlider: {fileID: 1801941379}
+  lightAttackButton: {fileID: 1415531113}
+  heavyAttackButton: {fileID: 452539071}
+  heavyChargeSettings:
+    Configured: 1
+    MPCost: 10
+    StageTimes:
+    - 0
+    - 0.4
+    - 0.8
+    StageBonuses:
+    - 0.1
+    - 0.1
+    - 0.5
+    SuperArmor: 0
+  lightAttackProjectile: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
+  passiveProjectiles:
+  - Key: FlameBullet
+    Prefab: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
   inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   enemyTag: Enemy
   playerSpriteRenderer: {fileID: 454019996}
@@ -1258,14 +1276,14 @@ MonoBehaviour:
   loadout:
     unlockedAttackSlots: 6
     attackSkills:
-    - DataId: 0
-      Name: 
+    - DataId: 10001
+      Name: 불꽃 탄환
       ClassName: 
       Description: 
       ProjectileId: 0
       PrefabLabel: 
       IconLabel: 
-      AnimName: 
+      AnimName: LightAttack
       CoolTime: 0
       DamageMultiplier: 0
       Duration: 0
@@ -1278,6 +1296,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 1
+      MPCost: 10
+      BaseDamage: 10
+      PassiveConfigured: 1
+      PassivePrefabKey: FlameBullet
+      PassiveDamage: 6
+      PassiveInterval: 3
+      PassiveSpeed: 3
+      PassiveRange: 6
     - DataId: 0
       Name: 
       ClassName: 
@@ -1521,7 +1548,7 @@ MonoBehaviour:
       EffectSize: 0
     relics: []
     augments: []
-    lightSkillId: 0
+    lightSkillId: 10001
     heavySkillId: 0
     tacticalSkillId: 0
   speed: 5

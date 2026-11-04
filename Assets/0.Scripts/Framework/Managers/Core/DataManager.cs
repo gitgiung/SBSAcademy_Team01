@@ -13,7 +13,10 @@ public class DataManager
 {
     public bool IsInitialized { get; private set; }
    
-	public Dictionary<int, Data.SkillData> SkillDic { get; private set; } = new Dictionary<int, Data.SkillData>();
+    public Dictionary<int, Data.SkillData> SkillDic { get; private set; } = new Dictionary<int, Data.SkillData>();
+
+    /// <summary>약·강·전략의 전투 수치입니다. 상태창용 SkillDic과는 별도입니다.</summary>
+    public bool TryGetCombatSkill(int id, out CombatSkillRecord record) => CombatSkillTable.TryGet(id, out record);
 	
     public void Init()
     {

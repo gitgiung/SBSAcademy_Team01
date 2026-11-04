@@ -41,6 +41,7 @@ public sealed class BossController : MonoBehaviour
     private EnemyFollow follow;
     private EnemyHealth health;
     private Rigidbody2D body;
+    private BossAttackHitVfx hitVfx;
     private Coroutine patternRoutine;
     private BossPattern nextNormalPattern = BossPattern.Pattern1;
     private float nextPatternTime;
@@ -74,6 +75,7 @@ public sealed class BossController : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
         if (animator == null) animator = GetComponent<Animator>();
         if (patternSelector == null) patternSelector = GetComponent<BossPatternSelector>();
+        hitVfx = GetComponent<BossAttackHitVfx>();
     }
 
     private void OnEnable()
@@ -205,17 +207,26 @@ public sealed class BossController : MonoBehaviour
         attackAnimationRunning = true;
         attackAnimationFinished = false;
         attackHitApplied = false;
-        animator.Play(stateHash, 0, 0f);
-        animator.Update(0f);
-
-        while (CanAttackTarget() && !attackAnimationFinished)
-            yield return null;
-
-        attackAnimationRunning = false;
-        if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
+        if (hitVfx != null) hitVfx.ShowSlash(attackForward, slashRange, slashAngle);
+        try
         {
-            follow.SetTarget(target, closeRange);
-            follow.enabled = true;
+            animator.Play(stateHash, 0, 0f);
+            animator.Update(0f);
+
+            while (CanAttackTarget() && !attackAnimationFinished)
+                yield return null;
+
+            attackAnimationRunning = false;
+            if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
+            {
+                follow.SetTarget(target, closeRange);
+                follow.enabled = true;
+            }
+        }
+        finally
+        {
+            attackAnimationRunning = false;
+            if (hitVfx != null) hitVfx.HideSlash();
         }
     }
 
@@ -345,6 +356,7 @@ public sealed class BossController : MonoBehaviour
 
     private void ApplyDashEndDamage(Vector2 dashEndCenter)
     {
+        if (hitVfx != null) hitVfx.ShowDashImpact(dashEndCenter, dashEndDamageRadius);
         var damagedReceivers = new HashSet<IContactDamageReceiver>();
         foreach (Collider2D hitCollider in Physics2D.OverlapCircleAll(dashEndCenter, dashEndDamageRadius))
         {
@@ -386,6 +398,7 @@ public sealed class BossController : MonoBehaviour
         attackAnimationRunning = false;
         attackAnimationFinished = false;
         locomotionMoving = false;
+        if (hitVfx != null) hitVfx.Hide();
         if (follow != null) follow.enabled = false;
         if (animator != null && animator.runtimeAnimatorController != null)
             animator.SetBool(IsMovingParameter, false);

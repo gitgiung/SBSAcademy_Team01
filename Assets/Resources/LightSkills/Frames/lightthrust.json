@@ -1,0 +1,209 @@
+{
+ "frames": [
+  {
+   "filename": "lightthrust 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightthrust 1.png",
+   "frame": {
+    "x": 51,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightthrust 2.png",
+   "frame": {
+    "x": 102,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightthrust 3.png",
+   "frame": {
+    "x": 0,
+    "y": 16,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightthrust 4.png",
+   "frame": {
+    "x": 51,
+    "y": 16,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightthrust 5.png",
+   "frame": {
+    "x": 102,
+    "y": 16,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightthrust 6.png",
+   "frame": {
+    "x": 0,
+    "y": 32,
+    "w": 51,
+    "h": 16
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 51,
+    "h": 16
+   },
+   "sourceSize": {
+    "w": 51,
+    "h": 16
+   },
+   "pivot": {
+    "x": 0.09803921568627451,
+    "y": 0.5
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "lightthrust.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 153,
+   "h": 48
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 5,
+   "y": 8
+  },
+  "frameTags": [
+   {
+    "name": "lightthrust",
+    "from": 0,
+    "to": 6,
+    "direction": "forward"
+   }
+  ]
+ }
+}

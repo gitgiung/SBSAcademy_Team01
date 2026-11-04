@@ -1,15 +1,14 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
 /// <summary>
 /// Composition root and compatibility facade for the player.
 /// Input and Unity lifecycle stay here; gameplay rules and presentation are delegated.
 /// </summary>
-public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
+public sealed class Player : MonoBehaviour, IContactDamageReceiver
 {
     [Header("플레이어 데이터 및 기본 설정")]
     public PlayerData data;
@@ -18,11 +17,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField] private Slider mpSlider;
     [SerializeField] private Slider expSlider;
     [SerializeField] private InputActionAsset inputActions;
-    [Header("약공격 연결")]
-    [SerializeField] private Button lightAttackButton;
-    [SerializeField] private GameObject lightAttackProjectile;
-    [Header("패시브 투사체 (Key는 SkillData.PassivePrefabKey와 일치)")]
-    [SerializeField] private PlayerProjectileBinding[] passiveProjectiles = new PlayerProjectileBinding[0];
 
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
@@ -59,23 +53,20 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private PlayerCombat combat;
     private PlayerDefense defense;
     private PlayerActionGate actions;
-    private PlayerLightSkill lightSkill;
     private PlayerController2D joystickController;
     private InputAction moveInput;
     private InputAction dashInput;
     private InputAction parryInput;
     private InputAction attackInput;
+    private GameObject lightFxPrototype;
     private bool lastExternalMoving;
     private bool startingDash;
     private int lifecycleVersion;
-    private readonly List<RaycastResult> attackUIHits = new List<RaycastResult>();
 
     public bool IsDashing => movement != null && movement.IsDashing;
-    public int ActiveLightAttackId => lightSkill != null ? lightSkill.ActionId : 0;
     public bool IsInputLocked => actions != null && actions.IsInputLocked;
     public bool CanAcceptGameplayInput => isActiveAndEnabled && !hasDied && data != null
-        && !data.IsDead && !IsInputLocked && !startingDash && !startingDefense
-        && (heavyCharge == null || !heavyCharge.IsStarting) && Time.timeScale > 0f;
+        && !data.IsDead && !IsInputLocked && !startingDash && Time.timeScale > 0f;
 
     private void OnEnable()
     {
@@ -94,9 +85,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         moveInput.Enable();
         dashInput.Enable();
         parryInput.Enable();
-        attackInput = inputActions.FindAction("Player/Attack", false)?.Clone();
+        attackInput = CloneOptional("Player/Attack");
         attackInput?.Enable();
-        EnableHeavyInput();
         view?.RefreshResources();
     }
 
@@ -124,14 +114,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         defense.ParrySucceeded += HandleParrySucceeded;
         actions = new PlayerActionGate(data);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
-        combat = new PlayerCombat(transform, data, enemyTag);
-        if (passiveProjectiles != null)
-            foreach (var binding in passiveProjectiles)
-                if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);
-        lightSkill = new PlayerLightSkill(this, data, view);
-        InitializeHeavyCharge();
-        if (lightAttackButton != null)
-            Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
+        combat = new PlayerCombat(transform, data, bulletPrefab, enemyTag);
     }
 
     private void Start()
@@ -142,14 +125,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void Update()
     {
-        if (hasDied || data.IsDead) return;
-        if (Time.timeScale <= 0f)
-        {
-            CancelReleasedHeavyKey();
-            return;
-        }
+        if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
         data.TickMPRecovery(Time.deltaTime);
-        lightSkill.CheckAnimation();
         if (IsInputLocked)
         {
             view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
@@ -160,63 +137,123 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
         bool useJoystick = joystickController != null && joystickController.enabled;
         Vector2 moveDirection = moveInput.ReadValue<Vector2>();
-        Vector2 dashDirection = useJoystick ? ReadAimDirection() : moveDirection;
-        // 실제 시작한 방어/회피가 같은 프레임의 키 해제보다 먼저 차징을 취소합니다.
-        if (dashInput.WasPressedThisFrame()) TryDash(dashDirection);
-        if (parryInput.WasPressedThisFrame()) TryParry();
-        TickHeavyCharge();
-        if (!useJoystick)
+        if (useJoystick)
         {
-            if (CanMove) movement.Tick(moveDirection);
-            view.SetMovementAnimation(IsHeavyCharging ? heavyCharge.Direction : moveDirection,
-                CanMove && moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
+            Vector2 dashDirection = joystickController.MovementDirection.sqrMagnitude > 0.0001f
+                ? joystickController.MovementDirection
+                : view.FacingDirection;
+            if (dashInput.WasPressedThisFrame()) TryDash(dashDirection);
+        }
+        else
+        {
+            if (dashInput.WasPressedThisFrame()) TryDash(moveDirection);
+
+            movement.Tick(moveDirection);
+            view.SetMovementAnimation(moveDirection, moveDirection.sqrMagnitude > 0.0001f && !movement.IsDashing,
                 movement.IsDashing, dashDuration);
         }
-        if (AttackPressedOutsideUI()) TryUseLightSkill();
-        if (!defense.IsInDefenseMotion && !IsHeavyCharging) combat.Tick(Time.deltaTime);
+        if (parryInput.WasPressedThisFrame()) TryParry();
+        if (attackInput != null && attackInput.WasPressedThisFrame() && !PointerOverUi())
+            TryCastLightSkill(CurrentAim());
+        if (!defense.IsInDefenseMotion) combat.Tick(Time.deltaTime);
     }
 
-    private bool AttackPressedOutsideUI()
+    /// <summary>장착된 약공격이 없으면 불꽃 탄환을 시전합니다. 실패하면 MP를 쓰지 않습니다.</summary>
+    public bool TryCastLightSkill(Vector2 aim)
     {
-        if (attackInput == null || !attackInput.WasPressedThisFrame()) return false;
-        // 터치는 N_Attack의 PointerDown으로만 처리해 UI 탭/해제를 중복 실행하지 않습니다.
-        var device = attackInput.activeControl?.device;
-        if (device is Touchscreen) return false;
-        if (device is Mouse mouse && EventSystem.current != null)
-        {
-            // UI 모듈이 아직 갱신되지 않은 첫 클릭도 현재 위치로 판정합니다.
-            attackUIHits.Clear();
-            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
-                { position = mouse.position.ReadValue() }, attackUIHits);
-            foreach (var hit in attackUIHits) if (hit.module is GraphicRaycaster) return false;
-        }
-        if (device is Keyboard && EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null) return false;
+        int id = data != null && data.Loadout != null
+            ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Light) : 0;
+        if (id == 0) id = 10001;
+        if (!LightSkillCatalog.TryGet(id, out LightSkillCast skill)) return false;
+        if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
+        if (aim.sqrMagnitude < 0.0001f)
+            aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
+        StartCoroutine(CastLightSkill(skill, aim.normalized, actionId));
         return true;
     }
 
-    public bool TryUseLightSkill()
+    private IEnumerator CastLightSkill(LightSkillCast skill, Vector2 aim, int actionId)
     {
-        if (lightSkill == null || !CanAcceptGameplayInput || IsHeavyCharging) return false;
-        Vector2 direction = joystickController != null && joystickController.enabled
-            ? joystickController.MovementDirection : moveInput.ReadValue<Vector2>();
-        return lightSkill.TryCast(direction, lightAttackProjectile);
+        int shots = Mathf.Max(1, skill.Projectiles);
+        float spacing = skill.ShotSpacing;
+        for (int i = 0; i < shots; i++)
+        {
+            if (!isActiveAndEnabled || hasDied) break;
+            float spread = shots == 1 ? 0f : (i - (shots - 1) * 0.5f) * 8f;
+            Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
+            SpawnLightSkill(skill, direction);
+            if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
+        }
+        float hold = 0.28f + skill.RepeatSpacing * Mathf.Max(0, skill.Hits - 1);
+        if (hold > 0f) yield return new WaitForSeconds(hold);
+        CompleteLightAttack(actionId);
     }
-    public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);
-    public void NotifyLightAttackAnimationFinished(int actionId) => lightSkill?.OnAnimationFinished(actionId);
 
-    /// <summary>후속 스킬 실행부가 애니메이션 시작 전에 호출합니다. 실패하면 시전하지 않습니다.</summary>
+    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction)
+    {
+        EnsureLightFxPrototype();
+        Vector3 position = transform.position;
+        if (skill.Shape == LightSkillShape.Circle || skill.Shape == LightSkillShape.Cone || skill.Shape == LightSkillShape.Arc)
+            position += (Vector3)(direction * skill.Range * 0.35f);
+        float damage = skill.Damage(data.attackDamage);
+        void Arm(GameObject fx)
+        {
+            if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
+                skillFx.Play(skill, direction, damage, enemyTag);
+        }
+
+        if (Managers.Initialized && Managers.Pool != null)
+            Managers.Pool.Pop(lightFxPrototype, position, Quaternion.identity, initialize: Arm);
+        else
+        {
+            GameObject fx = Instantiate(lightFxPrototype, position, Quaternion.identity);
+            fx.SetActive(true);
+            Arm(fx);
+        }
+    }
+
+    private void EnsureLightFxPrototype()
+    {
+        if (lightFxPrototype != null) return;
+        lightFxPrototype = new GameObject("LightSkillFx");
+        lightFxPrototype.SetActive(false);
+        lightFxPrototype.AddComponent<SpriteRenderer>();
+        CircleCollider2D collider = lightFxPrototype.AddComponent<CircleCollider2D>();
+        collider.isTrigger = true;
+        Rigidbody2D body = lightFxPrototype.AddComponent<Rigidbody2D>();
+        body.bodyType = RigidbodyType2D.Kinematic;
+        body.gravityScale = 0f;
+        body.useFullKinematicContacts = true;
+        lightFxPrototype.AddComponent<PooledObject>();
+        lightFxPrototype.AddComponent<LightSkillFx>();
+    }
+
+    private Vector2 CurrentAim()
+    {
+        if (joystickController != null && joystickController.enabled
+            && joystickController.MovementDirection.sqrMagnitude > 0.0001f)
+            return joystickController.MovementDirection;
+        Vector2 move = moveInput != null ? moveInput.ReadValue<Vector2>() : Vector2.zero;
+        if (move.sqrMagnitude > 0.0001f) return move;
+        return view != null ? view.FacingDirection : Vector2.right;
+    }
+
+    private static bool PointerOverUi()
+    {
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+    }
+
+    private InputAction CloneOptional(string actionPath)
+    {
+        if (inputActions == null) return null;
+        InputAction source = inputActions.FindAction(actionPath, false);
+        return source != null ? source.Clone() : null;
+    }
     public bool TryBeginLightAttack(float mpCost, out int actionId)
     {
         actionId = 0;
-        if (!CanAcceptGameplayInput || IsHeavyCharging || movement.IsDashing || !defense.CanStart) return false;
+        if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
         if (!actions.TryBeginLightAttack(mpCost, out actionId)) return false;
-        if (!isActiveAndEnabled || hasDied || data.IsDead || Time.timeScale <= 0f)
-        {
-            actions.CompleteLightAttack(actionId);
-            data.RestoreMP(mpCost);
-            actionId = 0;
-            return false;
-        }
         joystickController?.StopMovement();
         view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
         return true;
@@ -241,7 +278,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
                 || data.IsDead || IsInputLocked || Time.timeScale <= 0f) return false;
             if (!movement.TryBeginDash(direction, dashDuration, dashSpeedMultiplier, dashCooldown)) return false;
             started = true;
-            ResetHeavyCharge();
             defense.CancelForDash();
             joystickController?.StopMovement();
             StartCoroutine(movement.DashRoutine());
@@ -258,14 +294,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     public bool TryParry()
     {
         if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
-        startingDefense = true;
-        try
-        {
-            ResetHeavyCharge();
-            StartCoroutine(defense.GuardParryProcess(() => parryInput != null && parryInput.IsPressed()));
-            return true;
-        }
-        finally { startingDefense = false; }
+        StartCoroutine(defense.GuardParryProcess(() => parryInput != null && parryInput.IsPressed()));
+        return true;
     }
 
     private void HandleParrySucceeded() => data.RestoreMP(data.parryMPRecovery);
@@ -287,7 +317,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         }
 
         if (!data.ApplyDamage(damage)) return;
-        if (IsHeavyCharging && (!heavyCharge.SuperArmor || data.IsDead)) ResetHeavyCharge();
 
         Debug.Log($"[피격] 받은 데미지: {damage} / 남은 체력: {data.currentHealth}");
         if (data.IsDead)
@@ -307,7 +336,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     /// <summary>Updates player visuals from an external movement source such as the mobile joystick.</summary>
     public void SetExternalMovementAnimation(Vector2 moveDirection, bool isDashing = false)
     {
-        if (!CanMove) moveDirection = Vector2.zero;
+        if (!CanAcceptGameplayInput) moveDirection = Vector2.zero;
         bool isMoving = moveDirection.sqrMagnitude > 0.0001f;
         view?.SetMovementAnimation(moveDirection, isMoving && !isDashing, isDashing, dashDuration);
         if (isMoving != lastExternalMoving)
@@ -320,9 +349,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         unchecked { lifecycleVersion++; }
         StopAllCoroutines();
-        ResetHeavyCharge();
-        lightSkill?.Cancel();
-        combat?.Reset();
         actions?.Reset();
         joystickController?.StopMovement();
         movement?.Reset();
@@ -333,6 +359,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void OnDestroy()
     {
+        if (lightFxPrototype != null) Destroy(lightFxPrototype);
         view?.Dispose();
     }
 
@@ -360,8 +387,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         dashInput?.Dispose();
         parryInput?.Dispose();
         attackInput?.Dispose();
-        heavyInput?.Dispose();
-        heavyInput = null;
         moveInput = null;
         dashInput = null;
         parryInput = null;

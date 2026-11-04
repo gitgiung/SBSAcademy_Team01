@@ -1,16 +1,38 @@
 # 작업 인수인계
 
-## 2026-11-04 main에 EnemyEXP·feat/PlayerSkill 병합
+## 2026-11-04 전투 수치 엑셀 변환
 
-- 사용자 요청: `EnemyEXP`와 `feat/PlayerSkill`을 `main`에 병합. 시작 작업 트리는 깨끗한 `EnemyEXP`, HEAD `f42760d`였다. origin fetch 후 main `53c7b5d`, EnemyEXP `f42760d`, feat/PlayerSkill `3d0974b`가 로컬·원격에서 일치함을 확인했다. 기존 브랜치는 보존한다.
-- 병합 순서: main에 EnemyEXP를 `f5a3783` merge commit으로 병합한 뒤 feat/PlayerSkill을 병합했다. 두 병합 모두 실제 충돌은 Handoff.md뿐이었다. main·EnemyEXP·스킬 브랜치의 고유 인수인계 섹션을 모두 보존했으며, 아래 과거 기록의 브랜치·HEAD·테스트 수는 기록 당시 값이다. 현재 작업 방향은 이 최신 항목과 각 기능 상세 문서를 기준으로 판단한다.
-- 보존 확인: EnemyHealth의 DNA 드롭과 표시 전용 HP 갱신, PlayerData의 EXP API/획득 거리, 스킬 데이터·약공격/패시브·강공격 차징, main의 기존 아트·데이터 수정이 함께 반영됐다. WorldWrap은 폐기 상태이며 Restart의 정리 프레임 분리는 유지된다. MainTestScene의 보스 출현 30초 및 스킬 설정은 feat/PlayerSkill의 원래 직렬화 값이며 병합 과정에서 새 기획 수치를 정하지 않았다.
-- 실행 검증: Unity 6000.5.0f1 별도 전체 프로젝트 복사본. EnemyEXP 기준 **181개 중 163 통과/18 실패**, feat/PlayerSkill 단독 기준 **249개 중 231 통과/18 실패**, 병합 결과 **250개 중 232 통과/18 실패**. 모두 생략 0, exit 2. 병합 결과의 실패 18개는 feature 단독 기준과 이름·실패 메시지가 전부 일치하고 새 실패는 없다. 강공격 차징 32/32, 약공격 13/13, 적 HP 표시 7/7, Restart 회귀 1/1 통과. 실패가 없는 전체 테스트로 보고하지 않는다.
-- 현재 실패 목록: `docs/AI/HeavyChargeValidation.md`의 18개 목록과 동일하다. GiungTestScene Player 입력 에셋 참조 누락 16개, `PlayerPassiveSkillTests.OutsideRangeOrViewportDoesNotConsumeReadyShot`(탄환 0 기대/1 관측), `PlayerStatusTests.KeyboardSubmitCanEnterAdjustAndLeaveOptionsWithoutLosingSelection`(MasterVolume 대신 OptionsButton 선택). EnemyEXP 기준의 CombatPausePopup 중복 등록 실패는 병합 결과에서는 통과했다. 서로 다른 시점의 18개 실패를 같은 목록이라고 취급하지 않는다.
-- 비교 자료: `.utmp/g/merge-enemy-baseline.xml`, `merge-combined-suite.xml`, `merge-skill-baseline.xml`과 대응 로그(Git 제외). 복사본 PlayFromTitle에만 batchmode guard를 넣었고 원본 씬·프리팹·Project Settings·패키지는 Unity로 자동 저장하지 않았다. 원격 push는 이 요청에서 수행하지 않는다.
-- 독립 리뷰: 자동 병합 교차 부분의 DNA+HP 표시, EXP+스킬 모델, 삭제된 스크립트 참조, 씬 연결, WorldWrap 폐기·Restart 처리 보존을 확인했다. 추가 회귀나 자동 병합 결함 지적은 없었다. Unity 직렬화 파일의 원래 빈 값 뒤 공백을 보존하며 문서 충돌 해결에 공백 일괄 정리를 섞지 않았다.
-- 사용자 확인 순서: main에서 Unity 임포트/컴파일 완료 → `Tools > Play From Title` 체크 시 해제 → MainTestScene Play → N_Attack 약공격 발사와 C_Attack 홀드/방향/단계 표시·해제 확인 → 적 처치 시 DNA 드롭 확인 → 사망 후 Game Over Restart 반복. 정상 결과는 불꽃 탄환·차징 표시가 동작하고, DNA가 생성되며, Restart 후 새 플레이어로 재진입하는 상태다. DNA 유도 거리/속도/EXP가 0이면 드롭 이후 자동 유도·EXP 증가를 기대하지 않는다. 오류 시 Console 첫 오류, Player의 입력 에셋·버튼 참조·MP, EnemyHealth의 픽업 프리팹 연결을 확인한다.
-- 남은 검증/다음 작업: 원본 에디터의 병합 후 실제 UI 입력·터치와 Android 빌드/기기 확인. 강공격의 실제 피해·정식 스킬 실행은 이 브랜치에서도 후속이며 차징 기반을 완료된 피해 구현으로 취급하지 않는다. 기존 GiungTestScene 입력 참조·테스트 격리 실패는 별도 범위로 남긴다.
+- 시작 상태: 약공격 21개의 피해·MP·범위는 `LightSkillCatalog` 배열에 적혀 있었고, `SkillDatatable.xlsx`와 따로 놀 수 있었다. 기존 `Tools/ParseExcel`은 `Data.SkillData` 필드 순서로 CSV만 읽어서 이 표에 붙일 수 없다.
+- 완료: `Tools > Parse Combat Skill Table`이 프로젝트 루트의 `SkillDatatable.xlsx`에서 약·강·전략 시트와 `Area_Typetable`을 ID로 합쳐 `Assets/Resources/Data/CombatSkillTable.json`에 저장한다. 수식 ID는 저장된 값, `Reach`는 범위 시트의 길이, `Projecttile`은 Projectile이다. 약공격 시전은 이 JSON의 MP·범위·탄수·타격·기본 수치·계수를 읽는다. 그림 5종과 셰이더 색은 그대로다. 강공격·전략은 수치만 들어 있고 실행은 없다. 상태창용 `SkillData`는 바꾸지 않았다.
+- 검증: 변환 결과 46줄(약 21, 강 15, 전략 10). 불꽃 탄환은 MP 5, 사거리 7, 폭 0.5, 기본 8, 계수 1.2. Unity 메뉴 재실행, 플레이, 테스트 러너는 실행하지 않음.
+- 다음 확인: 엑셀을 저장한 뒤 Unity 메뉴 `Tools > Parse Combat Skill Table`을 누른다. Console에 전투 스킬 46개가 보여야 한다. 이어서 `MainTestScene`에서 Play From Title을 끄고 Play한 뒤 적 앞에서 마우스 왼쪽 또는 Enter를 누른다. MP가 5 줄고 불꽃 탄환이 날아가면 정상이다. Console에 `CombatSkillTable이 없습니다`가 보이면 메뉴를 다시 실행하고, 그림이 분홍 네모면 `LightSkills/LightSkillGlow` 셰이더가 `AllIn1Urp2dRenderer`인지 본다.
+
+## 2026-11-04 약공격 인게임 시전
+
+- 시작 상태: 약공격 표 수치는 있었고, 버튼 시전과 이펙트는 없었다. 약공격 잠금과 MP 차감 API만 있었다.
+- 완료: 마우스 왼쪽, Enter, 게임패드 서쪽 버튼의 Attack 입력으로 장착된 약공격을 시전한다. 장착이 없으면 불꽃 탄환(10001)을 쓴다. 비용은 표의 MP, 피해는 기본 수치 + 공격력 × 계수다. 시전 중에는 기존 약공격 잠금이 이동·회피·막기·다음 약공격을 막는다. 자동 탄환은 그대로 따로 나간다.
+- 완료: PixelLab 이펙트 5종을 `Assets/Resources/LightSkills`에 넣었다. 탄환 `lightfirebolt`, 원 `lightfireblast`, 직선 `lightthrust`, 부채꼴·호 `lightslash`, 고리 `lightflamering`. Point 필터. `LightSkillGlow`는 `AllIn1SpriteShader/AllIn1Urp2dRenderer`의 Glow와 HSV로 속성 색을 입힌다.
+- 검증: 표 수치와 시트 프레임 수를 읽었다. Unity 플레이와 테스트 러너는 실행하지 않음.
+- 다음 확인: MainTestScene에서 Play From Title을 끄고 Play한다. 적 앞에서 마우스 왼쪽 또는 Enter를 누른다. MP가 5 줄고 불꽃 탄환이 조준 방향으로 날아가 맞으면 적이 피해를 입는다. 시전 순간에 이동·회피·막기가 안 되고, 잠시 뒤 다시 되면 정상이다. UI 위 클릭은 나가지 않는다. 그림이 분홍 네모면 Console의 셰이더 오류와 `LightSkills/LightSkillGlow` 셰이더가 `AllIn1Urp2dRenderer`인지 본다. 그림이 흐리면 해당 PNG의 Filter Mode가 Point인지 본다.
+
+## 2026-11-04 보스 피격 범위 VFX
+
+- 시작 상태: 보스 스와이프 그림은 피격 부채꼴보다 작고, 빨간 범위 표시는 `BossPatternRangeView`에서 꺼져 있었다. 베기 판정은 선입력 때 고정된 방향의 `slashRange`·`slashAngle`이고, 돌진 판정은 도달한 순간의 플레이어 위치에 `dashEndDamageRadius` 원이다.
+- 완료: `BossAttackHitVfx`가 All In 1 URP 2D 셰이더로 그 판정 모양을 그린다. 베기는 스와이프가 시작된 뒤 끝날 때까지 방향이 고정되고, 돌진 원은 타격 순간 0.2초 동안 사라진다. 부모 스케일을 나눠 월드 지름이 반지름의 두 배가 된다. 데미지 계산과 애니메이션 클립은 바꾸지 않았다. 디버그 범위 표시는 그대로 꺼 두었다.
+- 연결: `BossMvp` 프리팹. 머티리얼 `Assets/1.Prefabs/Materials/BossAttackHitVfx.mat`는 `RADIALCLIPPING_ON`, `GLOW_ON`. `MainTestScene`의 보스 스케일 4, 베기 반지름 6, 각도 120은 씬 덮어쓰기라 그대로다. 그 씬의 `landingDamageRadius`, `leapDuration`은 현재 필드와 이름이 달라 돌진 반지름은 프리팹 값 2다.
+- 검증: 크기 계산 테스트 `BossAttackHitVfxShapeTests`를 추가했다. Unity가 이미 열려 있어 테스트 러너는 실행하지 않음. 에디터 재생, 화면, 빌드, 기기는 확인하지 않음.
+- 다음 확인: Unity 임포트가 끝난 뒤 `MainTestScene`을 재생한다. 보스가 가까이서 베면 몸 앞에 주황 부채꼴이 스와이프 동안 유지되고, 플레이어가 움직여도 방향은 그대로여야 한다. 멀리서 돌진해 닿으면 플레이어 자리에 원이 잠깐 보였다가 사라진다. 부채꼴이 안 보이면 Console에 머티리얼 오류가 있는지, 머티리얼 셰이더가 `AllIn1SpriteShader/AllIn1Urp2dRenderer`인지 본다.
+
+## 2026-11-04 강공격 20001~20005와 전략 스킬 수치
+
+- 시작 상태: `main`. HeavySkilltable 20001~20005는 이름·등급·불 속성만 있고, UtilitySkilltable 30001~30010은 이름·속성·자원 Count만 있었다. 20006~20015와 약공격 수치는 이미 채워져 있었다.
+- 완료: 20001 화염 망치~20005 운석검에 MP, 쿨타임 0, Charge, 차징 0.5~0.8초, 사거리, 범위, 타격, 기본 수치, ATK 계수, 슈퍼아머, 넉백, 설명을 넣었다. 같은 등급의 20006~20015 위력대에 맞췄고, 기획서의 강공격 최대 차징 0.8초를 넘기지 않았다. 20006~20015는 바꾸지 않았다.
+- 완료: 전략 10개에 소모 횟수 1, 쿨타임 6초, Instant, 시전 0초, 효과 종류, 기본 수치, 계수, 지속 시간, 설명을 넣었다. 기획서의 초기 기준은 사용마다 횟수 1, 스테이지당 5회, 쿨타임 6초다. 횟수 상한 칸은 표에 없어 설명에 적었다. 회복·방어막·증가량은 플레이어 최대 체력·마력 비율이다. 등급은 전략 스킬에 없다는 기존 정리를 유지해 비워 두었다.
+- 완료: Area_Typetable 34~39행에 화염 망치, 화염 돌진, 대폭발, 화염 폭풍, 운석검, 불타는 갑주의 범위 수치를 추가했다. 자기 자신에게만 쓰는 전략 스킬은 Point라 반경 칸이 없어 범위 표에는 넣지 않았다.
+- 수정: 바람의 가호 영문 `Blessing of Wind)`의 닫는 괄호를 뺐다.
+- 그대로 빈 칸: 아이콘, 애니메이션, 이펙트 프리팹, 사운드. 상태이상 ID는 None. 차징 1·2·3단계 배율 칸은 이 표에 없다.
+- 검증: 저장 파일에서 20001~20005, 30001~30010, 범위 34~39행의 아이디·비용·기본 수치·계수를 다시 읽었다. 20006 기본 수치 14와 20015, 아이디 수식은 유지됐다. Unity 테스트 0개. 전투 로딩은 확인하지 않음.
+- 다음 확인: HeavySkilltable 3~7행, UtilitySkilltable 3~12행, Area_Typetable 34~39행. 엑셀을 저장 전에 열어 두었다면 닫을 때 덮어쓰지 말고 다시 연다.
 
 ## 2026-11-04 스킬 개요 PPT
 
@@ -69,89 +91,6 @@
 - 다음 확인: 열린 Unity의 임포트가 끝나면 `ZombieHound` 프리팹을 테스트 씬에 두거나 `Enemy Spawn System`의 Enemy Prefabs에 넣는다. 플레이어를 따라 달리면 run, 붙으면 idle. 그림이 비거나 예전 소형 개면 `Zombie_Hound` Reimport. 몸이 접촉 판정보다 커 보이면 콜라이더를 맞춘다.
 - 속도·무리 스폰 수치는 기획 미정이라 확정하지 않음.
 
-## 2026-11-04 Restart 네이티브 교착 조사 및 Burst 생성 DLL 복구
-
-- 시작 상태: `EnemyEXP`, HEAD `b5e1ad3`. WorldWrap 삭제·MainTestScene 컴포넌트 제거·기존 테스트 삭제·인수인계 변경·사용자 복구 씬과 meta를 보존했다. WorldWrap은 복원하지 않았다.
-- 시작 오류 확정 원인: 사용자 첨부 `Failed to find entry-points / Mono.Cecil.AssemblyResolutionException`의 대상인 `Library/ScriptAssemblies/Unity.RenderPipelines.Core.ShaderLibrary.dll`은 4,608바이트 파일이 있지만 PE 헤더가 손상돼 .NET에서 Unknown file format으로 거절됐다. ScriptAssemblies의 다른 DLL 헤더는 정상이었다. 같은 프로젝트 `Library/Bee/artifacts/1900b0aE.dag/post-processed/`의 동일 어셈블리는 정상이어서 손상본을 별도 보관 후 이 파일 하나만 복구했다. 복구 후 어셈블리 이름 읽기와 SHA-256 일치를 확인했고, 실제 에디터의 후속 컴파일·도메인 리로드에서 Burst 오류가 새로 발생하지 않았다. 손상 원인 자체(강제 종료 등)는 확정하지 않았다. 전체 Library 삭제·패키지/Unity 버전 변경은 하지 않았다.
-- Restart 재현: 실제 원본 에디터(6000.5.0f1, Direct3D12)에서 적이 스폰된 MainTestScene의 사망·Restart 버튼 입력 후 정지를 관찰했다. 임시 단계 로그상 scene/pool/UI/sound Clear가 모두 종료되고 native LoadScene(MainTestScene)이 반환된 후 다음 씬 완료 이벤트와 heartbeat가 중단됐다. 로그를 읽을 때 이번 세션의 최신 파일은 `%LOCALAPPDATA%/Unity/Editor/Editor.log`였으며, 프로젝트 `Logs/Editor.log`는 09:53 시점의 오래된 파일이었다. 파일 시각을 먼저 확인해야 한다.
-- 네이티브 스택: 메인 스레드가 `DelayedDestroyCallback → SpriteRenderer.MainThreadCleanup → AssetChangedNotifier.UnsubscribeFromAll → PersistentManager.Lock`에서 대기했다. 동시에 로딩 스레드는 `PreloadManager → LoadSceneOperation → RenderSettings.Transfer → PersistentManager.PreallocateObjectThreaded → SetObjectLockForRead`에서 대기했다. 종료·스레드 대기는 로컬 PDB로 확인했으며 사용자 에디터는 강제 종료하지 않았다. 증거는 지연 삭제와 새 씬 읽기의 잠금 교착을 가리킨다. 단순 GPU 정지나 WorldWrap 원인으로 단정하지 않는다.
-- 수정: GameManager 결과 화면 전환만 `SceneManagerEx.PrepareSceneLoad`로 검증·정리를 먼저 수행하고, 기존 Managers 소유 코루틴에서 한 프레임 뒤 실제 LoadScene을 시작한다. 이는 임의 시간 지연이 아니라 예약된 Destroy를 끝낼 프레임 분리다. 기존 public LoadScene/LoadSceneAsync API 동작과 기존 isTransitioning 가드를 보존한다. 잘못된 씬의 동기 예외 및 다음 프레임의 실제 로드 예외 모두 기존 시간 배율·재시도 가드를 복구한다.
-- 회귀: `RestartSceneTransitionTests.RestartButtonAfterSpawningEnemiesCanReloadThreeTimes` 추가. 실제 MainTestScene에서 적 스폰, 렌더러 등록 프레임, 플레이어 사망, 직렬화된 Restart 버튼 이벤트, 이전 적 삭제 완료·이전 씬 유지 프레임, 새 씬 진입을 3회 검사한다. 수정 전 프레임 보장 조건에서 1개 실패, 수정 후 Direct3D12 활성화 검증 복사본에서 **1/1 통과**, exit 0. batchmode 스트레스만으로는 원래 네이티브 교착이 재현되지 않아, 실제 에디터 스택과 프레임 순서 검증을 함께 근거로 사용했다. `GameResultFlowTests`의 단일 프레임 완료 가정은 씬 교체 완료를 제한 시간까지 기다리도록 수정했다.
-- 전체 테스트: 최종 코드의 Unity 6000.5.0f1 컴파일 및 PlayMode **181개 중 163 통과/18 실패**, 생략 0, exit 2. 기존 삭제 후 기준(180개 중 162 통과/18 실패)과 실패 18개의 이름·원인이 동일하고 새 실패는 없다. 아래 과거 조사에 기존 실패의 전체 이름과 원인이 기록돼 있다. 새 Restart 회귀는 전체 실행에서도 통과했다. 생성물 `.utmp/g/restart-barrier-before.xml`, `restart-after.xml`, `restart-final-suite.xml` 및 로그. 로컬 진단 스택·손상 DLL 보관본은 `.utmp/RestartInvestigation`에 있으며 Git 제외다.
-- 임시 진단 정리: `RestartInvestigationProbe.cs`와 meta, `[RestartProbe]` 런타임 로그를 모두 제거했다. 진단 중 비활성 창에서도 Play를 진행하기 위해 바꾼 runInBackground는 프로세스 내 런타임 값이며 ProjectSettings의 원래 0은 유지했다. 원본 에디터가 이미 교착돼 실행 중인 메모리에는 제거된 진단 코드가 남을 수 있으므로 재실행 후 확인해야 한다. 씬·프리팹·Project Settings·패키지의 이번 요청 추가 변경은 없다.
-- 사용자 확인 완료: 사용자가 Unity 종료·재실행 후 **“시작 오류 없고 Restart도 정상”**이라고 확인했다. 확인 절차는 컴파일 완료 → Console의 ShaderLibrary/Burst 시작 오류 확인 → MainTestScene Play → 적 접촉 사망 → Game Over의 Restart 반복이다. 정상 결과는 시작 오류가 없고 재진입 뒤 새 플레이어 이동이 가능한 상태다. 다시 정지하면 강제 종료 전에 정지 단계와 최신 Editor.log/네이티브 스택을 수집한다. Android 빌드·기기는 미검증이다.
-- 독립 코드 리뷰: 실제 변경 파일의 검증·정리 프레임 분리, 기존 공개 API 보존, 중복 전환 가드, 동기/지연 예외 복구, 테스트 정리를 확인했고 추가 수정이 필요한 결함은 없었다. `git diff --check` 통과.
-- 다음 우선순위: WorldWrap 폐기 상태를 유지한다. 별도 요청 시 기존 GiungTestScene Input Action Asset 참조 누락 16개 및 팝업 관련 2개 테스트 실패를 조사한다. 운영용 전체 카탈로그·번들·Android 빌드·기기 검증은 남아 있다.
-
-## 2026-11-04 사용자 요청으로 무한 맵 구현 폐기
-
-- 현재 결정: WorldWrap2D 기반 무한 맵을 전부 폐기했다. 아래 세 개의 관련 항목은 과거 조사 기록이며, 경계 래핑·시각 복제·World Bounds 설정을 다시 구현하거나 복원할 지침이 아니다.
-- 시작 상태: `EnemyEXP`, HEAD `b5e1ad3`. 이전 작업의 WorldWrap 수정·새 전용 테스트와 기존 사용자 삭제 `WorldWrap2DRestartTests.cs`가 있었고, 새 사용자 파일 `Assets/_Recovery/0 (1).unity` 및 meta가 있었다. 기존 테스트 삭제는 유지했다.
-- 제거: `Assets/0.Scripts/Game/WorldWrap2D.cs`와 meta, 새 WorldWrap 전용 테스트 3개와 meta. MainTestScene과 복구 씬에서는 WorldWrap2D MonoBehaviour YAML 블록과 플레이어의 컴포넌트 목록 항목만 제거했다. 복구 씬의 나머지 바이트와 meta, 기본 Ground 타일맵·배치, DNA 드롭·EXP 픽업 코드는 보존했다.
-- 현재 동작: 맵 경계를 넘어도 반대편으로 순간이동하지 않고 주변 8장 타일맵을 생성하지 않는다. 맵 밖 이동 제한이나 새로운 경계 처리는 추가하지 않았다.
-- 검증: Assets 전체 WorldWrap 이름·스크립트 GUID 참조 0건, 씬의 제거 컴포넌트 fileID 참조 0건, `git diff --check` 통과. 두 씬에서 해당 컴포넌트와 목록 항목을 제거한 것 외의 바이트·복구 씬 meta는 작업 직전과 동일함을 대조했다. 별도 전체 프로젝트 복사본에서 Unity 6000.5.0f1 컴파일 및 삭제 후 PlayMode **180개 중 162 통과/18 실패**, 생략 0, exit 2. 실패 18개는 아래 과거 조사에 명시한 기존 실패와 이름·원인이 동일하며 새 실패는 없다. 결과 파일은 `.utmp/g/removal-suite.xml`, 로그는 `removal-suite.log`(Git 제외). 이전의 5/5 통과 기록은 삭제 전 코드에 대한 기록으로 재사용하지 않는다.
-- 다음 확인: Unity 임포트·컴파일 완료 → `Tools > Play From Title` 체크 시 해제 → `Assets/9.Scenes/MainTestScene.unity` 열기 → `Player Target` Inspector에서 WorldWrap2D/Missing Script가 없는지 확인 → Play. 기존 경계를 넘어도 순간이동·반복 맵 생성이 없어야 한다. 적 접촉으로 사망 후 Game Over의 Restart를 선택해 재진입과 정상 이동을 확인한다. 오류 시 Console 첫 오류와 Missing Script 위치를 확인한다. 실제 에디터 정지 재발 여부·화면·Android 빌드·기기는 별도 확인이 필요하다.
-
-## [폐기된 구현 기록] 2026-11-04 사망 물리 콜백의 WorldWrap2D 정리 오류 조사
-
-- 시작 상태: `EnemyEXP`, HEAD `b5e1ad3`. 사용자 변경으로 `Assets/Tests/PlayMode/WorldWrap2DRestartTests.cs`가 이미 삭제돼 있었으며 복원하지 않았다. 씬·프리팹·Project Settings·패키지는 원본에서 변경하지 않았다.
-- 조사 대상: `dec1a74`(DNA 드롭/무한 맵), `b5e1ad3`(Restart 정지 대응). 후자에서 `UNITY_EDITOR`이면 Play 중에도 `DestroyImmediate`를 호출하도록 바뀌었다. 실제 `Logs/Editor.log`와 사용자 스택에서 `EnemyContactDamage → Player.TakeDamage → SetActive(false) → WorldWrap2D.OnDisable` 경로로 삭제가 거부됨을 확인했다. 실패 후에도 사본 목록·루트 참조를 비우므로 사망 시 정리되지 않은 맵이 남을 수 있다. DNA 드롭 코드가 이 오류를 발생시킨다는 근거는 없다.
-- 수정: `WorldWrap2D.ClearVisualCopies`에서 루트를 비활성화하고 자식 8장을 루트와 함께 한 번에 정리한다. 에디터도 `Application.isPlaying`일 때 `Destroy`를 쓰며, Play 밖에서만 `DestroyImmediate`를 쓴다. 프레임당 사본 1장 생성과 경계 래핑은 유지한다.
-- 회귀 테스트: 새 `WorldWrapPhysicsCleanupTests` 4개(실제 Collision2D 콜백 중 비활성화+timeScale 0, 같은 프레임 재활성화 3회, 생성 도중 파괴, 씬 언로드 3회). `WorldWrapContactDisableProbe`는 테스트 어셈블리에만 둔다. 기본 Assembly-CSharp 타입은 reflection으로 접근해 기존 asmdef 구조를 바꾸지 않는다. `WorldWrapGameRestartTests`는 실제 MainTestScene에서 사망/Restart 3회 경로를 검사한다.
-- 실행 검증: 별도 최소 프로젝트, Unity 6000.5.0f1에서 수정 전 4개 중 1개가 사용자와 동일한 물리 콜백 DestroyImmediate 오류로 실패(3개 통과), 수정 후 **4/4 통과**, exit 0. 전체 프로젝트 복사본에서 새 테스트를 포함한 PlayMode 185개 실행: HEAD의 수정 전 WorldWrap 코드 **166 통과/19 실패**, 최종 코드 **167 통과/18 실패**, 생략 0, 양쪽 exit 2. 사라진 실패는 물리 콜백 테스트 1개뿐이며 나머지 18개는 이름·실패 원인이 동일하다. 최종 WorldWrap 테스트 **5/5 통과**(실제 MainTestScene의 TakeDamage/RestartGame 직접 호출 3회 포함). 실제 접촉·버튼 입력·화면은 수동 확인이 필요하다. 원본 사용자 에디터를 추가로 열지 않았고, 복사본 PlayFromTitle 초기화에만 batchmode guard를 넣었다.
-- 검증 자료 위치(생성물, Git 제외): `.utmp/WrapCleanupCheck/before.xml`, `after.xml`, `.utmp/g/baseline-suite.xml`, `final-suite.xml` 및 각각의 로그. 영속 검증 요약은 이 항목의 수치와 실패 목록을 기준으로 한다. 초기 sandbox 검증은 라이선스 연결에서 진행되지 않아 별도 검증 프로세스를 경로 대조 후 종료했고, 권한 제한 밖의 독립 복사본에서 실제 테스트를 수행했다.
-- 기존 실패 16개는 `Player requires an Input Action Asset reference.`로 GiungTestScene 진입 중 발생한다. `CombatPopupSceneTests`: `BossFightKeepsTimerPausedButCombatResumesAfterBack`, `BringingAnOpenPausePopupToFrontRestoresButtonFocus`, `KoreanLabelsRenderAndLevelContentRemainsEmpty`, `PausedPlayerDoesNotStartAutoAttackWhenCooldownReady`, `PopupRaycastBlocksWorldAndBackWorksWhilePaused`, `SceneButtonsFreezeCombatAndResumeOnlyAfterBothPopupsClose`, `SceneUnloadReleasesPauseAndSceneOwnedPopupInstances`. `GameResultFlowTests`: `ActualDeathNotificationIsSentOnce`, `ActualPlayerDeathReachesDefeat`, `DeathWinsWhenBothSignalsArriveInSameFrame`, `InvalidRestartPreservesResultAndAllowsRetry`, `RestartReturnsToGiungWithFreshStateAndOwnedManagers`, `RestoringLoadingRouteReachesMainWithPreparationReady`, `ReturnToTitleCleansPopupsPoolAndSound`, `VictoryClosesBothPopupsAndFocusesResult`. `PooledEnemySpawningTests.GiungSceneUsesPoolAndBossPauseReturnsNormalEnemies`.
-- 기존 실패 나머지 2개: `PlayerStatusTests.ActualPausePrefabKeepsPauseThroughOptionsAndResumesOnBack`(CombatPausePopup 중복 등록), `PlayerStatusTests.KeyboardSubmitCanEnterAdjustAndLeaveOptionsWithoutLosingSelection`(MasterVolume 대신 OptionsButton 선택). 이번 맵 정리 수정 범위에서는 변경하지 않았다.
-- 판단 제한: 이전 항목의 “지연 Destroy가 에디터 정지의 원인”이라는 설명은 실행 검증 없이 기록된 가설이었고 확정 사실로 사용하면 안 된다. 실제 씬의 사망/Restart 3회 자동 테스트는 수정 전에도 통과했으므로 사용자 환경의 에디터 전체 멈춤 자체는 이번 batchmode 검증에서 재현되지 않았다. 물리 오류의 원인과 수정 효과만 확정할 수 있다. 화면 이음새·Android 빌드·기기는 미검증이다.
-- 독립 리뷰: 런타임 변경에 추가 지적 없음. 실제 씬 테스트의 종료 후 씬·영속 루트 정리 누락 1건을 수정하고 재검토 완료. 최종 테스트는 이 정리와 정상 정보 로그를 실패로 취급하던 검사 제거까지 반영한 코드로 실행했다. `git diff --check` 통과.
-- 다음 우선순위: 아래 사용자 확인 절차로 원본 에디터의 실제 사망/Restart 정지 재발 여부 확인. 재발하면 클릭 전후 마지막 Console/Editor 로그와 에디터 스택을 수집해 씬 정리·새 맵 생성 중 정지 단계를 분리한다. 별도 작업으로 GiungTestScene 입력 참조 누락과 팝업 테스트 기존 실패 18개를 조사한다.
-- 사용자 확인: Unity 컴파일 완료 → `Tools > Play From Title` 체크 시 해제 후 `Assets/9.Scenes/MainTestScene.unity` 열기 → Play → 적 접촉으로 실제 사망 → Game Over의 Restart 선택을 3회 반복 → Play 중지/재진입. 사망 프레임 다음에 `WorldWrap Visuals`가 제거되고, 재시작 뒤 루트 1개와 자식 8개가 다시 생성되며 플레이어 이동/경계 래핑이 동작해야 한다. Console에 물리 콜백 DestroyImmediate 오류가 없어야 한다. 재발 시 첫 오류와 마지막 정상 동작(사망/클릭/씬 로딩/새 플레이어 생성 중 어느 단계인지)을 기록한다. 정지 상태에서 사용자 에디터를 강제 종료하거나 미저장 씬을 덮어쓰지 않는다.
-- 자동 테스트 메뉴: `Window > General > Test Runner > PlayMode`에서 `WorldWrapPhysicsCleanupTests`, `WorldWrapGameRestartTests` 실행. 환경에 따라 `Window > Test Runner`로 표시될 수 있다.
-
-## [폐기된 구현 기록] 2026-11-04 WorldWrap2D 리스타트 시 Unity 정지
-
-- 시작 상태: `EnemyEXP`, HEAD `dec1a74`. `main`에는 없고 이 브랜치의 `WorldWrap2D`만 해당.
-- 원인: MainTestScene Ground 타일맵(약 2,262칸) Grid를 Play 진입 때 8장 동기 `Instantiate`하고, Play 종료·씬 리스타트 때 `Destroy` 지연 정리에 의존했다. 대용량 Tilemap 사본이 한 프레임에 생성·반쯤 남은 채로 정리되면 에디터까지 멈춘 것처럼 보인다.
-- 수정: `Assets/0.Scripts/Game/WorldWrap2D.cs`에서 래핑은 즉시 유지하고, 시각 복제는 프레임당 1장 생성. 사본은 `DontSave`로 씬에 저장되지 않게 하며 `WorldWrap Visuals` 아래에 둔다. `OnDisable`에서 코루틴 중지 후 에디터는 `DestroyImmediate`로 즉시 제거. 사본의 Collider/Rigidbody/MonoBehaviour는 제거해 게임플레이 중복을 막는다.
-- 회귀 테스트: `Assets/Tests/PlayMode/WorldWrap2DRestartTests.cs` — 비활성/재활성/파괴 후 `(Wrap …)` 사본과 `WorldWrap Visuals`가 남지 않는지 검사.
-- 검증: 코드 정적 확인. batchmode Unity는 라이선스 없음(exit 198)으로 테스트 실행 실패. 에디터 Play 확인은 사용자 환경에서 필요. 실행한 통과 테스트 0개.
-- 확인 순서: EnemyEXP에서 Unity로 MainTestScene → Play → 가장자리 통과해 반대편·바닥 반복 확인 → Game Over 리스타트 또는 Play 중지 후 다시 Play. Hierarchy에 `Ground (Wrap …)` / `WorldWrap Visuals`가 Play 종료 후 남지 않고, Unity가 멈추지 않으면 정상. 오류 시 Console 첫 줄과 Player Target의 WorldWrap2D Source Tilemap 연결을 본다.
-
-## [폐기된 구현 기록] 2026-11-04 MainTestScene 반복 맵과 플레이어 경계 래핑
-
-- 작업 시작 시 `EnemyEXP`, HEAD `1952999`. 적 EXP DNA 변경이 작업 트리에 이미 있어 보존했다. MainTestScene은 작업 전 미변경 상태였다.
-- `Assets/9.Scenes/MainTestScene.unity`의 `Player Target > WorldWrap2D`가 플레이어 경계 래핑과 반복 타일맵 복제를 담당한다. 경계는 Inspector의 `World Bounds` Rect(X/Y/Width/Height, 월드 좌표)로 지정하며 현재 기본값은 타일맵 크기에 맞춘 (-37, -21, 67, 37)이다. 플레이어가 x/y 경계를 넘으면 반대편 좌표로 래핑한다. Scene 뷰에서 Player Target을 선택하면 청록색 와이어 사각형과 크기 라벨이 보인다.
-- 타일맵 Grid는 8방향으로 런타임 복제되어 경계 바깥을 채운다. 실행 중 원본 맵을 설정한 Rect 중앙에 정렬하며, Rect 크기가 실제 타일맵 크기와 다르면 연속 이음새가 맞지 않을 수 있어 경고를 남긴다. 복제 오브젝트는 플레이어 오브젝트가 파괴될 때 정리되며 씬 파일에는 원본 Ground와 플레이어 컴포넌트만 저장된다.
-- 확인 순서: Unity 임포트/컴파일 후 MainTestScene의 Hierarchy에서 `Player Target` 선택 → Inspector의 `World Bounds`에서 X/Y/Width/Height 조정 → Scene 뷰의 청록색 사각형이 경계와 일치하는지 확인 → Play → 기존 이동 입력으로 가장자리/모서리를 통과한다. 반대편에서 나타나고 바닥이 이어져야 한다. Play 종료/재시작 후 `Ground (Wrap …)` 런타임 복제물이 남지 않아야 한다. 오류 시 Console 첫 오류, Source Tilemap 연결, Rect와 타일맵 크기 일치 여부를 확인한다.
-- 검증: 코드·씬 연결과 `git diff --check` 정적 확인. Unity 컴파일/Play 및 경계 타일의 실제 화면 이음새는 확인하지 않음. 테스트 추가/실행 0개.
-- 다음 작업: 위 Inspector·Scene 뷰·Play 절차로 경계 크기 조정과 가장자리 이음새를 확인한다. 적과 투사체 등 다른 월드 오브젝트의 래핑은 이번 범위에 추가하지 않았다.
-- 후속 문서화: `WorldWrap2D.cs`의 필드와 Unity 생명주기 메서드, 경계 계산·래핑·타일맵 복제·Scene 기즈모·정리 코드에 한국어 설명 주석을 추가했다. 런타임 동작은 변경하지 않았다.
-
-## 2026-11-04 ExperiencePickup 참조 컴파일 오류 수정
-
-- 사용자 보고: `FindFirstObjectByType<PlayerData>()`가 더 이상 사용되지 않는다는 표시와 `ExperiencePickup` 이름을 찾지 못하는 오류.
-- 원인: `EnemyHealth`는 `EnemyMvp.Runtime` asmdef 안에 있고 `ExperiencePickup`은 기본 `Assembly-CSharp`에 있어, asmdef가 기본 어셈블리 타입을 직접 참조할 수 없었다.
-- 수정: `EnemyMvp.Runtime`에 `IExperiencePickup` 계약을 추가하고 `ExperiencePickup`이 구현하도록 변경. `EnemyHealth`는 인터페이스만 참조해 픽업 목표를 설정한다. 검색 API는 `FindAnyObjectByType<PlayerData>()`로 변경했다.
-- 검증: Unity Editor에서 강제 스크립트 재컴파일 및 도메인 리로드 완료(리로드 프로파일 약 10.4초). 최신 `Logs/Editor.log`에서 `ExperiencePickup`/`IExperiencePickup` 관련 컴파일 오류가 더 이상 보이지 않음. Unity 테스트/Play는 실행하지 않음. `CombatPopupController.cs`의 `FindObjectsByType<T>(FindObjectsSortMode)` obsolete 경고는 별도로 남아 있음.
-- 다음 확인: 앞 항목의 DNA 드롭/유도 절차를 진행한다. 해당 경고는 이번 픽업 오류와 별개이므로 별도 정리 작업에서 다룬다.
-
-## 2026-11-04 적 사망 EXP DNA 픽업
-
-- 시작 상태: `EnemyEXP`, HEAD `1952999`, 작업 트리에서 이 작업 전에는 변경 없음. 작업 범위는 적 사망 시 `Ingame_DNA_0` 생성과 플레이어 EXP 획득 반경/유도/회수 연결.
-- 완료: `Assets/1.Prefabs/Ingame_DNA_0.prefab`을 기존 `Ingame_DNA_0` 스프라이트로 생성하고 trigger collider와 `ExperiencePickup`을 추가. `EnemyHealth` 사망 시 연결된 프리팹을 사망 위치에서 생성하며, `EnemyFollow.Target`을 픽업에 넘김. EnemyMvp·ZombieHound·BossMvp의 `EnemyHealth`에 해당 프리팹 참조를 연결.
-- `PlayerData.experiencePickupDistance`를 추가. 픽업은 플레이어 중심의 설정 거리 안에서 `attractionSpeed`로 이동하고, 플레이어와 접촉하면 설정된 `experienceAmount`를 `PlayerData.AddEXP`로 더한 뒤 사라짐. EXP 요구량을 넘는 값은 현재 모델 계약대로 보존.
-- 기획 수치는 미정으로 합의됨: 플레이어 획득 거리, 프리팹 유도 속도, DNA당 EXP를 Inspector 설정으로 노출하고 모두 0으로 둠. 값이 설정되기 전에는 자동 유도/EXP 증가는 작동하지 않음.
-- 검증: 코드·프리팹 참조 정적 확인 및 `git diff --check` 통과. Unity 자동 테스트와 에디터 컴파일/Play 검증은 실행하지 않음. `.meta` GUID 및 프리팹 Inspector에서 실제 참조, Trigger 수집 동작은 다음 확인 필요.
-- 다음 확인: Unity 임포트/컴파일 후 `Ingame_DNA_0` 프리팹의 Experience Amount와 Attraction Speed, PlayerData의 Experience Pickup Distance를 기획값으로 입력한다. Play에서 적 처치 → 사망 지점 DNA 생성 → 반경 밖에서는 정지 → 반경 안에서는 플레이어로 이동 → 접촉 시 EXP와 HUD 갱신을 확인하고 Console을 확인한다.
-
-## 2026-11-03 EnemyMvp 애니메이션 및 유실 설정 복원
-
-- 시작 상태: EnemyEXP,MAP, HEAD b71b791. Git 변경은 Assets/_Recovery 및 meta만 있었고 이전 대화에서 추가한 애니메이션과 사용자 수정이 사라진 상태였다. _Recovery는 보존했다.
-- 복원: Zombie/Animator에 8방향 대기 4프레임·이동 8프레임의 12fps 루프 클립 16개와 Zombie.controller 재생성. EnemyMvp에 Animator와 기존 EnemyDirectionAnimator 연결. 대기·이동 상태 Speed 0.5로 실효 6fps(프레임 간격 약 0.167초).
-- 대화에서 확인한 사용자 설정 복원: EnemyMvp의 남쪽 좀비 스프라이트, maxHealth 10, 빨간 피격 색, 콜라이더 oldSize 0.3×0.6, EnemyHealth UI 헤더. 콜라이더 실제 크기와 이동 속도 3 유지. 컴포넌트 직렬화 순서는 현재 순서 유지. 씬과 복구 파일은 수정하지 않음.
-- 검증: 클립 16개·소스 스프라이트 96개 참조와 컨트롤러 참조 16개, Speed 0.5 두 상태, 프리팹 ID 중복 없음 검사 통과. Unity 테스트 0개. 에디터 임포트·컴파일·재생 및 빌드·기기 미검증. 이전 Unity 먹통 원인은 확정하지 못함.
-- 다음 확인: Unity 임포트 완료 → Assets/1.Prefabs/EnemyMvp 선택 → Animator Controller Zombie, EnemyDirectionAnimator 연결, EnemyHealth Max Health 10과 빨간 Hit Color 확인 → MainTestScene 등 EnemyMvp 사용 씬에서 Play → 8방향 추적 중 이동 모션, 정지 시 대기 모션을 느리게 반복하는지 확인. 오류 시 Console과 Controller 참조 확인. 모르는 미저장 씬 변경은 이 복원에 포함되지 않음.
-
 ## 2026-11-03 좀비 들개
 
 - 시작 상태: `main`, HEAD `13e4abe`. 몬스터 기획서에는 기본 좀비 HP 3·공격력 10만 확정돼 있고, 들개·박쥐 대응 수치는 없다. `EnemyDatatable.xlsx`는 엑셀이 열어 둔 상태라 읽거나 수정하지 않음.
@@ -176,245 +115,3 @@
 - 실행한 Unity 테스트: 0개. 설정 파일 검사만 수행했으며 Unity 재임포트, 화면 표시, 빌드와 기기는 검증하지 않음.
 - 다음 확인: Unity로 돌아가 자동 임포트 완료 후 Project → Assets/2.Resources에서 스프라이트 선택 → Inspector → Filter Mode가 `Point (no filter)`인지 확인. 이전 값이 보이면 해당 에셋 우클릭 → Reimport 후 Console의 임포트 오류 확인.
 - 이번 작업에서 씬, 프리팹, 코드, Project Settings, 패키지는 변경하지 않음.
-
-## 최신 작업 상태 — 2026-11-03 강공격 차징 기반 완료
-
-- `docs/AI/HeavyChargeHandoff.md`, 사용법 `docs/AI/HeavyCharge.md`, 상세 검증 `docs/AI/HeavyChargeValidation.md`를 함께 읽는다. 아래의 ‘종료 요청: 구현 중’ 기록은 이전 세션의 역사이며 현재 상태가 아니다.
-- 시작/종료 브랜치 `feat/PlayerSkill`, HEAD `526aaf6` (`강공격 작업중`), 시작 작업 트리 깨끗함. 이전 초안은 이미 커밋되어 있었다. 이번 작업은 미커밋으로 유지했으며 브랜치 전환 없음.
-- PlayerView의 빠진 SetHeavyChargeIndicator를 구현했다. 재사용하는 LineRenderer 화살표가 청록/노랑/주황으로 세 단계를 표시하고 진행도에 따라 길이가 늘어난다. 해제/취소/비활성화 시 숨김, Dispose 시 자식과 Material 정리. 이 길이는 피해 범위가 아니다.
-- MainTestScene에 C_Attack Button452539071과 승인 설정 MP10/단계0,.4,.8초/증분.1,.1,.5/SuperArmor=false만 13줄 추가했다. 새 런타임3·테스트2개의 Unity 생성 meta를 반영했다. 기존 GUID·다른 씬·프리팹·설정·패키지 보존.
-- 리뷰 결함4개를 실패 테스트로 재현 후 수정: 정지 중 Q 해제 즉시취소, 키 해제와 동시 입력된 실제 방어/회피 우선취소, 포커스 복귀 후 누락된 PointerUp 예약 정리, 조이스틱 중립에서 마지막 실제 각도 유지. 실패한 회피는 유지하고 취소 MP는 반환하지 않는다.
-- Unity6000.5.0f1 별도 전체 자산 검증본에서 C# 컴파일 성공. 최종 차징 **32/32 통과**(단위12+통합20). 전체 PlayMode **249개 중231통과/18실패/생략0**. HEAD 입력 코드를 검증본에만 적용한 기준 비교는227통과/22실패였고, 차징4개만 통과로 바뀌었으며 나머지18개는 같은 실패다. 원래 HEAD는 View 메서드가 없어 컴파일 불가이므로 기준 비교에도 완성 View를 유지했다.
-- 기존18실패: GiungTestScene Player의 InputAction 참조 누락으로 CombatPopupSceneTests7/GameResultFlowTests8/풀링 씬1, 전체 실행 시 이전 씬 카메라·탄환 영향 PlayerPassiveSkillTests1, EventSystem 포커스 간섭 PlayerStatusTests1. 이름과 실제 메시지는 HeavyChargeValidation.md에 기록. 이번 차징 범위 밖의 씬/기존 테스트를 일괄 수정하지 않았다.
-- 별도 전체 자산 검증본에서 MainTestScene을 실제 PlayMode 로드해 직렬화된 C_Attack의 PointerDown/Up → MP10 차감 → 3단계/1.7배 해제 → 표시 숨김을 확인했다. 씬 연결 smoke **1/1 통과**. 원본 에디터 수동 조작/실제 터치 검증은 아니다.
-- 그래픽 사용 오프스크린 화살표 검증1/1 통과 및 PNG 직접 확인. 독립 리뷰4건 모두 수정·재검증. 실제 원본 에디터 수동 플레이/실제 터치·Android/실제 카탈로그·번들은 미검증. 실제 피해·스킬ID·공격 애니메이션·그로기는 승인된 후속 범위다.
-- 직접 확인: Tools > Play From Title 끄기 → MainTestScene Play → C_Attack 홀드 → MP10 한 번 차감·청록→.4초 노랑→.8초 주황·이동 고정/조준 변경 → 해제 시 숨김·이동/패시브 복구. PC는 PlayerController2D를 Play 중 끄고 Q+이동 키. 방어/회피 성공·피격/사망·정지 중 해제/포커스 취소도 확인한다. 오류 시 Console 첫 새 오류와 C_Attack 참조/Configured/배열/MP/입력 소스를 확인한다. 자세한 순서는 HeavyCharge.md.
-- 다음: 사용자 실제 조작 피드백 확인. 별도 작업으로 기존 씬 입력 연결/테스트 간 간섭18개를 정리하고, 정식 테이블이 준비되면 강공격 결과 이벤트를 실제 스킬 실행에 연결한다. 미정 수치·보상·피격 경직·그로기 조건은 임의 구현하지 않는다.
-
-## 이전 세션 기록 — 2026-11-03 종료 요청: 강공격 차징 구현 중
-
-**다음 세션은 이 절과 `docs/AI/HeavyChargeHandoff.md`부터 읽는다.** 사용자가 컴퓨터를 끄기 위해 작업을 중단하고 인수인계를 요청했다. 강공격은 아직 완료/컴파일 검증되지 않았다. 아래의 이전 완료 기록을 현재 차징 변경의 통과 결과로 쓰지 않는다.
-
-- 실제 확인한 상태: `feat/PlayerSkill`, HEAD `3da8308` (`테스트용 불꽃 탄환`). 앞선 약공격·패시브·보스 HP 수정은 이 커밋에 포함되어 현재 작업 트리 변경 목록에는 없음. 다음 세션에서도 git 상태를 새로 확인한다.
-- 미커밋 변경: Player.cs 및 Mobile/PlayerController2D.cs. 미추적: Player.HeavyCharge.cs, PlayerHeavyCharge.cs, PlayerHeavyAttackButton.cs, PlayerHeavyChargeTests.cs, PlayerHeavyChargeIntegrationTests.cs, 강공격 계획 문서. 이 인수인계 문서 변경도 추가됨. reset/clean/restore 또는 브랜치 전환으로 없애지 않는다.
-- 승인 완료: 차징 중 이동 차단·조준 변경 허용. 방어/회피/피격 취소 시 MP 반환 없음. 테스트 MP10, 단계 진입0/.4/.8초, 누적 배율1.1/1.2/1.7. 이 수치는 Inspector에서 변경 가능하게 한다. 정식 데이터 테이블 연결은 준비될 때까지 미룬다.
-- 구현 초안: 비용1회/스냅샷/3단계/해제 결과/취소 엔진, C_Attack 포인터 bridge, Player partial 연결, 모바일 이동·조준 분리까지 작성. 실제 강공격 피해/스킬 ID/공격 애니메이션/그로기는 이번 기반 범위가 아님.
-- **현재 막힌 지점:** Player.HeavyCharge.cs가 호출하는 `PlayerView.SetHeavyChargeIndicator`가 아직 구현되지 않음. 현 소스는 컴파일 가능한 완료 상태가 아니며 실제 변경 후 컴파일은 아직 실행하지 않았다. PlayerView 표시/정리, MainTestScene의 C_Attack 참조와 승인 설정, 새 파일 meta가 미완료.
-- 검증: 구현 전 새 단위 테스트12개 모두 실패(차징 타입 부재)를 확인한 것뿐. 구현 후 재컴파일/통과 테스트/통합 테스트/리뷰는 미실행. 마지막 상태 확인 시 실행 중 Unity 프로세스 없음. 컴퓨터 종료/재시작 명령을 실행한 적 없음.
-- 다음 순서: 표시 메서드와 정리 구현 → C_Attack/테스트 설정 최소 연결 → meta 준비 → 별도 검증 프로젝트에 최신 파일 반영 → 차징 단위·통합 및 관련 회귀 테스트 → 코드 리뷰/수정 → 실제 확인 절차·Handoff 갱신. 상세 API/파일/주의점은 HeavyChargeHandoff.md에 기록함.
-
-## 2026-11-03 첫 약공격 불꽃 탄환 연결
-
-- 사용자 요청으로 이전 작업순서1(병합 전체 선행 재검증)을 생략하고2(첫 스킬 연결)를 진행했다. 시작/현재 `feat/PlayerSkill`, HEAD `ccac76f`, 시작 작업 트리 깨끗함. 임의 브랜치 전환·커밋 없음.
-- 사용자 확정: 불꽃 탄환10001, MP10, 피해10, 기존 Bullet 재사용+임시 빨간 원, 기존8방향 Attack 프레임, 모바일 버튼 N_Attack. 기타 미정 스킬 수치를 채우지 않았다.
-- Data.SkillData에 ActiveConfigured/MPCost/BaseDamage를 추가하고 기존 DamageMultiplier와 함께 실행 설정을 검증한다. PlayerLightSkill이 보유/약공격 장착·리소스·애니메이션·MP를 확인한 뒤 방향/피해/속도/타이밍을 캡처해 시전한다. 메타데이터만 있는 스킬은 무소모·미발동.
-- PlayerView와 LightAttackAnimationState가 Animator의 실제 시작/진행/종료를 실행 ID로 연결한다. 초기 즉발 시점0에서 풀의 빨간 탄환을 한 번 발사하고 상태 종료 시 잠금을 해제한다. 약공격 중 이동/공격/방어/회피 거절, 중복/예약 입력 방지, 정지·사망·비활성화/Animator중단 정리. MP 알림 중 pause/Animator무효화는 시작 전 환불하며 수락한 설정은 스냅샷으로 유지한다.
-- 기존 Player/Attack을 선택 복제해 PC 입력을 재사용했다. N_Attack은 런타임 PointerDown/Submit bridge로 같은 API를 호출한다. Touchscreen의 일반 tap 입력은 중복 처리하지 않으며 Mouse는 현재 위치 GraphicRaycaster 검사로 UI 클릭을 배제한다. InputAction 에셋·기존 N_Attack onClick은 변경하지 않았다.
-- Bullet.InitDirection을 추가하되 기존 Init API와 풀링 계약 유지. 새 FlameBullet은 기존 Bullet/Collider/Rigidbody를 복제 재사용하고 빨간 Sprite로 표시한다. 원본 Bullet.prefab 해시 유지.
-- 기존 Player.controller20개 객체를 모두 보존하고 LightAttack 상태/트리/Behaviour/종료 전이4개를 추가했다. Controller meta/GUID 유지. 새8방향 클립은9프레임/12fps, Unity 조회0.75초의 초기 연출값이다. 처음에는 끝 중복 키로0.8333초였음을 검사로 발견해 중복 제거/stopTime 명시 후 재검증했다. 기존 Animator 전체 Generate는 실행하지 않았다.
-- MainTestScene의 기존 스탯/MP설정(공격력3, 탄속3, 최대MP100·회복1/s 등)을 유지하고 Player N_Attack Button1415531113/새 투사체 참조, 첫 빈 보유 슬롯10001/LightAttack/MP10/Base10/ActiveConfigured, lightSkillId10001만 최소 변경했다(추가9줄/교체4줄). 이 씬의 승인된 검증 설정이며 모든 PlayerData 기본값에 자동 지급하지 않는다. 전투 피해는 Base10+기본공격력×Multiplier0=10이다.
-- 새 리소스 Assets/Resources/SkillProjectiles/FlameBullet.prefab·FlameBulletCircle.png, LightAttack_*.anim8개, Editor의 PlayerLightAttackSetup 및 런타임3개 클래스/테스트 추가. 원본 워크북/다른 씬/기존 프리팹/입력 에셋/패키지 수정 없음. 생성 작업은 이전 검증 복사본에서 Editor API로 수행해 확인 후 원본에 반영했다.
-- TDD: 최초7개 실패 → 구현7/7 통과. MP 알림 pause/Animator변경·메타데이터 스냅샷 실패를 추가 재현해 수정. PC WasPressed는 테스트 InputSystem 갱신 프레임에서 검사하도록 보완했다. UI 첫 클릭은 유효한 화면 배치/포인터 캐시 미갱신 상태로 재현해 현재 위치 Raycast로 수정했다.
-- 최종 Unity6000.5.0f1 변경 관련 검증 **73/73 통과**, 실패/생략0: 신규 PlayerLightSkillTests13 + MP19 + 탄환6 + HUD12 + 상태창9 + 팝업13 + 임시 그래픽 렌더1. 현재0.Scripts 소스를 검증본에 반영했고 원본에서 삭제된 과거 MVP파일은 검증 복사본에서만 정리했다. 이는 요청대로 전체 병합 회귀/보스 통합 검증은 아니다.
-- 독립 리뷰에서 MP 재진입 경계와 클립 길이를 확인해 수정 후 재검증했다. 추가 확정 런타임 결함은 없다는 정적 리뷰 결과를 받았다. 실제 공격 자세/빨간 원을 오프스크린 카메라로 렌더해 픽셀과 이미지로 확인했다. 원본 MainTestScene 실제 플레이/터치·보스 전체·Android 빌드/기기는 미검증.
-- 영속 테스트 Assets/Tests/PlayMode/PlayerLightSkillTests.cs(13), 계획 docs/superpowers/plans/2026-11-03-flame-light-skill.md, 사용법 docs/AI/FlameBullet.md. 결과 `.utmp/FlameSkill/red.xml`, `review-red.xml`, `final.xml`, `final.log`, `flame-cast.png`, 검증 위치 validation-path.txt. 렌더 헬퍼는 같은 임시 폴더에만 있으며 원본 테스트 에셋에는 넣지 않았다.
-- 직접 확인: 컴파일 완료 → MainTestScene → Play(필요하면 Tools > Play From Title 끄기) → N_Attack → 빨간 직선탄/MP10 차감/Attack 모션 중 이동·연타·패링·회피 거절/종료 후 복구 확인. PC는 PlayerController2D를 끄고 월드 마우스 왼쪽 클릭 또는 UI 선택이 없는 Enter. 이동 입력/마지막 바라본 방향이며 마우스 위치 유도는 아니다. 기존 MP회복1/s는 유지하므로 차감 후 서서히 회복한다. 일시정지 상태창 첫 칸의 불꽃 탄환 보유도 확인한다.
-- 오류 시 Console 첫 오류, Player Light Attack Button=N_Attack, Light Attack Projectile=FlameBullet, Loadout10001 장착/ActiveConfigured/MPCost/BaseDamage/AnimName 및 Animator LightAttack Behaviour/Idle 전이를 확인한다. 정상 자동 탄환은 별도로 계속 발사된다. 분리 검증은 Play 중 기존 Player.bulletPrefab만 잠시 비우고 저장하지 않는다.
-- 다음 우선순위: 사용자 실제 플레이 확인 후 첫 스킬 연출속도/조준·입력 피드백 조정, 스킬 테이블의 승인 수치/리소스 정식 로딩과 획득 경로 연결. 보유 전체 패시브 발사, 다른 약공격, 강공격·전략·성장·MP 부족 점멸·미정 그로기는 아직 후속이다.
-
-## 2026-11-03 CombatPopupController CS0618 경고 수정
-
-- 현재 브랜치 `main`, HEAD `756c2ee`. 이전 작업은 `dcc8e43`에 커밋됐고 이후 보스 병합이 들어온 상태다. 시작 시 Player_GiungTest 스크립트/asmdef 및 meta 삭제, Boss.controller·MainTestScene·NanumGothic Combat SDF 사용자 변경이 있었으며 건드리지 않았다.
-- CombatPopupController.ShowPause의 `FindObjectsByType<Player>(FindObjectsSortMode.None)`를 Unity6000.5의 인자 없는 `FindObjectsByType<Player>()`로 한 줄 변경했다. 같은 씬 필터와 첫 Player 선택 동작은 유지한다. 다른 파일의 검색 호출이나 사용자 변경은 일괄 수정하지 않았다.
-- 검증: 이전 임시 Unity6000.5 검증본에 해당 파일을 반영해 C# 컴파일 및 CombatPopupTests13 + PlayerStatusTests9 = **22/22 통과**, 실패/생략0. 해당 파일의 CS0618/컴파일 오류 로그가 없는지 확인했다. git diff --check 통과. 현재 보스 병합·사용자 변경까지 포함한 원본 전체 프로젝트 검증은 아니다.
-- 결과 `.utmp/PopupApiWarning/final.xml`, `final.log`. 새 테스트는 추가하지 않고 기존 관련 회귀를 실행했다. 커밋·브랜치 전환 없음.
-- 직접 확인: Unity 재컴파일 완료 → Console에서 CombatPopupController의 해당 CS0618 경고가 새로 발생하지 않는지 확인 → MainTestScene → Play → 일시정지 상태창 열기/뒤로가기. 기존과 같이 스탯·보유 목록 표시 및 전투 정지/재개가 정상이어야 한다. 오류가 남으면 파일/줄 번호가 같은지, Console 첫 새 오류와 상세 스택을 확인한다.
-- 다음 작업은 기존 우선순위를 유지한다: 실제 스킬 실행/약공격 버튼·애니메이션·타격 연결. 병합 후 전체 프로젝트 기준 검증과 실제 원본 씬/기기 검증은 별도다.
-
-## 2026-11-03 보유/장착 모델·일시정지 상태창·음량 옵션
-
-- 사용자 참고 이미지의 상태창 요청을 구현했다. 첫 이미지는 배치/색상, 두 번째는 영역 설명으로 사용했다. 기존 옵션 창이 없음을 확인한 뒤 사용자에게 음량 옵션 포함 승인을 받았다. `main`, HEAD `f3fd42c` 유지, 커밋/브랜치 전환 없음.
-- PlayerData.Loadout과 PlayerLoadout 추가: 공격8칸 중 기본6·해금2, 전략5칸, 유물/증강 각60개, 보유 스킬만 약/강/전략 버튼에 하나씩 장착, 제거 시 장착 참조 정리. 기존 Data.SkillData를 재사용하며 새 전역 인벤토리 매니저를 만들지 않았다. 실제 스킬/유물을 자동 지급하지 않는다.
-- 기존 CombatPopupController.ShowPause가 같은 씬 Player를 찾아 pause ContentRoot에 PlayerStatusPanel을 한 번 구성한다. 실제 스탯/보유 데이터 이벤트로 갱신하고 닫기/소스 교체 시 구독 정리. 남색 패널·크림 스탯·색상별 제목·8/5 슬롯·가로 목록·톱니 옵션·우하단 뒤로가기 배치를 참고 이미지에 맞췄다. 모델이 없는 스탯은 —로 표시한다.
-- 기존 CloseButton/팝업 정지 소유권/스택을 유지했다. 옵션은 동일 팝업 내부 전환이며 옵션 뒤로가기는 상태창으로만 돌아온다. 옵션 진입 시 전체 음량 Slider, 복귀 시 기존 뒤로가기 버튼으로 EventSystem 선택을 옮겨 키보드/패드 탐색을 유지한다.
-- SoundManager에 전체(AudioListener)·BGM·효과음 채널 음량 API를 추가했다. 기존 AudioSource와 씬 재초기화에 설정을 반영한다. 앱 재시작 영구 저장은 추가하지 않았다.
-- 씬/프리팹/기존 meta/패키지/설정/엑셀 변경 없음. MainTestScene과 CombatUI.prefab SHA-256이 시작값과 동일함을 확인했다. 상태창은 런타임 생성이므로 비실행 원본 프리팹에는 기존 기본 패널이 보일 수 있다.
-- 실제 테이블을 이번에 발견했다: SkillDatatable.xlsx(약11/강5/전략10), Strengthentable.xlsx. 이름·일부 등급/속성은 있으나 비용·계수·애니메이션·프리팹 대부분 비어 있다. 보유/장착/조회만 구현했으며 기본 Bullet을 보유 스킬 전체의 패시브로 바꾸거나 액티브 버튼/약공격 타격을 연결하지 않았다. Fusion10011 중복 정의와 원본 Cooldawn 컬럼 매핑에 향후 주의한다. 이전 ‘xlsx 미발견’ 기록은 과거 상태다.
-- TDD: 새 테스트7개 모두 기존 코드에서 실패 확인. 첫 구현에서 새 UI helper meta GUID 길이 입력 오류로 파일이 임포트되지 않아 컴파일 실패했고 새 meta만 올바른32자리로 수정했다. 리뷰에서 옵션 선택 포커스 문제를 찾고 새 Submit/Move 테스트 실패를 확인한 뒤 수정. 실제 CombatUI 프리팹 통합 테스트도 추가했다. 독립 재리뷰에서 추가 수정 필요 결함 없음.
-- 최종 검증: Unity6000.5.0f1 임시 검증본에서 **111/111 통과**, 실패/생략0. 기존60 + PlayerStatusTests9 + CombatPopupTests13 + UIPopupTests17 + 씬 비의존 사운드11 + 그래픽 렌더1. C# 컴파일·git diff --check·최종 소스/테스트 해시 일치 확인.
-- 검증 제한: 초기에 사운드 씬 전환2개까지 확장한 실행은112개 중110통과/2실패. 최소 복사본의 MainTestScene 입력/스폰 참조 의존성이 누락되어 Player/EnemySpawnDirector 설정 오류가 발생했다. 원본 씬을 고치거나 실패를 숨기지 않고 이2개를 최종 비씬 회귀 집합에서 분리했다. 전체 원본 MainTestScene 실행·실제 터치/기기/Android 검증은 하지 않았다.
-- 그래픽 QA: 그래픽 사용 검증 Unity의 오프스크린 카메라에서 빈 상태·보유 테스트 데이터·목록 끝 스크롤·음량 화면 PNG를 렌더해 직접 확인했다. 테스트 데이터는 검증 픽스처에만 존재한다. 첫 캡처에서 잔존 검증 씬 배경이 분홍색으로 나와 미리보기 카메라를 UI 레이어/명시적 배경으로 분리했다. 첫 목록 폭과 스탯 줄바꿈을 보완 후 재렌더했다. 콘텐츠/뷰포트 폭 비1.5, 스크롤바 크기2/3 및 마지막 항목 표시를 확인했다.
-- 영속 테스트: Assets/Tests/PlayMode/PlayerStatusTests.cs(9개). 계획 docs/superpowers/plans/2026-11-03-pause-status-loadout.md. 직접 확인/API 설명 docs/AI/PlayerStatus.md. 결과 `.utmp/PlayerStatus/red.xml`, `review-red.xml`, `final.xml`, `final.log`, 미리보기 status-empty/populated/scroll-end/options.png. 검증 프로젝트 위치 validation-path.txt. 임시 렌더 헬퍼는 같은 폴더 StatusPreviewTests.cs이며 원본 런타임/테스트 에셋에는 넣지 않았다.
-- 직접 확인: Unity 컴파일 완료 → MainTestScene → Play(필요하면 Tools > Play From Title 끄기) → 오른쪽 위 기존 일시정지 → 스탯/공격6빈칸+잠금2/전략5/유물·증강 가로 목록 확인 → 톱니 → 전체/BGM/효과음 조절 → 옵션 뒤로가기에서 전투 계속 정지 → 상태창 뒤로가기에서 재개 확인. 반복 열기도 확인한다.
-- 보유 표시 확인: Play 중 PlayerData.Loadout.Attack Skills 첫 항목을 실제 표의 DataId10001/Name불꽃 탄환으로 설정 후 다시 열면 이름이 보인다. 자동 획득/발사 확인이 아니라 임시 표시 확인이며 저장하지 않는다. 정상 획득 코드는 Loadout.TryAddAttackSkill 등 API를 호출해야 Changed가 즉시 갱신한다. 원본 아이콘 키가 비었거나 사전 로딩되지 않았으면 이름 표시로 대체한다.
-- 오류 시 Console 첫 오류, CombatUI Controller의 Pause Popup ContentRoot/CloseButton/Status Player와 PlayerData.Loadout을 확인한다. 데이터 미보유와 잠금은 오류가 아니다. 한글 폰트는 기존 Assets/UI/Fonts의 NanumGothic Combat SDF를 사용한다.
-- 다음 작업: 3단계 남은 실제 스킬 실행/약공격 버튼·애니메이션·타격 연결. 첫 스킬의 MP 비용·계수·애니메이션/프리팹 등 미정 값을 확정해야 하며 임의로0비용/효과를 채우지 않는다. 실제 획득/성장/유물·증강 해금 효과와 MP 부족 점멸도 후속 범위다.
-
-## 2026-11-03 HP 입력 버그 수정 및 MP·EXP HUD 연결
-
-- 사용자 요청: Mobile UI/PlayerHUD의 HP·MP·EXP를 PlayerData → PlayerView 흐름으로 통일하고 이동 방향에 HP 표시가 변하는 버그 수정. 시작 브랜치 `main`, HEAD `f3fd42c`; 기존 코드·문서·씬 사용자 변경 보존, 커밋/브랜치 전환 없음.
-- 원인 재현: MainTestScene의 Player_HP/MP/EXP Slider가 Interactable=true, Navigation=Automatic이었다. 기존 PlayerView에 연결한 HP Slider 선택 후 좌측 Move 이벤트를 보내면 모델 HP는 50인데 표시가 0.5→0.4로 감소함을 새 테스트로 확인했다. 선택 여부에 따라 재현되는 UI 탐색 입력 문제이며 체력/이동 수식 오류가 아니다.
-- 수정: PlayerView에서 세 Slider를 transition=None, navigation=None, interactable=false로 표시 전용 설정하고 모델 값을 SetValueWithoutNotify로 반영한다. 기존 레이아웃·색상·채움 방향 및 사용자 지정 Slider 범위는 유지한다. 최대치 0·비정상 수치는 빈 표시로 처리한다.
-- MP는 기존 PlayerData.MPChanged를 구독, EXP는 PlayerData에 maxEXP/CurrentEXP 및 EXPChanged·InitEXP·SetEXP(current,maximum)를 추가해 같은 흐름으로 표시한다. 초과 EXP는 모델에 유지하고 바만 100%로 제한한다. EXP 요구량 기본 0이며 획득/드랍·레벨업·보상 규칙은 추가하지 않았다.
-- Player의 기존 healthSlider와 PlayerView 생성자 API를 유지했다. 선택 MP/EXP 참조와 BindResourceSliders를 추가하고 재활성화 때 RefreshResources로 갱신한다. PlayerView.Dispose는 세 데이터 이벤트를 모두 해제한다. 참조가 없는 기존 씬도 안전하게 동작한다.
-- MainTestScene의 Player 컴포넌트에 mpSlider=1395659084, expSlider=1801941379 참조 두 줄만 추가했다. 기존 healthSlider=496842392 및 PlayerHUD 자식 Slider fileID를 확인했다. 시작 씬 원본에 정확히 두 줄을 삽입한 결과와 종료 파일이 일치하며 기존 Grid→Ground 사용자 변경도 유지된다. GiungTestScene·프리팹·기존 meta·설정·패키지·InputAction 에셋 수정 없음.
-- 검증: 새 HUD 테스트 12/12가 기존 코드에서 실패한 뒤 수정. Unity 6000.5.0f1 임시 검증 프로젝트에서 **60/60 통과**, 실패/생략 0(HUD 12 + MP·행동 19 + 탄환 6 + Core 4 + 씬 비의존 적 풀링 19). C# 컴파일 및 git diff --check 통과. 독립 코드 리뷰에서 수정 필요 결함 없음. 소스/씬 해시가 검증 복사본과 일치한다.
-- 범위: 실제 MainTestScene 실행 화면·터치·Android는 이번에도 검증하지 않았다. 씬 참조는 파일ID 정적 검사, UI 동작은 실제 uGUI 컴포넌트 기반 PlayMode 테스트로 검증했다. Player 재활성화 표시 갱신은 코드로 확인했으며 별도 씬 통합 테스트는 없다. EXP 성장 시스템 및 MP 부족 점멸은 후속 범위다.
-- 테스트 원본: Assets/Tests/PlayMode/PlayerHudTests.cs. 결과 `.utmp/PlayerHUD/red.xml`, `final.xml`, `final.log`, 검증 위치 validation-path.txt. 계획 docs/superpowers/plans/2026-11-03-player-resource-hud.md.
-- 직접 확인 1: Unity 컴파일 완료 → MainTestScene → Play(자동 타이틀 시작이면 Tools > Play From Title 옵션 확인) → PC 검사에서는 PlayerController2D 끄기 → 적 피해를 받지 않는 상태에서 Mobile UI/PlayerHUD/Player_HP 클릭 후 좌우 이동. HP 값과 채움이 그대로이고, 실제 피격 때만 줄어드는 것이 정상이다. HP/MP/EXP는 입력용 Slider가 아니므로 Play 중 Interactable 해제·Navigation=None이 정상이다.
-- 직접 확인 2: Play 중 PlayerData에 테스트용 Max MP=10, Dash MP Cost=3, MP Recovery Per Second=0 지정 → 컴포넌트 메뉴 MP > 현재 설정으로 초기화 → MP바가 가득 참 → WASD 이동 중 Left Shift 회피 → MP=7일 때 70% 표시 확인. EXP는 아직 획득 경로가 없으므로 SetEXP(25,100)→25%, SetEXP(125,100)→100% 표시를 자동 테스트로 확인했다. 레벨업/경험치 획득이 이미 연결됐다고 설명하지 않는다.
-- 직접 확인 3: Tools > Play From Title 비활성화 → Window > General > Test Runner → PlayMode → PlayerHudTests → Run Selected. HP 선택/좌우 입력, MP 소모/회복, EXP 표시/잘못된 값, 이벤트 해제 테스트 12개 통과 확인.
-- 오류 시 Console, Player의 Health/MP/EXP Slider 참조(각 PlayerHUD 자식의 Slider인지), PlayerData의 최대치와 초기화 여부를 확인한다. Inspector에서 필드를 직접 바꾼 것은 데이터 API 이벤트 호출과 다르므로 MP 초기화 메뉴나 SetEXP API로 확인한다. Play 중 테스트값은 저장하지 않는다.
-- 다음 우선순위: 원래 3단계 스킬 보유·버튼 장착 및 약공격 애니메이션/타격 연결. EXP 성장 규칙·실제 테이블 미확정은 유지.
-
-## 2026-11-03 2단계 MP 및 행동 제어 기반 완료
-
-- 사용자가 1단계 탄환 풀링 직접 확인 후 두 번째 단계 진행 승인. `main`, HEAD `f3fd42c` 유지, 커밋/브랜치 전환 없음. 이전 탄환 변경과 MainTestScene 사용자 변경을 보존했으며 씬 SHA-256 일치 확인.
-- PlayerData에 현재/최대 MP, 유효 비용 차감, 상한 회복, 자연 회복, MPChanged/MPSpendRejected 알림을 추가했다. maxMP·mpRecoveryPerSecond·dashMPCost·parryMPRecovery는 Inspector 설정값이고 미정이므로 기본 0. 실제 게임 수치를 임의 확정하지 않았다. `MP/현재 설정으로 초기화` 컴포넌트 메뉴로 Play 중 설정을 적용할 수 있다.
-- 플레이어 소유 PlayerActionGate와 Player.TryBeginLightAttack(cost,out actionId)/CompleteLightAttack(actionId) 계약 추가. 잠금 중 공통 CanAcceptGameplayInput=false로 이동/다른 스킬 시작/방어/회피를 거절한다. 이전 실행 ID 종료는 새 잠금을 풀지 않는다. 사망/비활성화 때 잠금과 진행 코루틴을 정리한다. 다음 단계 스킬 실행부가 시작 성공 후 ID를 애니메이션 실행에 연결해야 한다.
-- PC 이동 및 PlayerController2D의 Rigidbody 이동에 같은 잠금을 적용하고 잠금 시작 즉시 모바일 속도를 정리한다. 회피는 방향·쿨타임·진행 상태 확인 후 MP를 차감한다. MP 동기 알림 중 재진입을 예약 상태로 차단하며, 비활성화로 실제 시작하지 못한 회피는 비용을 복구한다. 이는 강공격 차징 취소 환불 정책과 별개다.
-- 자연 회복은 전투 시간으로 진행하며 일시정지 중 멈춘다. 패링 성공 알림을 연결해 접촉이 여러 번 와도 한 번만 설정량 회복한다. 패링/가드 모션 중 자동 발사를 중단하며, 약공격 잠금 중 기존 자동 패시브 발사는 유지한다.
-- 범위 제한: 실제 약공격 버튼·애니메이션·타격·장착은 3단계. MP HUD 게이지/부족 점멸은 아직 연결하지 않았으며 데이터 이벤트만 제공한다. 가드 MP 부과 방식·강공격 환불·그로기·미정 수치도 이번에 확정하지 않았다. 씬·프리팹·InputAction 에셋·애니메이션·패키지 변경 없음. 테스트 asmdef에 Unity.InputSystem 참조만 추가했다.
-- 검증: 기존 코드에서 새 17개 테스트 실패 확인. 첫 구현 16/17 통과 후 PC 키보드 테스트의 배치 포커스 문제를 분리했다. 테스트가 복제한 InputSettings에만 IgnoreFocus/게임뷰 입력을 적용하고 원래 설정을 복구하도록 보완했다. 리뷰에서 찾은 MP 알림 재진입·비활성화 취소를 추가 2개 테스트로 먼저 실패시킨 뒤 수정했다. 최종 Unity 6000.5.0f1 검증 복사본에서 **48/48 통과**, 실패/생략 0(MP·행동 19 + 탄환 6 + Core 4 + 씬 비의존 적 풀링 19). 독립 재리뷰에서 중요한 잔여 결함 없음. C# 컴파일 및 git diff --check 통과.
-- 검증 환경은 이전 BulletPooling 임시 소스 프로젝트 재사용. 원본과 같은 개별 패키지 캐시지만 필요한 패키지만 참조하는 최소 구성이다. 실제 원본 씬·그래픽·전체 패키지 조합·Android 빌드/기기 검증은 별도이며 이전 기록을 현재 결과로 재사용하지 않았다.
-- 재현 테스트: Assets/Tests/PlayMode/PlayerResourceActionTests.cs. 결과 `.utmp/PlayerMP/red.xml`, `review-red.xml`, `final.xml`, `final.log`; 검증 위치 validation-path.txt. 문서 계획은 docs/superpowers/plans/2026-11-03-player-mp-actions.md.
-- 직접 확인 1: Unity 컴파일 완료 → Tools > Play From Title 비활성화 → Window > General > Test Runner → PlayMode → PlayerResourceActionTests → Run Selected. MP 부족 무소모, 애니메이션 종료 ID, PC/모바일 잠금·복구, 사망/비활성화, 회피 재진입, 중복 패링 회복 테스트 19개가 통과하는 것이 정상이다.
-- 직접 확인 2: MainTestScene → Play(자동 Title 시작이면 Tools > Play From Title 옵션 확인) → Player 선택 → PC 검증 시 PlayerController2D 비활성화(사용자 확인 방법 반영) → PlayerData에 테스트용 Max MP=10, Dash MP Cost=3, MP Recovery Per Second=0 지정 → 컴포넌트 메뉴 MP > 현재 설정으로 초기화 → WASD 이동 중 Left Shift 회피. Current MP가 10→7→4→1로 줄고 부족한 다음 시도는 추가 회피나 MP 차감 없이 거절되는 것이 정상이다. 회피 쿨타임이 있으므로 각 시도 사이 기존 설정만큼 기다린다. 회복은 MP Recovery Per Second=2 등 명시적 테스트값으로 별도 확인하며 이 값은 확정 기획값이 아니다. Play 중 테스트 설정은 저장하지 않는다.
-- 약공격 버튼은 아직 없으므로 실제 버튼으로 입력 잠금을 확인했다고 보고하지 않는다. 잠금은 이번 단계 자동 테스트로 확인했고 다음 단계에서 실제 애니메이션/버튼으로 검증해야 한다. MP 게이지가 아직 변하지 않는 것은 HUD 미연결 상태다. 오류 시 Console·실패 테스트명, PlayerData MP 설정, Player inputActions, PC/조이스틱 제어 모드와 Rigidbody 속도를 확인한다.
-- 다음 우선순위: 3단계 스킬 보유/버튼 장착 모델과 약공격 실행·애니메이션 연결. 실제 SkillDatatable.xlsx 미발견 및 개별 스킬 계수 미정은 유지한다.
-
-## 2026-11-03 플레이어 탄환 풀링 구현 완료
-
-- 브랜치 `main`, HEAD `f3fd42c` 유지. 커밋·브랜치 전환 없음. 시작 시 MainTestScene 및 이전 설계/Handoff 변경을 보존했고, 종료 시 MainTestScene SHA-256이 시작값과 같음을 확인했다.
-- PlayerCombat.FireAt을 `Managers.Pool.Pop`으로 연결하고 활성화 전 기존 `Bullet.Init(Transform, float, float)` 호출. Bullet은 IPoolable을 구현하며 적중·수명 종료·화면 이탈에 풀로 반환한다. 비풀링 Init 호출은 Destroy 호환 경로를 유지한다.
-- 대여/반환 때 피해·속도·방향·남은 수명·적중/초기화 상태와 Rigidbody 속도를 정리한다. 예약 Destroy 대신 수명 카운트다운을 사용한다. 피해 콜백 중 재대여되면 대여 버전으로 새 발사를 보호한다.
-- 발사 순간 방향만 저장하고 타깃 참조를 유지하지 않아 표적 이동·소멸·풀 재사용으로 비행 중 방향이나 수명을 바꾸지 않는다. 카메라 부재 시에도 수명으로 회수한다. 화면 기반 타깃 선정·MP·스킬·입력 잠금은 이번 범위에서 변경하지 않았다.
-- 씬·프리팹·기존 meta·Project Settings·패키지 변경 없음. 기존 Bullet.Init API와 DeleteTime 직렬화 필드명 유지. 새 PlayMode 테스트/meta 및 구현 계획 문서 추가.
-- 검증: Unity 6000.5.0f1 검증 복사본에서 기존 코드의 새 테스트 6/6 실패 확인 후 수정. 첫 수정 검증 9/10에서 비활성 객체 SendMessage 테스트 호출 문제를 수정했다. 최종 탄환 6 + CoreInitialization 4 + 씬 의존 테스트를 제외한 PooledEnemySpawning 19 = **29/29 통과**, 실패/생략 0. C# 컴파일 성공, git diff --check 통과. 독립 정적 리뷰에서 수정 필요 결함 없음.
-- 검증 환경: 원본 Unity를 다시 열지 않고 짧은 Temp 경로에 코드·테스트·Joystick Pack·설정 복사본 사용. 라이선스 초기화 지연 후 검증 프로세스만 권한 재실행했다. 복사본에만 PlayFromTitle 배치 guard와 필요한 기존 로컬 캐시 패키지 참조를 적용했다. 원본 패키지 구성 그대로의 전체 프로젝트/씬/그래픽 검증은 아님.
-- 결과: `.utmp/BulletPooling/red.xml`, `final.xml`, `final.log`; 검증 위치는 같은 폴더 validation-path.txt. 임시 결과는 참고이며 재현 가능한 테스트 원본은 Assets/Tests/PlayMode/PlayerBulletPoolingTests.cs에 있다.
-- 남은 검증: 실제 MainTestScene 물리 충돌·화면 표시, Android 빌드·기기·성능. Rigidbody 속도 초기화 및 피해 콜백 내부 즉시 재대여는 정적 검토했지만 별도 직접 테스트로 계측하지 않았다.
-- 직접 확인: Unity 컴파일 완료 → Console 오류 확인 → MainTestScene → Play(자동 Title 시작이면 Tools > Play From Title 옵션 확인) → 적이 범위 안에 있을 때 발사 → Hierarchy `@Managers/@Pools/@BulletPool` 아래 탄환 선택 → 적중/화면 이탈 시 같은 인스턴스가 비활성화되고 다음 발사에 재활성화되는지 확인. 반복 재사용 후에도 적 체력이 줄고 탄환이 회수되는 것이 정상이다. 동시 비행 수가 늘면 필요한 새 인스턴스가 추가되는 것은 정상이다.
-- 오류 시 Console 메시지, Player.bulletPrefab, Bullet·PooledObject 컴포넌트, 카메라 MainCamera 태그를 확인한다. PooledObject는 첫 풀 생성 시 자동 부착되므로 프리팹 수동 수정은 불필요하다.
-- 다음 우선순위: 승인된 스킬 설계의 MP·행동 제어 구현 범위를 구체화한다. 화면 내 대상 선정 등 탄환 기획 정합성은 별도 작업이며 이번 풀링 완료와 혼동하지 않는다.
-
-## 2026-11-03 스킬 후속 합의 및 설계 초안
-
-- 최신 결정은 `docs/superpowers/specs/2026-11-03-player-skills-design.md`에 정리했다. 아래 초기 검토의 유도탄 설명과 이동 약공격 제안은 이 합의로 대체된다.
-- 탄환은 발사 때 화면 내 가까운 일반/엘리트/보스를 다시 선택하되 발사 순간 위치로 직진하며 비행 중 유도·재타겟하지 않는다.
-- 약공격 애니메이션 중 이동·공격·전략·방어·회피 입력을 모두 차단하고 종료 후 해제한다.
-- 차징 배율은 누적 증가, 시간·배율은 조정 가능한 테스트값, MP는 차징 시작 때 차감. 전략 쿨타임 6초 기준. 보유 스킬은 패시브/액티브를 가지며 슬롯 8개 중 6개 기본 활성, 2개 해금 가능. 버튼당 스킬 하나 장착. 보스 그로기 미정.
-- 다음 작업: 설계 초안 기준으로 탄환 정합성·풀링부터 구체적 구현 계획을 작성한다. 자동 패시브의 약공격 중 발사 여부, 장착 제약·개별 효과·취소 환불 등은 확정으로 취급하지 않는다.
-- 런타임 코드·씬·프리팹 변경 없음. 사용자 MainTestScene과 Office 잠금 파일 보존. Unity 실행·컴파일·테스트 0개. 문서 변경에 git diff --check 수행.
-
-## 2026-11-03 스킬 기획 구현 방향 검토
-
-- `Zomso_Skill_기획서.docx`와 루트 종합 기획서를 읽고 Player/PlayerCombat/Bullet/PlayerDefense/PlayerData 및 기존 SkillData·리소스·풀·팝업 코드를 비교함. 구현은 요청되지 않아 런타임 코드와 에셋은 변경하지 않음.
-- 제안: 기존 Player 구성에 플레이어 소유 스킬 실행·우선순위 중재를 추가하고, MP는 PlayerData, 스테이지별 전략 횟수 초기화 신호는 게임 진행, 로딩과 풀링은 기존 Core를 사용. 데이터 정의와 실행 중 상태를 분리.
-- 차이: 현재 Bullet은 범위 내 직선탄·Instantiate/Destroy이며, 화면 내 유도탄·차징/방어 중 자동 발사 중단과 다름. PlayerData는 HP 중심이고 MP 실행 규칙이 없음. 기존 SkillData는 예제 스키마이며 기획 컬럼을 충분히 표현하지 못함. 추적 파일 검색에서 SkillDatatable.xlsx는 발견하지 못함.
-- 구현 전 결정할 내용: 비행 중 탄환 재타겟 여부/일반 적과 보스의 타깃 범위, 차징 3단계 임계시간과 배율 누적 방식, MP 차감 시점 및 취소별 환불, 전략 쿨타임 본문 6초와 QA 6~10초 차이, 다중 보유 스킬과 버튼 연결, 보스 그로기 임계값. MP 명칭 통일하며 문서 잔존 구표기는 새 코드에 반영하지 않음.
-- 권장 순서: MP·상태 우선순위 → 자동 탄환 정합성·풀링 → 약공격 → 강공격 → 전략 효과·스테이지 초기화 → 데이터 확장·성장 연결·연출. 검증 순서는 MP 부족/이동 약공격/차징 캔슬/전략 제한/일시정지 및 재시작/풀 재대여.
-- 이번 검토의 Unity 실행·컴파일·테스트는 0개. 사용자 MainTestScene 변경 보존. 다음은 브리핑의 미정 사항을 확정한 뒤 설계·구현 범위를 정하는 것.
-
-## 2026-11-03 플레이어 Bullet 풀링 확인
-
-- 현재 상태: `main`, HEAD `f3fd42c`. 시작 시 사용자 변경 `Assets/9.Scenes/MainTestScene.unity`가 있었으며 수정하지 않음.
-- 확인 결과: 플레이어 Bullet은 풀링되지 않음. `PlayerCombat.FireAt`이 `Object.Instantiate`로 생성하고, `Bullet`은 충돌·화면 이탈·타깃 소멸·수명 종료에 `Destroy`를 사용함. 공통 `PoolManager`와 풀링 예제는 있지만 실제 플레이어 발사 경로에 연결되지 않음.
-- MainTestScene의 bulletPrefab GUID는 `Assets/1.Prefabs/Bullet.prefab`와 일치하고 해당 프리팹은 실제 `Bullet` 스크립트를 참조함.
-- 검증: 소스 및 씬/프리팹 참조 정적 확인. Unity 실행·컴파일·테스트 0개. 런타임 인스턴스 재사용은 계측하지 않음. 코드·씬·프리팹 변경 없음.
-- 직접 확인: MainTestScene에서 Play → 적이 공격 범위에 있는 동안 발사 확인 → Hierarchy에서 Bullet(Clone)이 생성 후 사라지는지 확인. 발사가 없으면 Player의 bulletPrefab, 적 Enemy 태그·Collider2D·공격 범위 및 Console 오류를 확인.
-- 다음 작업: 풀링 적용은 아직 요청되지 않았음. 적용 시 생성/반환 경로 전환과 함께 isHit 등 재대여 상태 초기화 및 예약 Destroy 제거를 검토해야 함. 기존 실제 데이터·Android 검증 제한은 유지.
-
-## 2026-11-03 보스 남쪽 Swipe 잘림 수정
-
-- 시작 상태: `BossId`, HEAD `964ff51`. 기존 변경인 UniversalRenderPipelineGlobalSettings.asset, EditorBuildSettings.asset, ShaderGraphSettings.asset는 보존.
-- 재현: Beast_Zombie_Boss/Idle/animations/swipe/south의 4~7.png에서 원본의 불투명 픽셀이 Sprite Rect 밖에 있었음. 각각 526/384/224/125픽셀이 영역 밖으로 잘림. Boss_Swipe_South.anim은 해당 Sprite ID를 직접 참조함.
-- 완료: 해당 `.png.meta` 4개의 Sprite Rect만 상하좌우 대칭 확장하고 1픽셀 여유 확보. Center 정렬과 원본 좌표상 중심, GUID, spriteID, internalID를 보존. 코드·씬·프리팹·애니메이션 클립·원본 PNG·Collider는 변경하지 않음.
-- 새 Rect(x,y,w,h): 4=(29,26,107,110), 5=(28,25,106,110), 6=(28,23,105,114), 7=(29,22,103,116).
-- 검증: 원본 PNG 알파와 Rect 비교에서 수정 전 4개 모두 잘림 재현, 수정 후 영역 밖 불투명 픽셀 0. 중심 좌표 동일, Rect 외 메타 내용 동일 확인. git diff --check 통과. Unity 컴파일/테스트 실행 0개이며 실제 재임포트·화면 재생은 미확인.
-- 사용자 확인: Unity 자동 임포트 후 Project → Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/swipe/south → 4~7.png → Sprite Editor에서 손끝과 이펙트 전체가 사각형 안에 들어오는지 확인. 보스 선택 → Animation 창 → Boss_Swipe_South의 4~7프레임을 이동해 잘림 없이 중심이 유지되는지 확인. 이전 영역이면 PNG 4개만 Reimport하고 Console 임포트 오류 확인.
-- 다음 작업: 실제 Unity 재생 확인. 다른 방향·프레임은 이번 요청 범위 밖으로 유지.
-
-## 2026-11-03 캐릭터 Sprite Rect 추가 검사
-
-- 캐릭터/보스 원본 Sprite PNG 1,410개 검사(배경 CityPeaceful, Items, Tiles 제외), 읽기 오류 0. 영역 밖 알파 픽셀 검사에서 Beast_Zombie_Boss에 추가 57개 발견. 앞서 수정한 south 4~7은 잘림 0 유지.
-- 애니메이션 클립이 참조하는 문제 이미지 33개: swipe/north 0~7, north-west 0·3~7, south 0~3, south-east 0·2~7, south-west 0~7.
-- 현재 클립이 직접 참조하지 않는 문제 이미지 24개: swipe/east 0~7, west 0~7, north-east 4~7, swipe-both/east 0·2, west 2·4. 대체 FrameSources를 쓰는 경우 원본 결함과 실제 재생 결함을 구분해야 함.
-- 다른 캐릭터는 이번 Rect 검사에서 영역 밖 픽셀 없음. 별도로 PNG 캔버스 가장자리에 그림이 닿는 후보 65개(Beast 보스 6, Magical_Girl_Zombie 1, Pretty_Magical_Girl 43, Zombie 7, Zombie_Construction 8)가 있으나 원본 잘림 여부는 미확정. Tight 메시·압축·실제 화면 가림은 이 검사 범위 밖.
-- 이번 요청은 추가 확인이므로 에셋 추가 수정 없음. 다음 작업은 사용자 수정 요청 시 위 목록의 Rect 확장. Unity 테스트 실행 0개, 실제 화면 재생 미확인.
-- 직접 확인: 보스 선택 → Animation 창 → Boss_Swipe_North / NorthWest / South / SouthEast / SouthWest에서 해당 프레임 확인. Sprite Editor에서 손·이펙트가 Rect 밖이면 같은 문제. 불일치 시 실제 연결 Sprite와 Console 임포트 오류 확인.
-
-## 2026-11-03 추가 발견 57개 Sprite Rect 수정 완료
-
-- 사용자 요청에 따라 위 추가 검사에서 발견한 Beast_Zombie_Boss 이미지 57개의 `.png.meta`를 수정. 현재 클립 참조 33개와 미참조 원본 24개 모두 포함. 앞서 수정한 south 4~7은 그대로 유지하여 총 수정 메타 61개.
-- 주 Sprite Rect를 상하좌우 대칭 확장하여 원본의 모든 알파 픽셀과 최소 1픽셀 여유 포함. 중심 좌표·Center 정렬·GUID·spriteID·internalID·기타 메타 설정 보존. 여러 Sprite가 나뉜 원본 12개는 가장 큰 본체 Sprite만 확장하고 나머지 작은 이펙트 Sprite의 Rect/ID는 유지.
-- 검증: 57개 수정 전 잘림 재현 보고서 기반으로 수정 후 캐릭터/보스 PNG 1,410개 재검사 → Sprite Rect 밖 알파 픽셀을 가진 이미지 0개, 읽기 오류 0개. 57개 모두 중심 동일·Rect 이외 메타 내용 동일 확인. 코드·씬·프리팹·클립·Project Settings 등 231개 파일의 작업 전후 해시 동일. git diff --check 통과.
-- Unity 컴파일/테스트 실행 0개. 실제 에디터 재임포트·애니메이션 재생은 미확인. 캔버스 가장자리 접촉 후보 65개는 원본 이미지 자체의 별도 조사 대상으로 유지하며 이번 수정으로 해결됐다고 판단하지 않음.
-- 사용자 확인: Unity 자동 임포트 완료 → 보스 선택 → Window/Animation/Animation → Boss_Swipe의 각 방향 재생. 손끝·공격 이펙트가 잘리지 않고 보스 중심이 유지되는 것이 정상. 변화가 없으면 해당 PNG만 Reimport하고 Sprite Editor의 Rect 및 Console 임포트 오류 확인.
-- 다음 작업: 실제 재생에서 수정 결과 확인. 이전 절의 '추가 수정 없음'은 당시 검사 시점 기록이며 이번 절에서 수정 완료함.
-
-## 2026-11-03 남동쪽 걷기 첫 프레임 참조 수정
-
-- 사용자 스크린샷은 swipe가 아닌 move/south-east/0.png의 Sprite 목록이었음. 0_0은 작은 조각(10x8), 0_1은 본체(83x94)인데 BossWalk_SouthEast.anim 첫 프레임이 0_0을 참조하는 문제 확인.
-- 수정: 해당 클립의 첫 Sprite 키와 pptrCurveMapping만 본체 0_1(fileID 8745284039982918138)로 변경. GUID, 나머지 프레임·타이밍·이벤트·코드·씬·프리팹·원본 meta 유지.
-- 검증: 본체 Rect에 원본의 전체 알파 픽셀이 포함됨 확인. 키와 바인딩의 본체 참조 2곳 일치, git diff --check 통과. Unity 테스트 0개, 실제 재생 미확인.
-- 이전 1,410개 검사는 한 PNG의 모든 Sprite Rect 합집합과 원본을 비교한 것이므로, 작은 조각을 애니메이션이 잘못 참조하는 문제까지 검증한 것은 아님.
-- 직접 확인: Unity 임포트 후 보스 선택 → Animation → BossWalk_SouthEast → 0프레임에서 보스 본체가 보여야 함. 여전히 조각만 보이면 클립 Reimport 후 첫 Sprite 키가 0_1인지와 Console 오류 확인.
-
-## 2026-11-03 Enemy/Boss 플레이어 접촉 밀림 방지
-
-- 시작 상태: BossId, HEAD 964ff51. 이전 Sprite Rect 메타 61개, BossWalk_SouthEast.anim, Handoff 및 기존 설정 3개 변경을 보존.
-- 원인: EnemyFollow.Awake가 일반 적/보스 Rigidbody2D를 Dynamic으로 설정하여 플레이어 충돌의 물리 반발에 밀림. FixedUpdate에서 속도를 0으로 만들어도 다음 물리 스텝의 위치 보정까지 막지는 못했으며 보스 공격 시 Follow 비활성 상태에서도 밀림.
-- 수정: 이동/물리 책임을 가진 EnemyFollow에서 bodyType을 Kinematic으로 설정하고 useFullKinematicContacts=true로 접촉 콜백 유지. EnemyContactDamage, BossController, 씬/프리팹/Collider/공격 수치는 변경하지 않음.
-- 추가: Assets/Tests/EnemyPhysics에 독립 PlayMode 테스트 어셈블리와 접촉 데미지 수신용 테스트 컴포넌트. 기존 런타임 어셈블리 이동 없음.
-- 재현/검증: Unity 6000.5.0f1의 별도 검증 프로젝트에서 실제 EnemyFollow/EnemyContactDamage/IContactDamageReceiver 소스 사용. 수정 전 10개 중 5개 실패(플레이어 Dynamic/Kinematic 각각 Follow 켜짐/꺼짐 밀림 4개, 재사용 후 외부 힘 1개), 수정 후 10/10 통과·생략 0. solid/trigger 접촉 데미지 및 쿨다운 4개, 추적과 정지 거리 1개, Follow 비활성 중 MovePosition 이동 및 재사용 후 외부 힘 저항 1개 포함.
-- 초기 검증 6개 중 일부는 테스트 씬 비동기 정리 문제로 실패했으며 UnityTearDown으로 수정한 뒤 위 10개를 다시 실행함. 이를 게임 결함으로 집계하지 않음.
-- 검증 경로: .utmp/EnemyPhysics/reproduced.xml, after.xml 및 해당 로그. 원본 씬/프리팹/클립/기존 메타/Project Settings 작업 전후 해시 동일. git diff --check 통과.
-- 제한: 전체 프로젝트 컴파일/전체 회귀 테스트/실제 MainTestScene 보스 패턴 재생은 미실행. 테스트는 실제 BossController 전체 대신 Follow 비활성 중 Rigidbody2D.MovePosition 경로를 검증함.
-- 물리 동작: Kinematic은 접촉 힘으로 밀리지 않으며 코드로 이동함. 적끼리 및 Kinematic/Static 상대와의 접촉은 콜백은 발생하지만 서로 물리적으로 밀어내거나 분리하지 않음. 실제 군집/벽 및 Kinematic 플레이어 겹침 여부는 씬 확인 필요.
-- 직접 확인: Unity 컴파일 완료 → MainTestScene Play → 일반 적/보스의 몸통에 플레이어를 계속 이동. 적/보스가 플레이어 때문에 밀려나지 않고 추적 및 접촉 HP 감소가 유지되어야 함. 보스 공격 대기·공격 중에도 확인. 오류 시 Console 컴파일 오류, 실행 중 Enemy/Boss Rigidbody2D의 Kinematic 및 Full Kinematic Contacts, Collider 활성/Is Trigger, 플레이어 Rigidbody 유형을 확인.
-- 다음 작업: 실제 씬에서 밀림 방지·접촉 데미지·공격·돌진·군집 동작 확인. 에디터에서 새로 Play해야 Awake 설정이 적용됨.
-
-## 2026-11-03 밀림 방지 + 몸통 관통 방지 재수정
-
-- 사용자 의도 확정: 플레이어가 Enemy/Boss를 밀 수 없으며 서로의 solid 몸통을 통과해서도 안 됨. 이전 Kinematic 단독 변경은 이 의도를 충족하지 못하므로 이번 수정으로 보완.
-- 시작 상태: BossId/964ff51. 기존 코드·이미지 메타 변경 외에 사용자 MainTestScene.unity 및 AddressableAssetSettings.asset 변경이 존재했으며 저장/덮어쓰기하지 않음.
-- 공통 CollisionMovement2D(Combat.Runtime)를 추가: 실제 활성 non-trigger Collider2D 형상을 이동 거리 전체에 Cast하여 가장 가까운 solid 앞에서 이동 제한. 접촉면 방향으로 잔여 이동을 다시 검사하여 벽면 이동/모서리 차단 지원. Trigger는 이동 차단에서 제외하고 기존 접촉 데미지 콜백 유지. Collider/레이어 충돌 설정과 IgnoreCollision을 반영. 매 액터 이동 위치를 즉시 반영해 다른 액터의 다음 검사가 갱신된 위치를 보도록 함.
-- EnemyFollow: Kinematic+Full Kinematic Contacts 유지(외력에 밀리지 않음), 추적에 위 이동 검사 적용. 공개 MoveTo를 보스 패턴에서도 사용 가능하도록 추가.
-- BossController: 돌진의 직접 MovePosition을 Follow.MoveTo로 교체. solid에 막혀 이동이 불가능하면 돌진 루프를 끝내어 장애물 뒤에서 무한 대기하지 않도록 처리. 공격 수치/이벤트/일반 패턴 규칙 변경 없음.
-- PlayerMovement: 키보드 Tick과 DashRoutine의 직접 Transform 이동을 같은 검사 경로로 교체. Rigidbody 없는 기존 호출에만 기존 Transform 이동 fallback 유지.
-- PlayerController2D: 조이스틱의 직접 속도 이동을 같은 검사 경로로 교체. PlayerMvpMovement도 직접 MovePosition을 같은 검사로 교체. 기존 입력/속도/대시 시간·MP 규칙 유지.
-- 재현: 이전 코드에 몸통 차단 검증을 추가한 14개 테스트 중 5개 실패(적→플레이어 관통, 적끼리 관통, 대시 관통, Kinematic 플레이어 관통 2개). 이후 실제 프레임 진행을 검증하는 UnityTest와 벽면/Trigger 검사를 추가.
-- 최종 검증: Unity 6000.5.0f1 별도 PlayMode 프로젝트에서 18/18 통과, 생략 0. 실제 EnemyFollow, EnemyContactDamage, CollisionMovement2D, PlayerMovement, PlayerData 소스 사용. Dynamic/Kinematic 플레이어의 밀림·차단, 실제 PlayerMovement 키보드/대시, 적끼리 차단, Follow 비활성 중 보스 MoveTo 차단, 추적 정지 거리, 재사용/외력 저항, solid/trigger 접촉 데미지와 쿨다운, 큰 Trigger 반경 무시, 벽면 이동 및 후퇴 검증.
-- 결과: .utmp/EnemyPhysics/blocking-final.xml 및 blocking-final.log. 초기 접촉면 방향 보완 후, UnityTest 프레임 시간과 Cast 접촉 여유를 반영해 최종 재실행. 이전 10개 통과 기록을 재사용한 결과가 아님.
-- 한계: 실제 MainTestScene 전투/보스 전체 패턴/조이스틱 입력/프로토타입 InputAction의 화면 재생은 미실행. 별도 프로젝트에서는 공통 이동과 실제 PlayerMovement 경로를 검증했고, 모바일/프로토타입/전체 BossController 시나리오까지 통과했다고 주장하지 않음. 원본 에디터에서 변경된 Runtime/Assembly-CSharp 어셈블리 생성 시간은 확인함.
-- 직접 확인: Unity 컴파일 완료 후 Play 재시작 → MainTestScene에서 키보드와 조이스틱으로 적/보스 몸통을 계속 밀기 → 대시로 몸통을 넘으려 하기 → 보스 공격 대기 및 돌진 중 반복. 플레이어는 몸통 앞에서 멈추고 적/보스는 밀리지 않아야 함. 붙은 뒤 반대 방향 이동과 옆 이동은 가능하고 접촉 HP 감소/공격은 유지되는 것이 정상. 적끼리도 관통하지 않아야 함.
-- 오류 확인: Console 컴파일 오류, 양쪽의 활성 solid Collider 존재(Is Trigger=false), 충돌 레이어 및 IgnoreCollision, 실행 중 Enemy Rigidbody Kinematic+Full Kinematic Contacts, 이동 스크립트가 최신인지 확인. Collider가 Trigger뿐인 대상은 의도적으로 통과 가능.
-- 다음 작업: 사용자 실제 씬에서 모든 입력 경로·군집·벽·보스 공격/돌진 확인. 이번 작업에서 씬/프리팹/Project Settings/패키지를 수정하지 않음.
-
-## 2026-11-03 보유 스킬 패시브 자동 발사 연결
-
-- 시작 상태: feat/PlayerSkill, HEAD ccac76f. 이전 불꽃 탄환 약공격 관련 코드/씬/컨트롤러/리소스/테스트/문서 변경과 열린 테이블의 임시 잠금 파일을 보존. 커밋·브랜치 변경·테이블 수정 없음.
-- 사용자 승인: 불꽃 탄환10001 패시브 피해6/간격3초/탄속3/사거리6. 빨간 원 프리팹 재사용. 약공격 MP10/피해10 유지.
-- 완료: PlayerCombat의 기본탄 자동 발사를 보유 공격 스킬 순회로 교체. 장착 버튼과 무관하게 각 보유 스킬의 독립 주기로 발사. 빈 보유/미작성 패시브/잘못된 수치/누락 리소스는 발사하지 않음. 스킬 제거·교체 및 Player 비활성화에 실행 상태 반영. 첫 유효 표적에는 즉시 발사하며 지연 프레임의 누적 연사는 하지 않음.
-- 조준: 사거리 안이면서 MainCamera 화면 안의 Enemy 태그 대상 중 가장 가까운 위치를 매 발사 시점에 선택. 일반 적과 BossMvp의 Enemy 태그 확인. 이미 발사한 탄환은 기존 Bullet.InitDirection의 직선 비행 유지. 기존 풀을 사용하며 새 매니저/로딩 체계는 추가하지 않음.
-- 설정: Data.SkillData에 PassiveConfigured/PassivePrefabKey/PassiveDamage/PassiveInterval/PassiveSpeed/PassiveRange 추가. Player.Passive Projectiles 직접 바인딩 또는 기존 ResourceManager의 준비된 캐시를 사용. MainTestScene에는10001의 승인 설정과 FlameBullet 바인딩만 추가(이 작업의 씬 추가9줄). 기존 기본 공격 수치와 Player.bulletPrefab 참조는 보존하되 기본탄 중복 발사는 제거. bulletPrefab을 비워도 이제 패시브를 끄지 않음.
-- 시간/입력: MP 무소모. 일시정지·방어 모션 중 남은 패시브 주기 정지. 약공격 입력 잠금 중에는 기존대로 패시브 허용. 비활성화 후 재활성화는 첫 유효 표적부터 새 주기로 시작.
-- 재현/검증: 새13개 테스트가 기존 구현에서13개 실패(빈 보유 상태 기본탄 생성/패시브 정의 부재). 구현 후 관련85/85 통과. 실제 Player 바인딩/빨간 프리팹 물리 충돌 피해6/비활성화/방어와 약공격 잠금/씬 설정 테스트 추가 후 Unity6000.5.0f1 별도 검증 프로젝트에서 최종89/89 통과, 실패0·생략0. 패시브17, 기존 풀6/약공격13/MP행동19/HUD12/상태창9/팝업13. 이번 실행 결과이며 이전73개 기록 재사용 아님.
-- 검증 파일: .utmp/PassiveSkill/red.xml, final.xml, final.log. 변경 코드·테스트·MainTestScene은 테스트 복사본과 해시 동일. 전체0.Scripts의 차이는 검증 복사본 PlayFromTitle 배치 guard뿐. git diff --check 통과. 기존 테스트의 CS0618 경고가 남아 있으며 이번 패시브 코드/새 테스트에는 구 FindObjectsSortMode 호출 없음. 독립 코드 리뷰에서 중요한 결함 없음, 지적된 통합 검증 공백을 위 테스트로 보완.
-- 한계: 사용자 요청으로 생략한 병합 전체 선행 검증은 수행하지 않음. 실제 원본 MainTestScene 전투/보스 전체 패턴·전체 카탈로그·Android 빌드/기기 미확인. 다른 스킬의 수치·효과·획득/성장·강공격·전략·미정 그로기는 확정하지 않음.
-- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 끄기 → MainTestScene Play → 버튼 없이 화면 안의 적에게 사거리6까지 접근. 빨간 원이 첫 발사 후3초마다 직진하며 MP가 줄지 않는지 확인. 적이 움직여도 기존 탄환은 꺾이지 않고 다음 탄환이 가까운 적을 다시 조준해야 함. N_Attack 약공격은 MP10/피해10·입력 잠금을 유지. 패링/가드 및 일시정지 중 주기가 멈추고 복귀 후 이어지는지 확인. PC 이동은 PlayerController2D 비활성화.
-- 오류 확인: Console 첫 오류, Player.Passive Projectiles의 Key=FlameBullet/Prefab=FlameBullet, PlayerData.Loadout의10001 보유와 PassiveConfigured·수치·키 일치, Enemy 태그/활성 Collider/MainCamera 태그·화면·거리를 확인. 패시브만 잠시 끄려면 Play 중10001의 PassiveConfigured를 해제하고 임시 설정은 저장하지 않음.
-- 문서: docs/AI/PlayerPassiveSkills.md 및 docs/superpowers/plans/2026-11-03-owned-passive-skills.md. 다음은 실제 플레이 피드백 반영 및 정식 스킬 테이블/리소스·획득 경로 연결, 이후 강공격 차징 구현. 해당 단계의 미작성 수치는 별도 사용자 결정이 필요함.
-
-## 2026-11-03 보스 HP 바 좌우 입력 버그 수정
-
-- 시작 상태: feat/PlayerSkill/ccac76f. 앞선 약공격·패시브 관련 코드/씬/리소스/테스트/문서 및 열린 테이블 잠금 파일을 보존.
-- 원인: MainTestScene의 Boss_HP Slider(1137732343553467738)가 Interactable=true, Navigation=Automatic으로 설정되어 있음. 보스는 PlayerView가 아닌 공용 EnemyHealth의 healthSlider 경로를 사용하여 앞선 플레이어 HUD 표시 전용 처리가 적용되지 않았음. 실제 HP와 무관하게 선택된 Slider가 좌우/포인터 입력으로 편집됨.
-- 재현: 실제 EnemyHealth+Slider+EventSystem 테스트에서 HP50 상태의 왼쪽 이동만으로 표시 비율0.5→0.4, 숨김 후 표시된 바도0.7→0.6, 포인터/드래그로0.5→1이 됨. 수정 전 새7개 중6개 실패·HP바 없는 적1개 통과.
-- 수정: EnemyHealth 초기화/Start/피격/풀 재등장 시 HP 바를 표시 전용으로 설정(Interactable=false, Navigation=None, Transition=None). 비활성 색상 전환을 제거하여 색상 유지. 체력 비율은 Slider의 min/max 범위로 매핑하고 SetValueWithoutNotify로 표시하여 조작 이벤트를 발생시키지 않음. 체력/피해/보스 패턴·스폰 수치 변경 없음.
-- 검증: Unity6000.5.0f1 별도 검증 프로젝트에서55/55 통과, 실패0·생략0. EnemyHealthHudTests7 + PlayerHudTests12 + PlayerPassiveSkillTests17 + PlayerBulletPoolingTests6 + PlayerLightSkillTests13. 좌우/포인터 차단, 실제 피격·사용자 지정 범위·이벤트 무발생, 풀 재등장, 숨김/표시, UI 없는 적 검증. 결과 .utmp/BossHealthHud/red.xml 및 final.xml/final.log. 새 결과이며 앞선89개 기록 재사용 아님.
-- 보존 확인: MainTestScene/BossMvp.prefab/EnemyMvp.prefab 작업 전후 해시 동일. 변경 소스·테스트는 검증 복사본과 해시 동일. git diff --check 통과. 씬·프리팹·Project Settings 변경 없음. 기존 다른 테스트의 CS0618 경고는 별개로 남아 있음.
-- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 끄기 → MainTestScene Play 재시작 → 보스 출현 후 Boss_HP를 클릭/드래그한 다음 왼쪽·오른쪽 이동. 공격하지 않을 때 바가 입력만으로 줄거나 늘지 않고 실제 보스 피격에만 줄어야 함. 일시정지/복귀 후에도 반복. PC 이동 확인은 PlayerController2D 비활성화.
-- 오류 확인: Console 첫 컴파일 오류, 실행 중 보스 EnemyHealth.healthSlider가 Boss_HP Slider를 참조하는지, Boss_HP의 Interactable=false/Navigation=None인지 확인. 기존 Play를 종료하고 재시작하여 새 초기화 적용. 소스만으로 표시 전용을 보장하므로 씬에서 수동 참조 재연결이나 HP값 조정은 필요 없음.
-- 한계/다음: 실제 원본 MainTestScene 보스 전투 화면과 Android 기기는 미확인. 위 사용자 재현 절차 확인 후 기존 패시브 피드백/정식 데이터·획득 연결 및 강공격 후속으로 복귀.

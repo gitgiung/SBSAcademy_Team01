@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -104,11 +105,26 @@ public class GameManager : MonoBehaviour
         try
         {
             Time.timeScale = 1f;
-            Managers.Scene.LoadScene(target);
+            Action loadScene = Managers.Scene.PrepareSceneLoad(target);
+            Managers.RunSceneTransition(LoadAfterCleanup(loadScene, previousTimeScale));
         }
         catch
         {
             // 입력 가드와 정지 상태를 되돌려 설정 수정 후 재시도를 허용합니다.
+            isTransitioning = false;
+            Time.timeScale = previousTimeScale;
+            throw;
+        }
+    }
+
+    private IEnumerator LoadAfterCleanup(Action loadScene, float previousTimeScale)
+    {
+        // 풀의 SpriteRenderer Destroy가 끝나기 전에 새 씬의 백그라운드 읽기를 시작하면
+        // Unity 6000.5에서 PersistentManager/오브젝트 잠금이 교착될 수 있습니다.
+        yield return null;
+        try { loadScene(); }
+        catch
+        {
             isTransitioning = false;
             Time.timeScale = previousTimeScale;
             throw;

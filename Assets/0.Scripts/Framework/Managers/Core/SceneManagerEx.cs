@@ -17,6 +17,14 @@ public class SceneManagerEx
         SceneManager.LoadScene(sceneName);
     }
 
+    // 검증과 정리는 요청 프레임에 끝내고, 실제 로드는 삭제 처리 후 호출할 수 있게 분리합니다.
+    internal Action PrepareSceneLoad(Define.EScene type)
+    {
+        string sceneName = ValidateScene(type);
+        Managers.Clear();
+        return () => SceneManager.LoadScene(sceneName);
+    }
+
     public AsyncOperation LoadSceneAsync(Define.EScene type)
     {
         string sceneName = ValidateScene(type);

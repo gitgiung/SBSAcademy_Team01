@@ -32,6 +32,16 @@ public class GameResultFlowTests
         yield return null;
     }
 
+    private static IEnumerator WaitForSceneReplacement(Component previous, string expectedScene)
+    {
+        float deadline = Time.realtimeSinceStartup + 10f;
+        while ((previous != null || SceneManager.GetActiveScene().name != expectedScene)
+            && Time.realtimeSinceStartup < deadline)
+            yield return null;
+        Assert.That(previous == null, Is.True);
+        Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo(expectedScene));
+    }
+
     [UnitySetUp]
     public IEnumerator Setup()
     {
@@ -104,7 +114,7 @@ public class GameResultFlowTests
         var resources = Service("Resource");
         yield return Finish(true);
         Call(game, "RestartGame");
-        yield return null;
+        yield return WaitForSceneReplacement(original, "GiungTestScene");
         scene = SceneManager.GetSceneByName("GiungTestScene");
         Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("GiungTestScene"));
         game = Find("GameManager");
@@ -130,7 +140,7 @@ public class GameResultFlowTests
         var clip = AudioClip.Create("result sound", 4410, 1, 44100, false);
         source.clip = clip;
         Call(game, "ReturnToTitle");
-        yield return null;
+        yield return WaitForSceneReplacement(game, "TitleTestScene");
         Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("TitleTestScene"));
         Assert.That(Time.timeScale, Is.EqualTo(1f));
         Assert.That(oldPopup == null, Is.True);
@@ -153,7 +163,7 @@ public class GameResultFlowTests
         Assert.That(Field<GameObject>(game, "gameOverPanel").activeSelf, Is.True);
         field.SetValue(game, Enum.Parse(Runtime("Define+EScene"), "GiungTestScene"));
         Call(game, "RestartGame");
-        yield return null;
+        yield return WaitForSceneReplacement(game, "GiungTestScene");
         Assert.That(Time.timeScale, Is.EqualTo(1f));
         Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("GiungTestScene"));
     }

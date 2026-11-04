@@ -275,6 +275,15 @@ public class Managers : MonoBehaviour
         }
     }
 
+    // 씬 소유 호출자가 사라져도 이미 요청한 전환은 기존 영속 Managers에서 진행합니다.
+    internal static void RunSceneTransition(IEnumerator transition)
+    {
+        Managers owner = Instance;
+        if (owner == null)
+            throw new InvalidOperationException("씬 전환을 실행할 Managers가 없습니다.");
+        owner.StartCoroutine(transition);
+    }
+
     private void OnApplicationQuit()
     {
         if (s_instance == this)

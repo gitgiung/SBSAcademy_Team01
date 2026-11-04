@@ -1101,7 +1101,6 @@ GameObject:
   - component: {fileID: 454020004}
   - component: {fileID: 454020001}
   - component: {fileID: 454020000}
-  - component: {fileID: 454020005}
   m_Layer: 0
   m_Name: Player Target
   m_TagString: Player
@@ -1600,25 +1599,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
   variableJoystick: {fileID: 1269801976}
   playerData: {fileID: 0}
---- !u!114 &454020005
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 454019994}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a852ca3937e4a6fbc53dd0e3f91cbb8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WorldWrap2D
-  sourceTilemap: {fileID: 1127740548}
-  boundsRect:
-    serializedVersion: 2
-    x: -37
-    y: -21
-    width: 67
-    height: 37
 --- !u!1 &496842390
 GameObject:
   m_ObjectHideFlags: 0

@@ -42,6 +42,12 @@ JSON 예시 구조는 `{ "skills": [{ "DataId": 101, "Name": "..." }] }`다. 실
 - 팝업 스택, 씬별 정리 계약 및 실제 게임 진행 연결.
 - 실제 게임 데이터와 Android 기기 검증.
 
+## 2026-11-04 결과 화면의 씬 전환 정리 프레임
+
+`GameManager.RestartGame`과 `ReturnToTitle`은 `SceneManagerEx.PrepareSceneLoad`에서 씬 유효성 검증과 `Managers.Clear`를 요청 프레임에 수행한다. 기존 영속 `Managers`가 전환 코루틴을 소유하며, `yield return null`로 풀의 지연 `Destroy` 처리가 끝난 다음 프레임에 실제 `SceneManager.LoadScene`을 호출한다. 스프라이트 삭제와 새 씬의 백그라운드 역직렬화가 겹치는 Unity 6000.5 네이티브 잠금 교착을 피하기 위한 순서 보장이다.
+
+잘못된 씬은 정리 전에 동기로 거절한다. 같은 GameManager의 중복 요청 가드와 실패 시 이전 `Time.timeScale`·재시도 상태 복원은 유지하며, 다음 프레임의 실제 로드 호출에서 발생한 예외에도 복원한다. 따라서 결과 화면 전환 완료를 한 프레임만 기다렸다고 판단하면 안 되고, 기존 씬 객체 제거와 목표 씬 활성화를 확인해야 한다. 기존 공개 `SceneManagerEx.LoadScene` 및 `LoadSceneAsync`의 호출 계약은 변경하지 않았다.
+
 ## 2026-10-28 검증
 
 - Unity 6000.5.0f1에서 C# 컴파일 성공, 전체 PlayMode 테스트 21/21 통과.

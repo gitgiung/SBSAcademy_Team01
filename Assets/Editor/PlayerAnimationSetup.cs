@@ -110,6 +110,7 @@ public static class PlayerAnimationSetup
         fromCharge.duration = 0.04f;
         fromCharge.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsDashing");
 
+        PlayerLightAttackSetup.EnsureController(controller);
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
         Debug.Log($"Player animation controller generated: {controllerPath}. Idle, Dash movement, Charge dash, Parry, and Guard clips are configured in eight directions.");

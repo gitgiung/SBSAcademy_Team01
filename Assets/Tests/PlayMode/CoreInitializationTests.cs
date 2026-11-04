@@ -27,7 +27,7 @@ public class CoreInitializationTests
     [UnityTearDown]
     public IEnumerator Cleanup()
     {
-        foreach (GameObject root in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (GameObject root in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
             if (root.name == "@Managers" || root.name == "@SoundRoot")
                 UnityEngine.Object.Destroy(root);
         yield return null;
@@ -46,7 +46,7 @@ public class CoreInitializationTests
     {
         Init();
         Init();
-        GameObject[] roots = UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
+        GameObject[] roots = UnityEngine.Object.FindObjectsByType<GameObject>()
             .Where(go => go.name == "@SoundRoot").ToArray();
         Assert.That(roots, Has.Length.EqualTo(1));
         Assert.That(roots[0].transform.parent, Is.EqualTo(GameObject.Find("@Managers").transform));

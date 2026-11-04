@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -7,7 +8,7 @@ using UnityEngine.UI;
 /// Composition root and compatibility facade for the player.
 /// Input and Unity lifecycle stay here; gameplay rules and presentation are delegated.
 /// </summary>
-public sealed class Player : MonoBehaviour, IContactDamageReceiver
+public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 {
     [Header("플레이어 데이터 및 기본 설정")]
     public PlayerData data;
@@ -16,6 +17,11 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField] private Slider mpSlider;
     [SerializeField] private Slider expSlider;
     [SerializeField] private InputActionAsset inputActions;
+    [Header("약공격 연결")]
+    [SerializeField] private Button lightAttackButton;
+    [SerializeField] private GameObject lightAttackProjectile;
+    [Header("패시브 투사체 (Key는 SkillData.PassivePrefabKey와 일치)")]
+    [SerializeField] private PlayerProjectileBinding[] passiveProjectiles = new PlayerProjectileBinding[0];
 
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
@@ -52,15 +58,19 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     private PlayerCombat combat;
     private PlayerDefense defense;
     private PlayerActionGate actions;
+    private PlayerLightSkill lightSkill;
     private PlayerController2D joystickController;
     private InputAction moveInput;
     private InputAction dashInput;
     private InputAction parryInput;
+    private InputAction attackInput;
+    private GameObject lightFxPrototype;
     private bool lastExternalMoving;
     private bool startingDash;
     private int lifecycleVersion;
 
     public bool IsDashing => movement != null && movement.IsDashing;
+    public int ActiveLightAttackId => lightSkill != null ? lightSkill.ActionId : 0;
     public bool IsInputLocked => actions != null && actions.IsInputLocked;
     public bool CanAcceptGameplayInput => isActiveAndEnabled && !hasDied && data != null
         && !data.IsDead && !IsInputLocked && !startingDash && Time.timeScale > 0f;
@@ -82,6 +92,8 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         moveInput.Enable();
         dashInput.Enable();
         parryInput.Enable();
+        attackInput = CloneOptional("Player/Attack");
+        attackInput?.Enable();
         view?.RefreshResources();
     }
 
@@ -90,6 +102,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         joystickController = GetComponent<PlayerController2D>();
         if (data == null) data = GetComponent<PlayerData>();
         if (playerSpriteRenderer == null) playerSpriteRenderer = GetComponent<SpriteRenderer>();
+        GroundShadow.Attach(playerSpriteRenderer);
         if (playerAnimator == null) playerAnimator = GetComponent<Animator>();
         if (playerAnimator == null) playerAnimator = gameObject.AddComponent<Animator>();
         if (playerAnimator.runtimeAnimatorController == null)
@@ -109,7 +122,13 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         defense.ParrySucceeded += HandleParrySucceeded;
         actions = new PlayerActionGate(data);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
-        combat = new PlayerCombat(transform, data, bulletPrefab, enemyTag);
+        combat = new PlayerCombat(transform, data, enemyTag);
+        if (passiveProjectiles != null)
+            foreach (PlayerProjectileBinding binding in passiveProjectiles)
+                if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);
+        lightSkill = new PlayerLightSkill(this, data, view);
+        if (lightAttackButton != null)
+            Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
     }
 
     private void Start()
@@ -122,6 +141,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
         data.TickMPRecovery(Time.deltaTime);
+        lightSkill?.CheckAnimation();
         if (IsInputLocked)
         {
             view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
@@ -148,10 +168,114 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
                 movement.IsDashing, dashDuration);
         }
         if (parryInput.WasPressedThisFrame()) TryParry();
+        if (attackInput != null && attackInput.WasPressedThisFrame() && !PointerOverUi())
+            TryCastLightSkill(CurrentAim());
         if (!defense.IsInDefenseMotion) combat.Tick(Time.deltaTime);
     }
 
-    /// <summary>후속 스킬 실행부가 애니메이션 시작 전에 호출합니다. 실패하면 시전하지 않습니다.</summary>
+    public bool TryUseLightSkill()
+    {
+        if (lightSkill == null || !CanAcceptGameplayInput || IsHeavyCharging) return false;
+        Vector2 direction = joystickController != null && joystickController.enabled
+            ? joystickController.MovementDirection
+            : (moveInput != null ? moveInput.ReadValue<Vector2>() : Vector2.zero);
+        return lightSkill.TryCast(direction, lightAttackProjectile);
+    }
+
+    public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);
+    public void NotifyLightAttackAnimationFinished(int actionId) => lightSkill?.OnAnimationFinished(actionId);
+
+    /// <summary>장착된 약공격이 없으면 불꽃 탄환을 시전합니다. 실패하면 MP를 쓰지 않습니다.</summary>
+    public bool TryCastLightSkill(Vector2 aim)
+    {
+        int id = data != null && data.Loadout != null
+            ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Light) : 0;
+        if (id == 0) id = 10001;
+        if (!LightSkillCatalog.TryGet(id, out LightSkillCast skill)) return false;
+        if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
+        if (aim.sqrMagnitude < 0.0001f)
+            aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
+        StartCoroutine(CastLightSkill(skill, aim.normalized, actionId));
+        return true;
+    }
+
+    private IEnumerator CastLightSkill(LightSkillCast skill, Vector2 aim, int actionId)
+    {
+        int shots = Mathf.Max(1, skill.Projectiles);
+        float spacing = skill.ShotSpacing;
+        for (int i = 0; i < shots; i++)
+        {
+            if (!isActiveAndEnabled || hasDied) break;
+            float spread = shots == 1 ? 0f : (i - (shots - 1) * 0.5f) * 8f;
+            Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
+            SpawnLightSkill(skill, direction);
+            if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
+        }
+        float hold = 0.28f + skill.RepeatSpacing * Mathf.Max(0, skill.Hits - 1);
+        if (hold > 0f) yield return new WaitForSeconds(hold);
+        CompleteLightAttack(actionId);
+    }
+
+    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction)
+    {
+        EnsureLightFxPrototype();
+        Vector3 position = transform.position;
+        if (skill.Shape == LightSkillShape.Circle || skill.Shape == LightSkillShape.Cone || skill.Shape == LightSkillShape.Arc)
+            position += (Vector3)(direction * skill.Range * 0.35f);
+        float damage = skill.Damage(data.attackDamage);
+        void Arm(GameObject fx)
+        {
+            if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
+                skillFx.Play(skill, direction, damage, enemyTag);
+        }
+
+        if (Managers.Initialized && Managers.Pool != null)
+            Managers.Pool.Pop(lightFxPrototype, position, Quaternion.identity, initialize: Arm);
+        else
+        {
+            GameObject fx = Instantiate(lightFxPrototype, position, Quaternion.identity);
+            fx.SetActive(true);
+            Arm(fx);
+        }
+    }
+
+    private void EnsureLightFxPrototype()
+    {
+        if (lightFxPrototype != null) return;
+        lightFxPrototype = new GameObject("LightSkillFx");
+        lightFxPrototype.SetActive(false);
+        lightFxPrototype.AddComponent<SpriteRenderer>();
+        CircleCollider2D collider = lightFxPrototype.AddComponent<CircleCollider2D>();
+        collider.isTrigger = true;
+        Rigidbody2D body = lightFxPrototype.AddComponent<Rigidbody2D>();
+        body.bodyType = RigidbodyType2D.Kinematic;
+        body.gravityScale = 0f;
+        body.useFullKinematicContacts = true;
+        lightFxPrototype.AddComponent<PooledObject>();
+        lightFxPrototype.AddComponent<LightSkillFx>();
+    }
+
+    private Vector2 CurrentAim()
+    {
+        if (joystickController != null && joystickController.enabled
+            && joystickController.MovementDirection.sqrMagnitude > 0.0001f)
+            return joystickController.MovementDirection;
+        Vector2 move = moveInput != null ? moveInput.ReadValue<Vector2>() : Vector2.zero;
+        if (move.sqrMagnitude > 0.0001f) return move;
+        return view != null ? view.FacingDirection : Vector2.right;
+    }
+
+    private static bool PointerOverUi()
+    {
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+    }
+
+    private InputAction CloneOptional(string actionPath)
+    {
+        if (inputActions == null) return null;
+        InputAction source = inputActions.FindAction(actionPath, false);
+        return source != null ? source.Clone() : null;
+    }
     public bool TryBeginLightAttack(float mpCost, out int actionId)
     {
         actionId = 0;
@@ -252,6 +376,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
     {
         unchecked { lifecycleVersion++; }
         StopAllCoroutines();
+        lightSkill?.Cancel();
         actions?.Reset();
         joystickController?.StopMovement();
         movement?.Reset();
@@ -262,6 +387,7 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
 
     private void OnDestroy()
     {
+        if (lightFxPrototype != null) Destroy(lightFxPrototype);
         view?.Dispose();
     }
 
@@ -288,9 +414,11 @@ public sealed class Player : MonoBehaviour, IContactDamageReceiver
         moveInput?.Dispose();
         dashInput?.Dispose();
         parryInput?.Dispose();
+        attackInput?.Dispose();
         moveInput = null;
         dashInput = null;
         parryInput = null;
+        attackInput = null;
     }
 
     private void OnDrawGizmosSelected()

@@ -10,6 +10,8 @@ public class PlayerController2D : MonoBehaviour
     private Player player;
     private Vector2 joystickDirection;
     public Vector2 MovementDirection => joystickDirection;
+    public Vector2 AimDirection => variableJoystick == null ? Vector2.zero
+        : new Vector2(variableJoystick.Horizontal, variableJoystick.Vertical);
 
     private void Start()
     {
@@ -21,7 +23,7 @@ public class PlayerController2D : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (player != null && (!player.CanAcceptGameplayInput || player.IsDashing))
+        if (player != null && (!player.CanMove || player.IsDashing))
         {
             StopMovement();
             return;

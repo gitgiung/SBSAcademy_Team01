@@ -1,0 +1,261 @@
+{
+ "frames": [
+  {
+   "filename": "lightslash 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 1.png",
+   "frame": {
+    "x": 73,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 2.png",
+   "frame": {
+    "x": 146,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 3.png",
+   "frame": {
+    "x": 0,
+    "y": 67,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 4.png",
+   "frame": {
+    "x": 73,
+    "y": 67,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 5.png",
+   "frame": {
+    "x": 146,
+    "y": 67,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 6.png",
+   "frame": {
+    "x": 0,
+    "y": 134,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 7.png",
+   "frame": {
+    "x": 73,
+    "y": 134,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  },
+  {
+   "filename": "lightslash 8.png",
+   "frame": {
+    "x": 146,
+    "y": 134,
+    "w": 73,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 73,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 73,
+    "h": 67
+   },
+   "pivot": {
+    "x": 0.4383561643835616,
+    "y": 0.5970149253731343
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "lightslash.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 219,
+   "h": 201
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 32,
+   "y": 40
+  },
+  "frameTags": [
+   {
+    "name": "lightslash",
+    "from": 0,
+    "to": 8,
+    "direction": "forward"
+   }
+  ]
+ }
+}

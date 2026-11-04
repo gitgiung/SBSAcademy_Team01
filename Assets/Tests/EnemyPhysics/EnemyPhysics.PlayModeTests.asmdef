@@ -1,6 +1,0 @@
-{
-  "name": "EnemyPhysics.PlayModeTests",
-  "references": ["EnemyMvp.Runtime", "Combat.Runtime"],
-  "optionalUnityReferences": ["TestAssemblies"],
-  "autoReferenced": false
-}

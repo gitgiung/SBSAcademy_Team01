@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 30
+  bossAppearTime: 60
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -29958,6 +29958,34 @@ PrefabInstance:
       propertyPath: m_AdditionalShaderChannelsFlag
       value: 25
       objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3611537609009217375, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_isOrthographic
       value: 1
@@ -29977,6 +30005,10 @@ PrefabInstance:
     - target: {fileID: 5521956166370665252, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_ActiveFontFeatures.Array.size
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5815918160366507449, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: 6218128591540567814, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_Pivot.x
@@ -30050,6 +30082,26 @@ PrefabInstance:
       propertyPath: gameManager
       value: 
       objectReference: {fileID: 768851016}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_isOrthographic
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294309357
+      objectReference: {fileID: 0}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_ActiveFontFeatures.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9186041549367977864, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -30729,6 +30781,22 @@ PrefabInstance:
     - target: {fileID: 2801471059774490790, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_ConstrainProportionsScale
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.newSize.x
+      value: 0.91
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.newSize.y
+      value: 0.93
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.oldSize.x
+      value: 0.91
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.oldSize.y
+      value: 0.93
       objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Size.x

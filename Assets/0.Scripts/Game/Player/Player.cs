@@ -49,10 +49,10 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField, Min(1f)] private float dashSpeedMultiplier = 3f;
     [SerializeField, Min(0.01f)] private float dashDuration = 0.15f;
     [SerializeField, Min(0f)] private float dashCooldown = 3f;
-    [SerializeField] private BossParry boss;
 
     private bool hasDied;
     public event System.Action Died;
+    public event System.Action<float, GameObject> Damaged;
 
     private PlayerView view;
     private PlayerMovement movement;
@@ -74,7 +74,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     public int ActiveLightAttackId => lightSkill != null ? lightSkill.ActionId : 0;
     public bool IsInputLocked => actions != null && actions.IsInputLocked;
     public bool CanAcceptGameplayInput => isActiveAndEnabled && !hasDied && data != null
-        && !data.IsDead && !IsInputLocked && !startingDash && !startingDefense
+        && !data.IsDead && !IsInputLocked && !startingDash && !startingDefense && !parryFeedbackRunning
         && (heavyCharge == null || !heavyCharge.IsStarting) && Time.timeScale > 0f;
 
     private void OnEnable()
@@ -119,7 +119,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
         view = new PlayerView(transform, playerSpriteRenderer, healthSlider, data, playerAnimator);
         view.BindResourceSliders(mpSlider, expSlider);
-        defense = new PlayerDefense(boss, view, parryStartup, parryActive, parryRecovery,
+        defense = new PlayerDefense(view, parryStartup, parryActive, parryRecovery,
             guardTransitionTime, maxGuardDuration, normalGuardCooldown, breakGuardCooldown);
         defense.ParrySucceeded += HandleParrySucceeded;
         actions = new PlayerActionGate(data);
@@ -268,7 +268,16 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         finally { startingDefense = false; }
     }
 
-    private void HandleParrySucceeded() => data.RestoreMP(data.parryMPRecovery);
+    private void HandleParrySucceeded()
+    {
+        int version = lifecycleVersion;
+        data.RestoreMP(data.parryMPRecovery);
+        if (version == lifecycleVersion && isActiveAndEnabled && !hasDied && !data.IsDead)
+        {
+            BeginParryFeedback(defense.LastParrySource);
+            PlayParryCameraZoom();
+        }
+    }
 
     /// <summary>Compatibility entry point used by boss attacks and existing scene logic.</summary>
     public void TakeDamage(float damage, GameObject attacker = null)
@@ -280,7 +289,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         {
             if (defense.IsBlockingDamage)
             {
-                defense.NotifyIncomingAttackBlocked();
+                defense.NotifyIncomingAttackBlockedFrom(attacker);
                 Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
             }
             return;
@@ -297,6 +306,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             Debug.Log("[Player 사망] 플레이어가 사망했습니다.");
             gameObject.SetActive(false);
         }
+        else Damaged?.Invoke(damage, attacker);
     }
 
     public void TakeContactDamage(float damage, GameObject source)
@@ -319,6 +329,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private void OnDisable()
     {
         unchecked { lifecycleVersion++; }
+        CancelParryFeedback();
+        CancelParryCameraZoom();
         StopAllCoroutines();
         ResetHeavyCharge();
         lightSkill?.Cancel();

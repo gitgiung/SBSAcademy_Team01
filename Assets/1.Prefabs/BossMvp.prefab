@@ -17,8 +17,6 @@ GameObject:
   - component: {fileID: 7670373938179878916}
   - component: {fileID: 2381133541093242586}
   - component: {fileID: 40308472465134674}
-  - component: {fileID: 7655376826295206891}
-  - component: {fileID: 9012416883021147164}
   - component: {fileID: 5106729134211795001}
   - component: {fileID: 7377102466147333052}
   m_Layer: 0
@@ -27,7 +25,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2801471059774490790
 Transform:
   m_ObjectHideFlags: 0
@@ -36,10 +34,10 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2240792168150154507}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 4, z: 0}
-  m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 4, y: 4, z: 4}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -88,16 +86,16 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -630562447
+  m_SortingLayer: 1
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 237e849d5f3c23a438717def3415c023, type: 3}
-  m_Color: {r: 0.6295967, g: 0, b: 0.6320754, a: 1}
+  m_Sprite: {fileID: 2324236343598682440, guid: 428043e25f33fc6419e111fc5d6385aa, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.91, y: 0.93}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -204,13 +202,13 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
-    newSize: {x: 1, y: 1}
+    oldSize: {x: 0.91, y: 0.93}
+    newSize: {x: 0.91, y: 0.93}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.85, y: 0.85}
   m_EdgeRadius: 0
 --- !u!114 &2432783780170617415
 MonoBehaviour:
@@ -224,7 +222,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25917665923e68c45a9c1774c59d4b06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyFollow
-  moveSpeed: 1.5
+  moveSpeed: 5
   stoppingDistance: 2
 --- !u!114 &7670373938179878916
 MonoBehaviour:
@@ -238,7 +236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c342803638bd6544977d012e6f17267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyHealth
-  maxHealth: 25
+  maxHealth: 500
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 1, b: 1, a: 1}
   healthSlider: {fileID: 0}
@@ -270,48 +268,16 @@ MonoBehaviour:
   target: {fileID: 0}
   patternSelector: {fileID: 2381133541093242586}
   animator: {fileID: 7377102466147333052}
-  closeRange: 2
-  specialPatternDistance: 10
-  pattern1ToPattern2Delay: 3
-  pattern2ToPattern1Delay: 5
+  closeRange: 4
+  specialPatternDistance: 12.01
+  pattern1ToPattern2Delay: 1
+  pattern2ToPattern1Delay: 2
   doubleSlashInterval: 0.5
-  slashRange: 2
-  slashAngle: 90
   damage: 10
+  slashRange: 6
+  slashAngle: 120
   dashDuration: 3
   dashEndDamageRadius: 2
---- !u!114 &7655376826295206891
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2240792168150154507}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0bc860bbdede2704dacbbf9a3a4e8fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossParry
-  bossSpriteRenderer: {fileID: 6809795324689762170}
-  patternInterval: 5
-  yellowDuration: 0.5
-  orangeDuration: 0.3
-  redParryWindow: 0.133
-  PlayerObject: {fileID: 0}
---- !u!114 &9012416883021147164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2240792168150154507}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d44d0a6220b4a098ec7f390ed17f640, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyContactDamage
-  damage: 10
-  damageInterval: 0.5
 --- !u!114 &5106729134211795001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -322,9 +288,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a31e57069bc14565b0fac678a84b1d2c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Boss.Runtime::BossPatternRangeView
-  showInGameRanges: 0
+  showInGameRanges: 1
   startRangeLineWidth: 0.035
   attackRangeAlpha: 0.22
   startRangeLineAlpha: 0.85
@@ -346,7 +312,7 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage:
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0

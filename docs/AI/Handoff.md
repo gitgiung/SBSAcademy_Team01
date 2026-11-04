@@ -1,5 +1,120 @@
 # 작업 인수인계
 
+## 2026-11-04 보스 경계 정체 및 할퀴기 중단 복구 수정
+
+- 사용자 승인: 직전 발견의 추적 정지 경계와 리뷰4의 애니메이션 중단 대기를 함께 수정. 리뷰1 돌진 피해 중심은 유지,2 표시 수정은 다른 브랜치 담당,3 벽 재시도는 보류라는 사용자 판단을 유지했다. 이번 런타임 수정은 BossController에만 적용하며 씬/프리팹/공용 이동/피해/표시·패턴 간격은 바꾸지 않았다.
+- 경계 수정: FollowStoppingDistance=Mathf.Max(0,closeRange-0.001f). 초기 활성화·SetTarget·할퀴기 복귀·돌진 복귀의 추적 정지점을 이 값으로 통일했다. 근접 공격 선택 조건 distance<=closeRange 자체는 유지하므로 공격 범위를 늘리지 않는다. 실제 이동의 작은 이동량 무시 경계보다 안쪽까지 접근하여4.00005에서 멈추는 현상을 방지한다.
+- 중단 복구: PlaySlashAnimation의 Animator 재생/대기를 try/finally로 감싸 공격 실행 플래그와 추적 상태를 정리한다. 대기 중 Animator 비활성화/삭제, runtimeAnimatorController 제거, 현재 상태 변경, 다른 상태로 전이, normalizedTime>=1을 감지해 종료한다. 정상 종료 이벤트는 계속 우선 사용하고, 이벤트 누락 시 피해를 임의로 발생시키지 않는다. 일시정지는 정상 애니메이션 진행을 기다리며 보스 비활성화/사망 시 추적을 재활성화하지 않는다.
+- 회귀 테스트: BossAttackRecoveryTests.cs 및 meta 추가(7개). 거리4.00005/3.99 접근 후 근접 선택과 기존 공격 범위 미확장, Animator 해제/컨트롤러 제거/상태 변경 복구, 종료 이벤트 제거 후 복구, 일시정지 유지/재개를 검사한다.
+- 실행 결과: Unity6000.5.0f1 별도 최소 복사본 컴파일·PlayMode25/25 통과(신규7+직전 경계 재현2+돌진 시작/루프16), 실패0/생략0, exit0. 동일 테스트7개를 복사본에서만 수정 전 두 로직으로 비교 실행하여2통과/5실패(exit2): 경계4.00005와 중단4종이 의도대로 실패했다. 원본은 계속 수정본을 유지했고 비교 종료 후 복사본도 수정본으로 복구했다. 수정본/테스트 해시 일치 및 대상 diff --check 통과.
+- 자료/한계: .utmp/ChargeAnimation/recovery-green.xml/log, recovery-before.xml/log 및 BossController.recovery-green.txt(Git 제외). 원본 씬 실제 조작·전체 프로젝트 회귀·Android 기기는 이번에 검사하지 않았다. 과거50개 검사 결과를 새 검증 수로 재사용하지 않는다.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스가 접근한 뒤 가만히 있어도 기존 패턴 간격 후 계속 공격하는지 확인. 실행 중 할퀴기 준비에서 Animator만 꺼 보면 공격 대기가 해제되고 추적이 복구되어야 한다. 정상 일시정지 후 복귀하면 해당 공격은 계속 진행되어야 한다. 임시 Animator 변경은 Play 종료로 되돌리고 씬을 저장하지 않는다.
+- 오류 확인/다음: Console 첫 오류, 실제 중심 거리/closeRange와 EnemyFollow stoppingDistance, Animator 활성/현재 상태/종료 이벤트를 확인한다. 생존·활성 보스에 한해 추적이 켜져야 한다. 다음은 사용자 원본 씬에서 정지 후 패턴 반복 및 중단 복구 체감 확인이다.
+
+## 2026-11-04 보스 추적 정지 경계에서 패턴 미선택 조사
+
+- 사용자 판단 반영: 이전 리뷰1의 플레이어 중심 돌진 피해는 현 상태 허용,2의 범위 방향은 다른 브랜치에서 수정됨,3의 벽 차단 후 반복은 추후 벽 추가 시 검토. 4의 애니메이션 중단 복구는 수정 승인 뒤 사용자가 잠시 보류하고 본 현상 조사를 요청했다. 아직4번 런타임 수정을 시작하지 않았으며 이번에도 원본 코드·씬·프리팹은 변경하지 않았다.
+- 현상: 추적하다 범위 안에 온 것으로 보이지만 공격하지 않고 멈추며 플레이어가 움직이면 다시 공격. 유력 원인은 추적 정지 거리와 근접 패턴 시작 거리를 같은 closeRange로 사용하는 경계 정체다. SelectAvailablePattern은 distance>closeRange면 None, EnemyFollow는 remaining만큼 이동하려 하지만 CollisionMovement2D는 이동 제곱값1e-8 이하를 처리하지 않는다. closeRange4에서 실제 거리4.00005가 남으면 추가 이동도 공격 선택도 되지 않는다.
+- 재현: 원본 BossController를 별도 최소 Unity6000.5.0f1 검증본에 복사하고 실제 EnemyFollow/CollisionMovement2D로 정지 표적에 대해 FixedUpdate60회 호출. 거리4.00005는 그대로/selected=None/following=True여서 근접 공격 기대 검사가 실패했고, 거리3.99 비교는 selected=Pattern1로 통과했다. 최종2개 중1통과/1실패, exit2. 원본 씬에서 사용자가 목격한 순간의 거리나 nextPatternTime은 측정하지 않아 동일 원인으로 확정하지는 않는다.
+- 자료/검증 제한: .utmp/ChargeAnimation/boundary-confirm.xml 및 boundary-confirm.log, .utmp/c/Assets/Tests/BossBoundaryInvestigationTests.cs(Git 제외). 최초 비교 검사는 검증용 Animator 누락으로 불필요한 오류가 있어 표적을 활성화 후 이동하는 비교로 정리하고 최종 검사를 재실행했다. 결과는 동작 검증 통과가 아니라 버그 재현이다. 실제 프레임 진행/원본 씬 플레이 재현이나 수정 후 테스트는 하지 않았다.
+- 권장 수정: 공격 반경 자체를 늘리기보다 보스의 추적 정지 거리를 근접 판정 경계보다 작은 오차 여유만큼 안쪽으로 두어 경계 정체를 없앤다. 이번은 조사 요청이므로 적용하지 않았다. 사용자 확인은 MainTestScene Play → 보스 추적 후 가만히 대기 → 장시간 미공격이면 실제 중심 거리와 closeRange/nextPatternTime 확인 → 조금 보스 쪽으로 이동했을 때 공격 재개 여부 확인. 정상 패턴 간 대기1~2초와 지속적인 경계 정체를 구분한다. 오류 시 Console 첫 오류 및 Animator 종료 상태도 함께 본다.
+
+## 2026-11-04 보스 중심 코드 정적 검토
+
+- 사용자 요청은 검토/보고이며 런타임 코드·씬·프리팹을 수정하지 않았다. BossBeastZombie/88f436b 및 기존 다수 변경을 확인하고 보존했다. BossController, PatternSelector/RuleSelector, BossPatternRangeView, BossEncounterController, EnemyHealth, 보스 프리팹과 MainTestScene override 및 테스트 범위를 읽었다.
+- 주요 발견1: BossController:344가 돌진 도착 피해 중심으로 target.position을 사용한다. 현재 보스 closeRange4/dashEndDamageRadius2에서 플레이어3거리도 도착으로 판단하고 플레이어 중심 원으로 명중시킨다. 보스 주변 타격 의도라면 중심을 body.position으로 통일하고 범위 표시도 함께 변경해야 한다. 현재 코드는 플레이어 중심 타격이며 보스 중심 반경2 판정이 아니다.
+- 주요 발견2: BossController:196은 attackForward를 시작 시 고정하지만 BossPatternRangeView:76~82는 매 프레임 현재 target 방향으로 부채꼴 표시를 회전시킨다. 준비 중 플레이어가 옆으로 움직이면 보이는 범위와 실제 피해 방향이 다르다. 표시가 고정된 공격 방향을 참조해야 한다.
+- 주요 발견3: 돌진에서 벽에 막히면 MoveTo 이동0으로 종료하지만 PatternLoop:165가 다음 공격 시간을 즉시 현재 시간으로 설정한다. 벽 너머 표적이 특수 거리 밖에 남으면 반복적으로 돌진을 재시작해 시작 동작/로그가 되풀이된다. 차단 종료 후 재시도 간격 또는 추적 복귀 정책을 정해야 한다. 단순 반복 시작을 피할 필요가 있으며 시간 수치는 임의 확정하지 않았다.
+- 조건부 발견4: PlaySlashAnimation:214는 종료 이벤트만 기다리고 Animator 비활성화/상태 교체/이벤트 누락을 감지하지 않는다. 공격 도중 Animator만 꺼지거나 종료 이벤트가 제거되면 follow=false 상태에서 패턴 대기가 끝나지 않을 수 있다. 현재 정상 클립에 종료 이벤트가 있는 것과 중단 복구 부재는 구분한다.
+- 현재 흐름: 근접은 규칙 선택기로 단발→연속 할퀴기 교대, 중거리는 추적, 원거리는 돌진. 할퀴기는 애니메이션 이벤트에서 피해, 돌진은 시작1회→지속 루프 및 도착 피해. 보스 출현은 진행 타이머/일반 스폰을 정지시키며 Time.timeScale을0으로 만들지 않는다. 보스 사망 후 AfterBoss/스폰 재개이며 곧바로 최종 승리로 연결하지 않은 기존 설계는 임의로 버그로 분류하지 않았다.
+- 검증: 이번 Unity 실행/컴파일/회귀 테스트0개. 위 내용은 소스·직렬화 설정 기반 정적 검토이며 실제 씬 재현 완료로 보고하지 않는다. 과거50/16개 통과는 이번 검토 결과를 대신하지 않는다.
+- 직접 확인/다음: MainTestScene에서 보스 할퀴기 준비 중 옆으로 이동해 부채꼴과 실제 타격 비교 → 보스와3거리/몸통 반경2 밖에서 돌진 도착 피해 확인 → 벽 너머로 원거리 유도해 반복 돌진 확인 → 임시 Play 상태에서 공격 도중 Animator만 해제해 추적/패턴 중단 여부 확인. 마지막 조건은 Play 종료로 원복하고 저장하지 않는다. 오류는 Console 첫 오류/패턴3 반복 로그 및 Animator 상태·이벤트·실제 prefab override를 확인한다. 수정 요청 시 위 조건을 회귀 테스트로 먼저 재현하고 판정 중심·표시 동기화부터 처리한다.
+
+## 2026-11-04 돌진 시작/지속 루프 클립 분리
+
+- 사용자 요청: body-charge 전체 반복으로 서 있는 준비 자세가 매번 나오는 부자연스러움 제거. BossBeastZombie의 기존 코드·씬·프리팹·패링/피격/카메라 연출 변경을 보존했다. 이번 변경은 보스 애니메이션 클립과 Boss.controller에만 적용했다.
+- 완료: 원본 south 3/4/6/8/10 그림을 확인해 0~3은 준비, 4~10은 몸을 낮춘 돌진 자세로 나눴다. 기존 body-charge_{방향}.anim 8개는 0~3/12fps/비반복(약0.333초)으로 변경하고, 새 body-charge-loop_{방향}.anim 8개는 원본4~10/12fps/반복(약0.583초)으로 만들었다. 원본 PNG/meta 및 기존 클립 GUID는 유지한다.
+- Animator: body-charge(기존 진입 상태) → exitTime1/전환시간0 → body-charge-loop(새8방향 BlendTree)로 연결했다. BossController.StartDashAnimation은 기존 이름으로 진입하므로 코드를 바꾸지 않았다. StopDashAnimation은 반복 중에도 기존 Idle로 종료한다. 이동/추적/피해/돌진 시간 규칙은 변경하지 않았다.
+- 검증: Unity6000.5.0f1 별도 최소 검증 복사본에서 Animator PlayMode 검사16/16 통과, 실패0/생략0, exit0. 방향별8개는 시작4키/루프7키·참조 PNG번호·반복 여부·길이를 검사, 방향별8개는 실제 Animator 시작→루프 전환 후 여러 반복 동안4~10 PNG만 표시됨과 Idle 종료/새 돌진 재시작을 검사했다. 클립/meta 해시가 검증본과 같고 controller는 검증 후 새 빈값 뒤 공백만 정리했다(그 외 내용 일치). 대상 diff --check 통과.
+- 자료/한계: .utmp/ChargeAnimation/split-loop.xml 및 split-loop.log, 임시 검사 .utmp/c/Assets/Tests/ChargeLoopSplitTests.cs(Git 제외). 이번16개는 Animator 자산 검사이며 실제 MainTestScene 전체 돌진·벽 충돌·모바일 기기를 새로 검사한 결과는 아니다. 과거50개 테스트를 이번 실행 수로 재사용하지 않는다.
+- 직접 확인: Unity 임포트 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스와 거리를 벌려 긴 돌진 유도. 처음에만 몸을 낮추고 이후 돌진 자세가 반복되어 서 있는 자세가 중간에 끼지 않아야 한다. Animator 창에서 body-charge→body-charge-loop 전환을 확인하고 돌진 종료 시 Idle/일반 공격으로 복귀하는지 본다. 8방향도 반복 확인한다.
+- 오류 확인/다음: Console 첫 임포트 오류, 보스의 실제 Boss.controller 연결, body-charge 상태 전이 및 body-charge-loop의 방향별 클립 참조를 확인한다. 다음은 원본 화면에서 루프 이음새 체감 확인이며 필요하면 반복 프레임 범위를 조정한다.
+
+## 2026-11-04 패링 성공 카메라 줌인/복귀
+
+- 사용자 요청: 패링 성공 시 Main Camera가 살짝 확대됐다 원래대로 돌아오는 연출. 현재 MainTestScene의 CinemachineBrain과 관련 PlayerCameraTests를 확인했다. 다른 작업으로 이동된 PlayerHitFeedbackTest의 Test 폴더 위치를 유지했다. 씬·프리팹·Cinemachine 설정은 이번에 변경하지 않았다.
+- 완료: Player.ParryCamera.cs 부분 클래스를 추가하고 기존 HandleParrySucceeded 성공 경로에서 PlayParryCameraZoom을 호출한다. 기본 줌 비율0.05(렌즈 크기/FOV를95%로), 확대0.06초, 복귀0.18초. Inspector의 패링 성공 카메라 줌에서 조절하며 비율0으로 끈다. 실제 시간 기준으로 부드럽게 변화해 히트스톱 중에도 연출이 진행된다.
+- 카메라: Camera.main에 활성 CinemachineBrain이 있으면 ActiveVirtualCamera의 CinemachineCamera.Lens를 조절하여 Brain 덮어쓰기와 경쟁하지 않는다. Brain이 없는 일반 Camera는 orthographicSize 또는 fieldOfView를 조절한다. 위치·회전·추적 대상은 유지한다. 카메라가 없거나 지원되는 활성 가상 카메라가 없으면 게임 로직을 막지 않고 줌만 생략한다.
+- 수명: 재발동 전 이전 렌즈를 복원해 누적 확대를 방지하며 플레이어 비활성화/사망 때 진행 중 코루틴을 취소하고 원래 렌즈를 복구한다. 가상 카메라 전환 중에는 새 카메라를 덮어쓰지 않고 기존 렌즈를 복원한다. 가드/일반 피격/공격 없이 누른 패링에는 성공 줌을 연결하지 않았다.
+- 검증: Unity6000.5.0f1 별도 검증 복사본 컴파일 및 PlayMode50/50 통과, 실패0/생략0, exit0. 신규 카메라5 + 기존 피격5/패링8/MP·회피19/팝업13. 히트스톱 중 직교 줌/정확 복구, 원근 FOV 복구, 비활성화 즉시 복원, 공격 없는 패링 미발동, 실제 Cinemachine 가상 렌즈와 Main Camera 출력 확대/복귀를 검사했다. 변경 소스/새 테스트 해시 일치, 대상 diff --check 통과.
+- 자료/한계: .utmp/ParryFeedback/camera-zoom.xml 및 camera-zoom.log(Git 제외). 이번 검사는 실제 MainTestScene 씬을 로드한 전체 플레이 검사나 화면 캡처가 아니며 실제 원본 씬 조작/모바일 기기는 미검증이다.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스 타격에 맞춰 E키 패링. 짧은 정지 중 화면이 약간 확대됐다 곧 원래 구도로 돌아오고 플레이어 추적/정지/밀림이 유지되어야 한다. Player Inspector의 패링 성공 카메라 줌 세 값으로 체감을 조절한다.
+- 오류 확인/다음: Console 첫 컴파일 오류, MainCamera 태그, Brain의 ActiveVirtualCamera가 CinemachineCamera인지, 줌 비율이0인지 확인한다. 다른 카메라 제어기가 렌즈를 변경하는지도 확인한다. 다음은 원본 씬에서 실제 줌 강도와 복귀 시간의 체감 확인이다.
+
+## 2026-11-04 BossParry 사용 폐기 정리
+
+- 사용자 요청: 더 이상 사용하지 않는 BossParry 관련 코드 정리. 시작 상태 BossBeastZombie/88f436b에서 사용자가 BossParry.cs와 meta를 이미 삭제한 상태였다. 삭제는 보존하고 복원하지 않았다. 기존 보스/패링·피격 연출 변경을 유지했다.
+- 코드: Player의 BossParry 직렬화 필드 및 PlayerDefense 생성자 인자 제거. PlayerDefense의 BossParry 필드/생성자 의존성과 boss.TryParry 주기 조회를 제거했다. 성공 여부는 실제 TakeDamage 차단 경로에서 받은 parrySucceeded만 사용한다. LastParrySource, 기존 성공 이벤트·MP 회복·히트스톱·밀림·가드 규칙은 유지했다. 참조 없는 옛 색상 타이밍 테스트 BossParryTest.cs와 meta도 삭제했다.
+- 직렬화: BossMvp.prefab의 옛 컴포넌트 블록/목록 항목, MainTestScene·GiungTestScene 및 _Recovery의 0.unity/0 (1).unity의 stripped 블록과 해당 컴포넌트 전용 override만 제거했다. Player 스크립트 블록의 폐기된 boss 필드는 dongjinScenes까지 포함해 제거했다. BossEncounterController가 실제 BossController를 참조하는 boss 필드는 유지했다. 씬을 Unity로 전체 재저장하지 않고 나머지 YAML/기존 사용자 프리팹 변경을 보존했다.
+- 테스트: 옛 BossParry 전용 성공 테스트를 공격 없이 패링을 눌러도 정지/밀림이 없다는 검사로 교체했다. 실제 공격자 차단 성공 검사는 유지된다. Unity6000.5.0f1 별도 검증 복사본에서 컴파일 및 관련 PlayMode 45/45 통과(피격5·패링8·MP/회피19·팝업13), 실패0/생략0, exit0. 최종 원본 Player/PlayerDefense/수정 테스트는 검증본과 해시 일치. 대상 코드·씬 diff --check 통과. Assets의 C#/씬/프리팹에서 BossParry 이름·두 폐기 스크립트 GUID·폐기 컴포넌트 fileID 잔존 검색0건.
+- 자료/한계: .utmp/BossParryCleanup/results.xml 및 validation.log, 직렬화 변경 전 사본(Git 제외). 원본 씬의 실제 재생/Android 기기는 미확인. 새 씬 로드 검사는 이번 별도 코드 테스트에 포함하지 않았다.
+- 사용자 확인: Unity 컴파일 완료 → Console에 BossParry 타입 누락 오류가 없는지 확인 → Tools > Play From Title 해제 → MainTestScene Play → 공격 없이 E 입력 시 성공 연출 없음 → 보스 타격을 E로 막으면 MP 회복/히트스톱/밀림 유지 → PlayerHitFeedbackTest 부착 시 일반 피격 빨간색 연출 확인. BossMvp와 두 테스트 씬에서 폐기 BossParry의 Missing Script가 없어야 한다. 오류 시 Console 첫 오류와 실제 Player 입력 에셋을 확인한다. 다음은 사용자 실제 씬 확인이다.
+
+## 2026-11-04 분리형 일반 피격 테스트 연출
+
+- 사용자 요청: 패링 성공 외에도 피격 시 밀림·짧은 정지·빨간색 표시를 테스트용 별도 스크립트로 구현. 기존 변경을 유지하고 씬·프리팹에 자동 부착하거나 저장하지 않았다.
+- 추가: PlayerHitFeedbackTest 컴포넌트. Player 오브젝트에 수동 Add Component하면 활성화되고 체크 해제/제거로 끌 수 있다. 기본 빨간색0.25초(scaled), 실제시간 정지0.06초, 공격자 반대 방향 거리0.25/시간0.12초. 색은 기존 alpha를 유지하고 반복 피격/컴포넌트 해제 시 원래 색으로 복구한다. 대상 SpriteRenderer는 Inspector 지정 또는 자식에서 찾는다.
+- 연결: Player에 실제 비치명 피해 적용 후 Damaged(float, GameObject) 이벤트만 추가했다. 가드/패링/회피로 막힌 공격 및 무효 피해에는 이벤트가 없고, 치명타는 기존 사망 비활성화 경로를 유지한다. 컴포넌트가 없으면 기존 일반 피격 동작 그대로다. 공격자 정보가 없거나 같은 위치면 임의 밀림 방향을 만들지 않는다.
+- 정지/이동 재사용: Player.ParryFeedback의 기존 충돌 이동·시간 소유권 경로에 내부 테스트 진입/취소 함수를 추가했다. 별도 전역 매니저나 두 번째 Time.timeScale 제어 루프는 만들지 않았다. 연출 순서는 패링처럼 정지 후 밀림이며 빨간색 표시는 즉시 시작한다. 실제 피격은 진행 중 반응을 새 피격 기준으로 교체하고, 테스트 컴포넌트 해제는 자신이 시작한 연출만 취소한다. 기존 패링 수치는 유지했다.
+- 검증: Unity6000.5.0f1 별도 복사본에서 관련 코드 컴파일 및 PlayMode 45/45 통과, 실패0·생략0, exit0. 새 PlayerHitFeedbackTests5 + 기존 패링8/MP·회피19/전투 팝업13. 실제 피해 시 색·정지·밀림 및 복구, 미부착 시 미발동, 패링 차단 시 빨간색 미발동, 컴포넌트 해제 시 시간/색/입력잠금 복구, 연속 피격 후 원래 색 복구를 검사했다. API 경고 수정 뒤 코드도 이번 실행에 포함했고 이번 연출/수정 검색 호출의 경고는 없었다. 대상 git diff --check 및 테스트 소스 해시 일치 확인.
+- 검증 자료/한계: .utmp/ParryFeedback/hit-feedback.xml 및 hit-feedback.log, .utmp/p 복사본(Git 제외). 원본 에디터 화면 재생·실제 MainTestScene 조작·Android 기기는 미실행. 테스트용 컴포넌트는 원본 씬에 아직 부착하지 않았다.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene의 Player 선택 → Add Component > PlayerHitFeedbackTest → Play → 방어 없이 보스/일반 적에게 맞는다. HP가 줄면서 빨간색, 짧은 정지 후 공격자 반대쪽 밀림, 원래 색 복구가 정상이다. 컴포넌트 체크 해제 후 같은 피격에서는 기존 HP 감소만 나와야 한다. 패링 성공 시 기존 패링 연출만 나오고 빨간색 피격 표시는 없어야 한다.
+- 오류 확인/다음: Console 첫 오류, 같은 오브젝트의 Player 존재, 컴포넌트 enabled, Target Renderer 및 네 시간/거리 값, attacker/source 유무를 확인한다. 색만 안 바뀌면 실제 화면을 그리는 SpriteRenderer를 Target Renderer로 지정한다. 다음은 사용자 씬에서 연출 체감 조절이며 테스트 종료 시 컴포넌트를 제거하면 된다. 실제 피해/무적/사망 규칙은 변경하지 않았다.
+
+## 2026-11-04 패링 연출 검색 API 경고 수정
+
+- 사용자 지적 확인: 앞선 green.log에 Player.ParryFeedback.cs 및 CombatPopupController.cs의 FindObjectsSortMode 인자 사용에 대한 CS0618 경고가 있었다. 앞선 40/40 통과는 경고가 없다는 의미가 아니며 경고를 놓쳤다.
+- 수정: 이번 연출에서 추가한 두 검색만 FindObjectsByType<GameManager>() 및 FindObjectsByType<Player>()로 변경했다. Unity6000.5 컴파일 경고의 공식 대체 호출 안내에 따른 수정이며 씬 필터·승패/팝업 정지 소유권 로직은 유지한다. 관련 없는 기존 호출은 일괄 변경하지 않았다.
+- 검증: 변경 호출 정적 확인 및 대상 git diff --check 통과. 이번 컴파일/Unity 테스트 재실행0개. 앞선 40개 결과를 이번 수정의 재실행 결과로 보고하지 않는다.
+- 직접 확인: Unity 컴파일 완료 → Console Clear 후 해당 파일의 CS0618이 새로 발생하는지 확인 → MainTestScene에서 패링 성공 및 일시정지/복귀 확인. 해당 두 호출 경고가 사라지고 정지/밀림/팝업 복귀가 유지되면 정상이다. 오류 시 첫 컴파일 메시지와 실제 Unity 버전을 확인한다. 다음은 원본 에디터 컴파일/실제 화면 확인이다.
+
+## 2026-11-04 패링 성공 히트스톱 및 플레이어 밀림
+
+- 사용자 요청: 패링 성공 시 잠깐 게임을 멈추고 플레이어를 보스 반대 방향으로 조금 밀어내는 연출. 시작 브랜치 BossBeastZombie/88f436b. 기존 BossController 복구·사용자 BossMvp.prefab·Animator·할퀴기 및 body-charge 클립 변경을 보존했다. 기존 수정 파일은 작업 전후 SHA-256 동일. 이번에 씬·프리팹·Project Settings·패키지를 수정하지 않았다.
+- 완료: Player.ParryFeedback.cs 부분 클래스에서 성공 연출을 소유한다. 기본 정지 0.08초(실제 시간), 정지 해제 후 공격자 반대 방향으로 거리0.35를 0.12초 동안 이동한다. Player Inspector의 패링 성공 연출에서 세 값을 조절한다. 연출 동안 플레이 입력을 잠깐 잠그고 기존 PlayerMovement/CollisionMovement2D를 사용해 벽을 통과하거나 몸통을 밀지 않게 한다. 새 전역 매니저/싱글톤은 추가하지 않았다.
+- 연결: PlayerDefense의 기존 ParrySucceeded 이벤트와 무인자 NotifyIncomingAttackBlocked API를 유지했다. LastParrySource 및 NotifyIncomingAttackBlockedFrom으로 실제 피해 공격자 또는 기존 BossParry 참조를 성공 시 전달한다. 가드·실패에는 연출이 없으며 같은 패링의 다중 Collider 접촉은 기존 성공 플래그로 한 번만 연출/MP 회복한다. 공격자 미상/동일 위치면 임의 방향을 만들지 않고 정지만 적용한다. MP 회복 중 비활성화/재활성화된 경우 새 생명주기에 연출을 시작하지 않는다.
+- 정지 수명: Player 비활성화/파괴 시 소유한 정지와 연출을 정리한다. 성공 전 시간 배율을 저장해 복구하며 승패 정지는 GameManager.state로 확인해 유지한다. CombatPopupController.AcquirePause는 플레이어 히트스톱을 먼저 종료한 뒤 원래 배율을 저장하고 팝업 정지를 인수한다. 따라서 히트스톱 중 일시정지·레벨업 팝업이 겹쳐도 조기 재개하거나 팝업 종료 후 0배율에 갇히지 않는다. 팝업 중 밀림 진행도 scaled deltaTime으로 정지한다.
+- 회귀: PlayerParryFeedbackTests 8개 추가. 구현 전 별도 Unity 복사본에서 8개 중3 통과/5 실패로 정지·밀림 부재 재현(exit2). 구현 후 Unity6000.5.0f1 컴파일 및 PlayMode 40/40 통과, 실패0·생략0, exit0. 새 연출8 + 기존 PlayerResourceActionTests19 + CombatPopupTests13. 실제 피해 경로 성공/중복 접촉, 일반 가드 미발동, 벽 차단, 팝업 중첩과 기존0.4배율 복구, 비활성화 정지 해제, 승패 정지 유지, 기존0.5배율 복구, 구 BossParry 경로를 검사했다.
+- 검증 근거: .utmp/ParryFeedback/red.xml/red.log, green.xml/green.log 및 .utmp/p 검증 복사본(생성물 Git 제외). 변경 런타임/새 테스트와 복사본의 SHA-256 동일, 대상 git diff --check 통과. 검증 복사본에는 전체0.Scripts와 Tests 및 Joystick Pack을 복사하고 기존 로컬 패키지 캐시를 사용했다. 복사본 PlayFromTitle에만 batchmode guard가 있으며 원본 옵션을 변경하지 않았다. 전체 게임 회귀·원본 MainTestScene 실제 화면/모바일 기기는 이번에 실행하지 않았다.
+- 사용자 확인: Unity 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스의 손 내리기 타격 직전에 Player/Parry 입력 → 성공 순간 약0.08초 멈췄다가 플레이어가 보스 반대쪽으로 조금 밀리는지 확인. 실패/일반 가드에는 정지·밀림이 없어야 한다. 벽을 등지고 성공해도 통과하지 않아야 하며, 성공 직후 일시정지나 레벨업 팝업을 열었다 닫아도 정상 복귀해야 한다.
+- 오류 확인/다음: Console 첫 컴파일 오류, Player Inspector의 패링 성공 연출 세 값, 입력 에셋 Player/Parry 연결, 실제 피격 호출의 source/attacker 전달을 확인한다. 밀림 방향이 없으면 공격자가 null이거나 플레이어와 동일 위치인지 확인한다. 다음은 원본 씬에서 정지 길이/거리 체감 및 실제 터치 입력 확인이다. 추가 무적·보스 넉백·보상·패링 수치 규칙은 이번 연출에 넣지 않았다.
+
+## 2026-11-04 삭제된 보스 돌진 애니메이션 코드 복구
+
+- 사용자 요청으로 BossController.cs에서 삭제된 body-charge 연결을 복구했다. 시작 브랜치 BossBeastZombie/88f436b. 기존 BossMvp.prefab·Animator controller·할퀴기 클립·새 body-charge 클립·인수인계 변경은 보존했다. body-charge 상태와 8방향 클립은 남아 있어 다시 만들지 않았다.
+- 복구: dashAnimationRunning 필드, 돌진 시작의 StartDashAnimation 호출, 돌진 종료 및 OnDied/OnDisable의 StopDashAnimation 호출, 두 보조 메서드. 현재 피해 중심(target.position)과 돌진 이동 규칙은 유지했다.
+- 검증: 복구 코드 SHA-256이 앞선 검증 복사본의 BossController.cs와 일치하고 git diff --check 통과. 이번 Unity 실행 테스트 0개이며 앞선 5/5 결과를 이번 재실행 결과로 취급하지 않는다.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스와 10 이상 거리로 벌려 돌진 유도. body-charge로 돌진하고 종료 후 일반 동작으로 돌아오면 정상. 오류 시 Console 첫 컴파일 오류와 missing body-charge state 경고, Boss.controller 연결을 확인한다. 다음 작업은 원본 씬 실제 재생 확인이다.
+
+## 2026-11-04 보스 돌진 body-charge 애니메이션 연결
+
+- 시작 상태: BossBeastZombie, HEAD 88f436b. 이전 할퀴기 선딜레이 16클립·인수인계 변경과 사용자 BossMvp.prefab 수정을 보존했다. 이번 작업 전후 사용자 프리팹 SHA-256 동일. 브랜치·씬·기존 스프라이트 PNG/meta·이전 공격 클립을 변경하지 않았다.
+- 완료: 기존 body-charge 원본 8방향×11장을 사용하는 body-charge_{방향}.anim 8개와 meta 추가. 기존 보스 애니메이션과 같은 12fps, 반복 재생. Boss.controller에 body-charge 상태와 FacingX/FacingY를 쓰는 8방향 BlendTree를 추가했고 기존 상태/전이 내용은 그대로 유지했다.
+- 실행 연결: BossController.DashToTrackedTarget에서 돌진 시작 시 body-charge를 한 번 재생한다. 기존 추적 방향 갱신으로 방향이 바뀌어도 재생 시간을 매 프레임 초기화하지 않는다. 돌진 완료·장애물 차단 후 종료·대상 소실에 따른 정상 루프 종료 시 Idle로 복귀하며, 사망/컴포넌트 비활성화 때도 재생 상태를 정리한다. 이동·돌진 시간·피해 수치·도착 피해 시점은 기존 규칙을 유지했다. 상태가 없는 다른 Animator를 쓰는 경우 경고 후 기존 돌진 이동은 유지한다.
+- 검증: Unity 6000.5.0f1 별도 최소 검증 프로젝트에서 실제 Boss/NormalEnemy/Combat 소스와 보스 아트를 임포트·컴파일, 임시 PlayMode 검사 5/5 통과(실패0). 8방향 11개 Sprite 참조·반복 설정, 실제 돌진 이동 중 body-charge 진입/종료, 방향 변경 시 재생 진행 유지, 비활성화/재활성화, 일시정지 중 이동/애니메이션 정지 및 복귀를 확인했다. 원본 BossController·controller·새 클립/meta와 검증본 해시 일치. 새 controller ID 중복 없음 및 기존 controller 내용 보존 검사 통과.
+- 검증 환경/한계: 최초 샌드박스 실행은 라이선스 IPC 연결 거부/초기화 시간 초과로 테스트에 도달하지 못했다. 승인 후 검증 복사본 에디터만 재실행해 위 5개를 완료했다. 원본 에디터를 추가로 열거나 종료하지 않았다. 결과 .utmp/ChargeAnimation/results.xml 및 validation-elevated.log, 임시 검사 코드는 .utmp/c/Assets/Tests(모두 Git 제외). 전체 프로젝트 회귀·원본 MainTestScene 화면·Android 기기는 미검증이다. 별도 임포트 중 기존 idle/north-west 일부 Sprite Rect 경고가 있었으며 이번 body-charge Sprite 참조 검사는 통과했다.
+- 차이 검사: 이번 BossController/Boss.controller의 git diff --check 통과. 전체 diff에는 작업 전부터 있던 사용자 BossMvp.prefab의 빈 YAML 값 뒤 공백 3곳이 있어 이를 임의 정리하지 않았다.
+- 사용자 확인 순서: Unity 임포트/컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스 출현 후 10 이상 거리를 벌려 패턴3 돌진 유도 → 돌진 중 옆으로 움직여 방향 전환 확인 → 도착 후 일반 동작/할퀴기 복귀 확인. 정상은 몸을 낮추는 body-charge 동작이 돌진 동안 반복되고 추적 방향을 따라 바뀌며, 돌진 종료 후 그 자세에 고정되지 않는 상태다. 일시정지/복귀도 확인한다.
+- 오류 확인/다음: Console 첫 컴파일/임포트 오류와 missing body-charge state 경고, BossMvp Animator의 Boss.controller 연결, Animator 창의 body-charge 상태 및 각 방향 클립 Sprite 참조를 확인한다. 다음은 실제 원본 씬에서 방향별 화면·기존 할퀴기 선딜레이와의 연결 체감 확인이며 돌진 선딜레이·피해 규칙을 추가로 바꾸지는 않았다.
+
+## 2026-11-04 보스 할퀴기 선딜레이 4프레임 추가
+
+- 사용자 요청: 손을 올린 자세를 약 4프레임 늘려 공격을 보고 대응할 시간을 제공한다. 현재 브랜치 BossBeastZombie, HEAD 88f436b. 변경 전 작업 트리는 깨끗했고 브랜치를 전환하지 않았다.
+- 완료: Beast_Zombie_Boss/Animator/Clips의 Boss_Swipe 및 Boss_SwipeLeft 각 8방향, 총 16개 클립. south 원본 그림을 확인해 3.png가 손을 올린 자세이고 4.png가 내려치는 동작임을 확인했다. 3번 자세를 기존보다 4샘플 더 유지하도록 4번 이후 키를 4/12초 뒤로 이동했다. 12fps 기준 추가 선딜레이 약 0.333초. 피해 이벤트 0.4583→0.7917초, 종료 이벤트 0.6583→0.9917초, 클립 길이 0.75→1.0833초. 스프라이트 순서·참조·GUID 및 휘두르는 구간의 속도는 보존했다.
+- 검증: PowerShell 정적 검사에서 16/16 클립의 키 개수·스프라이트 참조/순서·4샘플 지연·피해/종료 이벤트·클립 길이를 HEAD와 비교해 통과. 시간 필드 외 내용 동일 확인. git diff --check 통과. Unity 실행 테스트 0개이며 실제 Animator 재생·기기 검증은 하지 않았다. 씬·프리팹·meta·런타임 코드는 수정하지 않았다.
+- 참고: BossMvp에는 별도의 EnemyContactDamage가 활성화되어 있어 몸통 접촉 피해는 할퀴기 이벤트와 무관하다. 이번 요청에서 접촉 피해 규칙을 변경하지 않았다. 앞선 EnemyContactDamage 리뷰의 활성 상태 검사 누락/풀 재사용 시 타이머 미초기화도 미수정 상태다.
+- 사용자 확인: Unity 임포트 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스 출현 후 몸통에 닿지 않는 할퀴기 범위에서 오른손·왼손 공격 확인. 손을 올린 자세가 약 0.33초 더 유지되고 내려치는 시점에 할퀴기 피해가 들어오면 정상. Window > Animation > Animation에서 Boss_Swipe_South 및 Boss_SwipeLeft_South를 선택해도 확인할 수 있다. 오류 시 Console 첫 임포트 오류, 실제 Animator의 Boss.controller 연결, 클립 피해 이벤트 위치를 확인한다. 준비 동작 중 HP가 감소하면 몸통 접촉과 다른 적 공격을 먼저 분리한다.
+- 다음 작업: 원본 에디터에서 8방향 공격 예고/피해 동기화 및 패턴2 연속 공격의 체감 확인. 몸통 접촉 피해까지 선딜레이 동안 막을지는 별도 동작 변경이므로 이번에 임의 적용하지 않았다.
 ## 2026-11-04 main에 EnemyEXP·feat/PlayerSkill 병합
 
 - 사용자 요청: `EnemyEXP`와 `feat/PlayerSkill`을 `main`에 병합. 시작 작업 트리는 깨끗한 `EnemyEXP`, HEAD `f42760d`였다. origin fetch 후 main `53c7b5d`, EnemyEXP `f42760d`, feat/PlayerSkill `3d0974b`가 로컬·원격에서 일치함을 확인했다. 기존 브랜치는 보존한다.

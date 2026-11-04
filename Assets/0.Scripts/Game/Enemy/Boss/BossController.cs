@@ -28,10 +28,12 @@ public sealed class BossController : MonoBehaviour
     [SerializeField, Min(0f)] private float pattern2ToPattern1Delay = 5f;
     [SerializeField, Min(0f)] private float doubleSlashInterval = 0.5f;
 
+    [Header("패턴 데미지 설정")]
+    [SerializeField, Min(0f)] private float damage = 10f;
+
     [Header("전방 할퀴기")]
     [SerializeField, Min(0.01f)] private float slashRange = 2f;
     [SerializeField, Range(1f, 360f)] private float slashAngle = 90f;
-    [SerializeField, Min(0f)] private float damage = 10f;
 
     [Header("특수 돌진 패턴")]
     [Tooltip("플레이어를 향해 이동하는 기본 진행 시간입니다. 돌진은 이 시간이 지나도 근거리까지 계속 추적합니다.")]
@@ -48,8 +50,12 @@ public sealed class BossController : MonoBehaviour
     private bool attackAnimationFinished;
     private bool attackHitApplied;
     private bool locomotionMoving;
+    private bool dashAnimationRunning;
     private Vector2 attackForward;
     private Vector2 facingDirection = Vector2.down;
+
+    // Stop just inside melee range, beyond the movement sweep's tiny-step cutoff.
+    private float FollowStoppingDistance => Mathf.Max(0f, closeRange - 0.001f);
 
     public Transform Target => target;
     public float CloseRange => closeRange;
@@ -92,7 +98,7 @@ public sealed class BossController : MonoBehaviour
         }
 
         health.Died += OnDied;
-        follow.SetTarget(target, closeRange);
+        follow.SetTarget(target, FollowStoppingDistance);
         follow.enabled = true;
         nextNormalPattern = BossPattern.Pattern1;
         nextPatternTime = Time.time;
@@ -109,7 +115,7 @@ public sealed class BossController : MonoBehaviour
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;
-        if (follow != null) follow.SetTarget(target, closeRange);
+        if (follow != null) follow.SetTarget(target, FollowStoppingDistance);
     }
 
     private IEnumerator PatternLoop()
@@ -155,7 +161,7 @@ public sealed class BossController : MonoBehaviour
 
                 case BossPattern.Pattern3:
                     ActivePattern = BossPattern.Pattern3;
-                    Debug.Log("패턴 3 시작!", this);
+                    Debug.Log("돌진 시작!", this);
                     yield return DashToTrackedTarget();
                     ActivePattern = BossPattern.None;
                     // 특수 패턴 전에 대기 중이던 일반 패턴을 이어간다.
@@ -205,20 +211,33 @@ public sealed class BossController : MonoBehaviour
         attackAnimationRunning = true;
         attackAnimationFinished = false;
         attackHitApplied = false;
-        animator.Play(stateHash, 0, 0f);
-        animator.Update(0f);
-
-        while (CanAttackTarget() && !attackAnimationFinished)
-            yield return null;
-
-        attackAnimationRunning = false;
-        if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
+        try
         {
-            follow.SetTarget(target, closeRange);
-            follow.enabled = true;
+            animator.Play(stateHash, 0, 0f);
+            animator.Update(0f);
+
+            while (CanAttackTarget() && !attackAnimationFinished)
+            {
+                if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
+                    break;
+                AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+                if (state.fullPathHash != stateHash || state.normalizedTime >= 1f)
+                    break;
+                if (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).fullPathHash != stateHash)
+                    break;
+                yield return null;
+            }
+        }
+        finally
+        {
+            attackAnimationRunning = false;
+            if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
+            {
+                follow.SetTarget(target, FollowStoppingDistance);
+                follow.enabled = true;
+            }
         }
     }
-
     /// <summary>Animation Event at the impact frame of each swipe clip.</summary>
     public void AnimationEvent_ApplySlashDamage()
     {
@@ -320,6 +339,7 @@ public sealed class BossController : MonoBehaviour
         if (!CanAttackTarget()) yield break;
 
         follow.enabled = false;
+        StartDashAnimation();
         Vector2 dashStartPosition = body.position;
         float elapsed = 0f;
 
@@ -338,9 +358,38 @@ public sealed class BossController : MonoBehaviour
         yield return new WaitForFixedUpdate();
         bool reachedTarget = CanAttackTarget() && Vector2.Distance(body.position, target.position) <= closeRange;
         if (reachedTarget) ApplyDashEndDamage(target.position);
+        StopDashAnimation();
 
-        follow.SetTarget(target, closeRange);
+        follow.SetTarget(target, FollowStoppingDistance);
         follow.enabled = true;
+    }
+
+    private void StartDashAnimation()
+    {
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            return;
+
+        int stateHash = Animator.StringToHash("Base Layer.body-charge");
+        if (!animator.HasState(0, stateHash))
+        {
+            Debug.LogWarning("Boss Animator Controller is missing the body-charge state.", this);
+            return;
+        }
+
+        UpdateAnimatorLocomotion();
+        dashAnimationRunning = true;
+        animator.Play(stateHash, 0, 0f);
+    }
+
+    private void StopDashAnimation()
+    {
+        if (!dashAnimationRunning) return;
+        dashAnimationRunning = false;
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            return;
+
+        int idleHash = Animator.StringToHash("Base Layer.BossIdle");
+        if (animator.HasState(0, idleHash)) animator.Play(idleHash, 0, 0f);
     }
 
     private void ApplyDashEndDamage(Vector2 dashEndCenter)
@@ -362,6 +411,7 @@ public sealed class BossController : MonoBehaviour
 
     private void OnDied()
     {
+        StopDashAnimation();
         if (patternRoutine != null)
         {
             StopCoroutine(patternRoutine);
@@ -376,6 +426,7 @@ public sealed class BossController : MonoBehaviour
 
     private void OnDisable()
     {
+        StopDashAnimation();
         ActivePattern = BossPattern.None;
         if (health != null) health.Died -= OnDied;
         if (patternRoutine != null)

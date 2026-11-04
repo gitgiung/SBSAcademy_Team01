@@ -19,7 +19,11 @@ internal sealed class PlayerActionGate
             if (version == actionVersion) IsInputLocked = false;
             return false;
         }
-        if (!IsInputLocked || version != actionVersion) return false;
+        if (!IsInputLocked || version != actionVersion)
+        {
+            data.RestoreMP(mpCost); // 비용 알림 중 비활성화돼 실제 시작하지 못한 경우만 복구합니다.
+            return false;
+        }
         actionId = version;
         return true;
     }

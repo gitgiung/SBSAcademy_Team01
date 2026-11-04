@@ -12,8 +12,11 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     [SerializeField, Min(0f)] private float hitFlashDuration = 0.1f;
     [SerializeField] private Color hitColor = Color.white;
 
-    [Header("UI 설정")]
+    [Header("UI 설정(보스한테만 해당)")]
     [SerializeField] private Slider healthSlider;
+
+    [Header("경험치 드랍")]
+    [SerializeField] private GameObject experiencePickupPrefab; // 적 사망 시 드랍할 경험치 오브젝트 프리팹. null이면 드랍하지 않음
 
     public float CurrentHealth { get; private set; }
     public bool IsDead { get; private set; }
@@ -56,6 +59,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         bodySimulated = body != null && body.simulated;
         follow = GetComponent<EnemyFollow>();
         followEnabled = follow != null && follow.enabled;
+        UpdateHealthUI();
     }
 
     /// <summary>풀 initialize에서 호출합니다. 최초 Awake보다 먼저 호출돼도 안전합니다.</summary>
@@ -147,10 +151,15 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     /// </summary>
     private void UpdateHealthUI()
     {
-        if (healthSlider != null && maxHealth > 0f)
-        {
-            healthSlider.value = CurrentHealth / maxHealth;
-        }
+        if (healthSlider == null) return;
+        // 보스/적의 체력 표시는 좌우 UI 탐색이나 포인터로 편집할 수 없습니다.
+        healthSlider.transition = Selectable.Transition.None;
+        healthSlider.navigation = new Navigation { mode = Navigation.Mode.None };
+        healthSlider.interactable = false;
+        float ratio = maxHealth > 0f && !float.IsNaN(maxHealth) && !float.IsInfinity(maxHealth)
+            && !float.IsNaN(CurrentHealth) && !float.IsInfinity(CurrentHealth)
+            ? Mathf.Clamp01(CurrentHealth / maxHealth) : 0f;
+        healthSlider.SetValueWithoutNotify(Mathf.Lerp(healthSlider.minValue, healthSlider.maxValue, ratio));
     }
 
     /// <summary>
@@ -177,8 +186,21 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
         if (TryGetComponent<Rigidbody2D>(out var body)) body.simulated = false;
 
-        try { Died?.Invoke(); }
+        try
+        {
+            SpawnExperiencePickup();
+            Died?.Invoke();
+        }
         finally { Despawn(); }
+    }
+
+    private void SpawnExperiencePickup()
+    {
+        if (experiencePickupPrefab == null) return;
+
+        GameObject pickupObject = Instantiate(experiencePickupPrefab, transform.position, Quaternion.identity);
+        if (pickupObject.TryGetComponent<IExperiencePickup>(out var pickup))
+            pickup.Initialize(follow != null ? follow.Target : null);
     }
 
     private void OnDisable()

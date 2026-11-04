@@ -18,12 +18,16 @@ public class Bullet : MonoBehaviour, IPoolable
 
     public void Init(Transform target, float damage, float speed)
     {
+        InitDirection(target != null ? (Vector2)(target.position - transform.position) : Vector2.zero, damage, speed);
+    }
+
+    public void InitDirection(Vector2 direction, float damage, float speed)
+    {
         CacheReferences();
         this.damage = damage;
         this.speed = speed;
         // 표적 참조를 보관하지 않습니다. 발사 후 표적의 이동/풀 재사용과 무관한 직선탄입니다.
-        moveDirection = target != null
-            ? (target.position - transform.position).normalized : Vector3.zero;
+        moveDirection = direction.normalized;
         remainingLife = Mathf.Max(0f, DeleteTime);
         isHit = false;
         initialized = true;

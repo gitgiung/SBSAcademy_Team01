@@ -54,7 +54,7 @@ public sealed class CombatPopupController : MonoBehaviour
         if (pausePopup.ContentRoot != null && pausePopup.CloseButton != null)
         {
             if (statusPlayer == null)
-                foreach (Player candidate in FindObjectsByType<Player>(FindObjectsSortMode.None))
+                foreach (Player candidate in FindObjectsByType<Player>())
                     if (candidate.gameObject.scene == gameObject.scene) { statusPlayer = candidate; break; }
             if (statusPanel == null)
                 statusPanel = Util.GetOrAddComponent<PlayerStatusPanel>(pausePopup.gameObject);

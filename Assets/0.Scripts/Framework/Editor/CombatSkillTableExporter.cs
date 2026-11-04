@@ -84,7 +84,21 @@ public static class CombatSkillWorkbook
                 HitDelay = Number(cells, "S", row),
                 BaseValue = Number(cells, "X", row),
                 ScalingStat = Cell(cells, "Y", row),
-                Factor = Number(cells, "Z", row)
+                Factor = Number(cells, "Z", row),
+                Rarity = Cell(cells, "F", row),
+                Icon = Cell(cells, "G", row),
+                TargetType = Cell(cells, "N", row),
+                AnimationName = Cell(cells, "T", row),
+                EffectPrefab = Cell(cells, "U", row),
+                SoundCue = Cell(cells, "V", row),
+                EffectType = Cell(cells, "W", row),
+                StatusEffectId = Cell(cells, "AA", row),
+                EffectDuration = Number(cells, "AB", row),
+                SuperArmor = Boolean(cells, "AC", row),
+                CrowdControl = Cell(cells, "AD", row),
+                Description = Cell(cells, "AE", row),
+                SimpleDescription = Cell(cells, "AF", row),
+                Explanation = Cell(cells, "AG", row)
             };
         }
     }
@@ -105,6 +119,8 @@ public static class CombatSkillWorkbook
             float angle = Number(cells, "G", row);
             float width = Number(cells, "H", row);
             float length = Number(cells, "I", row);
+            skill.Radius = radius;
+            skill.Length = length;
             skill.Angle = angle;
             skill.Width = width;
             if (skill.Range <= 0f)
@@ -135,6 +151,15 @@ public static class CombatSkillWorkbook
         return float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float value) ? value : 0f;
     }
 
+    private static bool Boolean(Dictionary<string, string> cells, string column, int row)
+    {
+        string text = Cell(cells, column, row);
+        if (string.IsNullOrEmpty(text) || text == "None" || text == "0") return false;
+        if (text == "1") return true;
+        if (bool.TryParse(text, out bool value)) return value;
+        throw new InvalidDataException($"{column}{row}: 슈퍼아머 값을 해석할 수 없습니다: {text}");
+    }
+
     private static string Cell(Dictionary<string, string> cells, string column, int row)
     {
         return cells.TryGetValue(column + row, out string value) ? value : "";
@@ -152,7 +177,7 @@ public static class CombatSkillWorkbook
             string id = node.Attributes?["Id"]?.Value;
             string target = node.Attributes?["Target"]?.Value;
             if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(target))
-                relationshipTargets[id] = "xl/" + target.TrimStart('/');
+                relationshipTargets[id] = target.StartsWith("/") ? target.TrimStart('/') : "xl/" + target;
         }
 
         var sheets = new Dictionary<string, string>();
@@ -191,6 +216,13 @@ public static class CombatSkillWorkbook
         {
             string reference = node.Attributes?["r"]?.Value;
             if (string.IsNullOrEmpty(reference)) continue;
+            if (node.Attributes?["t"]?.Value == "inlineStr")
+            {
+                var inline = new StringBuilder();
+                foreach (XmlNode part in node.SelectNodes("m:is//m:t", ns)) inline.Append(part.InnerText);
+                cells[reference] = inline.ToString();
+                continue;
+            }
             XmlNode value = node.SelectSingleNode("m:v", ns);
             if (value == null) continue;
             string text = value.InnerText;

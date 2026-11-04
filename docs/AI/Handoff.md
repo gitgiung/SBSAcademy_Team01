@@ -1,5 +1,16 @@
 # 작업 인수인계
 
+## 2026-11-04 전투 스킬 효과 데이터 확장
+
+- 시작 상태: `main`, HEAD `1706cda`, 작업 트리 깨끗함. 사용자 요청은 테이블 기반 다음 구현 진행이다. 이번 단계는 기존 엑셀 변환기의 실행 데이터 보완이며 강공격·전략 실제 시전 구현은 후속이다.
+- 완료: `CombatSkillRecord`에 대상, 효과 종류, 지속 시간, 상태이상 ID, 슈퍼아머, 넉백/군중제어, 등급, 아이콘·애니메이션·VFX·사운드 키, 설명을 추가했다. `Area_Typetable`의 반경·길이는 Radius·Length로 별도 보존한다. 기존 Range 및 약공격 수치와 해석은 유지한다. 빈 연출 키는 빈 문자열, None 지속 시간은 0, None 슈퍼아머는 false다.
+- 완료: 실제 파서에서 inlineStr 문자열과 `/xl/...` 절대 시트 관계 경로도 지원한다. `Assets/Resources/Data/CombatSkillTable.json` 46개(약 21, 강 15, 전략 10)를 다시 생성했다. 엑셀 원본·씬·프리팹·meta·Project Settings·패키지는 변경하지 않았다. 신규 전역 매니저나 런타임 테스트 asmdef도 없다.
+- 검증: 확장 전 독립 검증 6개 중 5개가 필드 누락·시트 경로 문제로 실패했고 구현 후 전체 7/7 통과했다. 현재 HEAD의 JSON과 비교해 46개 모든 기존 필드 값 동일. openpyxl 읽기 전용으로 새 효과·대상·연출·설명 값 644개를 실제 엑셀과 별도 대조해 일치했다. Unity 6000.5.0f1 설치본 Roslyn 및 기존 Unity 응답 파일을 사용해 Assembly-CSharp와 Assembly-CSharp-Editor 컴파일 각각 종료 코드 0, 오류·경고 0. 출력은 `.utmp/CombatSkillData`로 격리했고 Library DLL은 덮어쓰지 않았다. `git diff --check` 통과.
+- 검증 도구: `tools/CombatSkillTableValidation/Run.ps1`(.NET SDK 9, 외부 NuGet 패키지 없음). 기존 자동 테스트 삭제 결정을 유지해 Assets 밖에서 실제 변환기 코드를 실행한다. `-Export`는 검증 통과 후 JSON을 재생성한다. 콘솔 JSON 직렬화는 System.Text.Json이므로 Unity JsonUtility·AssetDatabase·Resources 동작을 검증한 것은 아니다. 해당 csproj만 `.gitignore` 예외로 추가했다.
+- 실행한 Unity 테스트 0개. Unity 메뉴 직접 호출·열린 에디터 임포트·플레이·Android 빌드·기기는 확인하지 않았다.
+- 다음 구현: 기존 Player 차징 기반에 강공격 실행을 연결하고 이후 전략 효과·쿨타임·횟수·스테이지 초기화를 연결한다. 강공격 단계별 배율/시간 칸 부재, 최대 차징 0.8초 기준과 20013~20015의 0.85/0.9/0.95초 충돌, 취소 시 MP 정책, 전략 버프 중첩/재사용 규칙은 아직 미정이다. 임의로 확정하지 않는다. 기존 약공격의 키보드/마우스 표 경로와 버튼의 SkillData 경로 차이도 남아 있다.
+- 사용자 직접 확인: Unity 컴파일을 기다린 뒤 엑셀 저장 → `Tools > Parse Combat Skill Table` → Console의 `전투 스킬 46개` 메시지 확인. Project에서 `Assets/Resources/Data/CombatSkillTable.json`을 열어 30001 재생 치유의 `EffectType: HealOverTime`, `TargetType: Self`, `EffectDuration: 5`, 20001 화염 망치의 `CrowdControl: Knockback`, `Radius: 2.2`, 20015의 `SuperArmor: true`를 확인한다. MainTestScene에서 Play From Title을 끄고 Play, 미장착 기본 상태에서 Enter/마우스 왼쪽을 눌러 불꽃 탄환과 MP 5 소모를 확인한다. 강공격·전략 효과는 이번 변경만으로 새로 실행되지 않는다. 실패하면 Console 첫 컴파일/변환 오류, 엑셀 저장 여부, JSON 생성 시각을 확인한다.
+
 ## 2026-11-04 재시작 컴파일 오류와 자동 테스트 삭제
 
 - 시작 상태: `main`, HEAD `acb7aab`, 작업 트리 깨끗함. 사용자 보고는 에디터 재시작 후 다수 오류이며, 테스트용 씬 복제가 원인인지 확인 요청이었다.

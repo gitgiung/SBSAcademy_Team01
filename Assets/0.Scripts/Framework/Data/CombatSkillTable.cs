@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>SkillDatatable.xlsx에서 변환한 전투 수치입니다. 연출 시트는 포함하지 않습니다.</summary>
+/// <summary>SkillDatatable.xlsx의 전투 정의입니다. 실행 중 상태는 보관하지 않습니다.</summary>
 [Serializable]
 public sealed class CombatSkillRecord
 {
@@ -24,6 +24,23 @@ public sealed class CombatSkillRecord
     public float BaseValue;
     public string ScalingStat;
     public float Factor;
+    public string Rarity;
+    public string Icon;
+    public string TargetType;
+    public string AnimationName;
+    public string EffectPrefab;
+    public string SoundCue;
+    public string EffectType;
+    public string StatusEffectId;
+    public float EffectDuration;
+    public bool SuperArmor;
+    public string CrowdControl;
+    // 사거리와 범위 크기를 구분합니다. 기존 Range 값과 해석은 유지합니다.
+    public float Radius;
+    public float Length;
+    public string Description;
+    public string SimpleDescription;
+    public string Explanation;
 }
 
 [Serializable]

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -12,6 +13,8 @@ using UnityEditor;
 [DefaultExecutionOrder(-100)]
 public sealed class WorldWrap2D : MonoBehaviour
 {
+    private const HideFlags RuntimeCopyHideFlags = HideFlags.DontSave | HideFlags.NotEditable;
+
     // 경계 밖에 반복해서 배치할 원본 타일맵입니다. 이 씬에서는 Ground 아래 Tilemap을 연결합니다.
     [SerializeField] private Tilemap sourceTilemap;
 
@@ -25,23 +28,45 @@ public sealed class WorldWrap2D : MonoBehaviour
 
     private Bounds worldBounds;
 
+    private bool isConfigured;
+
     private bool isReady;
 
+    private Coroutine createCopiesRoutine;
+
+    private GameObject visualRoot;
+
     private void Awake()
+    {
+        isConfigured = TryConfigure();
+        if (!isConfigured)
+            enabled = false;
+    }
+
+    private void OnEnable()
+    {
+        if (!isConfigured)
+            return;
+
+        isReady = true;
+        if (createCopiesRoutine == null)
+            createCopiesRoutine = StartCoroutine(CreateVisualCopiesOverFrames());
+    }
+
+    /// <summary>경계·타일맵 참조를 검증하고 래핑에 쓸 값을 준비합니다.</summary>
+    private bool TryConfigure()
     {
         if (sourceTilemap == null)
         {
             Debug.LogError("WorldWrap2D requires a source Tilemap.", this);
-            enabled = false;
-            return;
+            return false;
         }
 
         BoundsInt cells = sourceTilemap.cellBounds;
         if (cells.size.x <= 0 || cells.size.y <= 0)
         {
             Debug.LogError("WorldWrap2D source Tilemap has no cell bounds.", sourceTilemap);
-            enabled = false;
-            return;
+            return false;
         }
 
         // 셀 범위의 시작 좌표와 끝 다음 셀 좌표를 월드 좌표로 바꿔 원본 타일맵 크기를 구합니다.
@@ -53,8 +78,7 @@ public sealed class WorldWrap2D : MonoBehaviour
         if (boundsRect.width <= 0f || boundsRect.height <= 0f)
         {
             Debug.LogError("WorldWrap2D bounds must have a positive width and height.", this);
-            enabled = false;
-            return;
+            return false;
         }
 
         // 설정한 Rect의 중심으로 원본 맵을 옮길 준비를 합니다. 맵 크기도 비교해 이음새 문제를 알립니다.
@@ -65,8 +89,7 @@ public sealed class WorldWrap2D : MonoBehaviour
         if (mapRoot == null)
         {
             Debug.LogError("WorldWrap2D expects the source Tilemap to be a child of its Grid.", sourceTilemap);
-            enabled = false;
-            return;
+            return false;
         }
 
         // Inspector에서 경계 위치를 바꾸면 실행 중 원본 맵도 그 중심에 맞춥니다.
@@ -79,11 +102,9 @@ public sealed class WorldWrap2D : MonoBehaviour
             Debug.LogWarning("WorldWrap2D bounds size differs from the source Tilemap. Set them to the same size for seamless visual repetition.", this);
         }
 
-        // 매 프레임 사용할 월드 경계를 보관하고 플레이어 물리 컴포넌트를 찾은 뒤 주변 맵을 생성합니다.
         worldBounds = new Bounds(targetCenter, new Vector3(boundsRect.width, boundsRect.height, 0f));
         body = GetComponent<Rigidbody2D>();
-        CreateVisualCopies();
-        isReady = enabled;
+        return true;
     }
 
     /// <summary>플레이어 위치가 경계를 벗어났는지 확인하고 반대편 좌표로 이동시킵니다.</summary>
@@ -103,11 +124,20 @@ public sealed class WorldWrap2D : MonoBehaviour
         else transform.position = new Vector3(wrappedX, wrappedY, transform.position.z);
     }
 
-    /// <summary>원본 Ground를 둘러싼 8칸에 같은 타일맵을 실행 중 복제합니다.</summary>
-    private void CreateVisualCopies()
+    /// <summary>원본 Ground를 둘러싼 8칸 타일맵을 한 프레임에 하나씩 복제합니다.</summary>
+    private IEnumerator CreateVisualCopiesOverFrames()
     {
-        // Tilemap 자체가 아니라 Grid 루트를 복제해 타일맵의 Grid 설정과 자식 구조를 함께 유지합니다.
-        Transform mapRoot = sourceTilemap.transform.parent;
+        ClearVisualCopies();
+
+        Transform mapRoot = sourceTilemap != null ? sourceTilemap.transform.parent : null;
+        if (mapRoot == null)
+        {
+            createCopiesRoutine = null;
+            yield break;
+        }
+
+        visualRoot = new GameObject("WorldWrap Visuals");
+        visualRoot.hideFlags = RuntimeCopyHideFlags;
 
         float width = worldBounds.size.x;
         float height = worldBounds.size.y;
@@ -118,12 +148,37 @@ public sealed class WorldWrap2D : MonoBehaviour
             for (int y = -1; y <= 1; y++)
             {
                 if (x == 0 && y == 0) continue;
+                if (!isActiveAndEnabled || sourceTilemap == null) yield break;
 
                 GameObject copy = Instantiate(mapRoot.gameObject,
                     mapRoot.position + new Vector3(x * width, y * height, 0f), mapRoot.rotation);
                 copy.name = $"{mapRoot.name} (Wrap {x},{y})";
+                copy.hideFlags = RuntimeCopyHideFlags;
+                copy.transform.SetParent(visualRoot.transform, true);
+                StripGameplayFromCopy(copy);
                 visualCopies.Add(copy);
+
+                // 리스타트·씬 로드 직후 한 프레임에 8장을 한꺼번에 만들지 않도록 양보합니다.
+                yield return null;
             }
+        }
+
+        createCopiesRoutine = null;
+    }
+
+    /// <summary>시각용 사본에서 충돌·스크립트 등 게임플레이 컴포넌트를 제거해 물리/로직 중복을 막습니다.</summary>
+    private static void StripGameplayFromCopy(GameObject copy)
+    {
+        foreach (Collider2D collider in copy.GetComponentsInChildren<Collider2D>(true))
+            Destroy(collider);
+
+        foreach (Rigidbody2D rigidbody in copy.GetComponentsInChildren<Rigidbody2D>(true))
+            Destroy(rigidbody);
+
+        foreach (MonoBehaviour behaviour in copy.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (behaviour != null)
+                Destroy(behaviour);
         }
     }
 
@@ -151,13 +206,42 @@ public sealed class WorldWrap2D : MonoBehaviour
 #endif
     }
 
-    /// <summary>이 컴포넌트가 제거될 때 생성했던 이웃 맵 사본도 함께 정리합니다.</summary>
-    private void OnDestroy()
+    private void OnDisable()
     {
-        foreach (GameObject copy in visualCopies)
+        // 씬 언로드·리스타트·Play 종료 시 코루틴과 사본을 먼저 정리합니다.
+        if (createCopiesRoutine != null)
         {
-            if (copy != null) Destroy(copy);
+            StopCoroutine(createCopiesRoutine);
+            createCopiesRoutine = null;
         }
+
+        isReady = false;
+        ClearVisualCopies();
+    }
+
+    /// <summary>생성했던 이웃 맵 사본을 즉시 정리합니다. Play 종료 때 Destroy 지연은 에디터 정지를 유발할 수 있습니다.</summary>
+    private void ClearVisualCopies()
+    {
+        for (int i = 0; i < visualCopies.Count; i++)
+            DestroyRuntimeObject(visualCopies[i]);
+
         visualCopies.Clear();
+        DestroyRuntimeObject(visualRoot);
+        visualRoot = null;
+    }
+
+    private static void DestroyRuntimeObject(Object target)
+    {
+        if (target == null) return;
+
+#if UNITY_EDITOR
+        // 에디터에서는 Play 중·종료 중 모두 즉시 제거해 Tilemap 사본이 반쯤 남은 상태로 멈추지 않게 합니다.
+        DestroyImmediate(target);
+#else
+        if (Application.isPlaying)
+            Destroy(target);
+        else
+            DestroyImmediate(target);
+#endif
     }
 }

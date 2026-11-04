@@ -11,6 +11,8 @@ public sealed class EnemyFollow : MonoBehaviour
     private Transform target;
     private CollisionMovement2D movement;
 
+    public Transform Target => target;
+
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();

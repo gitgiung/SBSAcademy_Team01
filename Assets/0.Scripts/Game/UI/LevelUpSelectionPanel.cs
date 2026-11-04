@@ -9,6 +9,7 @@ using static StatusPanelUI;
 [Serializable]
 public sealed class LevelUpCardData
 {
+    public int SkillId;
     public string Name;
     public string Rarity;
     public Color Accent = Color.white;
@@ -31,6 +32,11 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     private Button detailsClose;
     private Action<int> onSelected;
     private bool selectionPending;
+    private GameObject messageRoot;
+    private TMP_Text messageTitle;
+    private TMP_Text messageText;
+    private Button messageConfirm;
+    private Action onConfirmed;
 
     public void Initialize(RectTransform content, TMP_FontAsset font)
     {
@@ -69,7 +75,14 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         detailsClose = Button(Rect(detailPanel, "Close", 650, 425, 280, 50), "닫기", font,
             new Color32(113, 247, 255, 255), HideDetails);
         detailsRoot.SetActive(false);
-        SetChoices(ReferenceCards(), null);
+        messageRoot = Rect(root, "Message", 260, 100, 480, 270).gameObject;
+        Border((RectTransform)messageRoot.transform, new Color32(113, 247, 255, 255), 2);
+        messageTitle = Text(Rect(messageRoot.transform, "Title", 60, 50, 880, 90), "", font, 34, Color.white);
+        messageText = Text(Rect(messageRoot.transform, "Content", 75, 170, 850, 130), "", font, 24, Color.white);
+        messageConfirm = Button(Rect(messageRoot.transform, "Confirm", 350, 370, 300, 65), "확인", font,
+            new Color32(113, 247, 255, 255), ConfirmMessage);
+        messageRoot.SetActive(false);
+        SetChoices(Array.Empty<LevelUpCardData>(), null);
     }
 
     /// <summary>최대 세 선택지를 표시합니다. 콜백은 실제 효과 적용/팝업 완료를 담당합니다.</summary>
@@ -80,6 +93,8 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         onSelected = selected;
         selectionPending = false;
         detailsRoot.SetActive(false);
+        messageRoot.SetActive(false);
+        onConfirmed = null;
         for (int i = 0; i < cards.Count; i++)
         {
             LevelUpCardData data = i < choices.Count ? choices[i] : null;
@@ -89,6 +104,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 
     public void Focus()
     {
+        if (messageRoot != null && messageRoot.activeSelf) { messageConfirm.Select(); return; }
         if (detailsRoot != null && detailsRoot.activeSelf) { detailsClose.Select(); return; }
         foreach (var card in cards)
             if (card.Root.gameObject.activeSelf) { card.Focus(); return; }
@@ -100,6 +116,27 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         selectionPending = true;
         // 한 선택을 두 번 지급하지 않습니다. 후속 선택은 새 SetChoices로 시작합니다.
         onSelected(index);
+    }
+
+    public void ShowMessage(string title, string content, Action confirmed)
+    {
+        if (root == null) throw new InvalidOperationException("Initialize must be called before ShowMessage.");
+        onSelected = null;
+        selectionPending = false;
+        onConfirmed = confirmed;
+        foreach (var card in cards) card.Root.gameObject.SetActive(false);
+        detailsRoot.SetActive(false);
+        messageTitle.text = title;
+        messageText.text = content;
+        messageRoot.SetActive(true);
+        Focus();
+    }
+
+    private void ConfirmMessage()
+    {
+        var callback = onConfirmed;
+        onConfirmed = null;
+        callback?.Invoke();
     }
 
     private void ShowDetails(int index)
@@ -229,16 +266,4 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         }
     }
 
-    // 사용자가 제공한 도안의 표시 예시입니다. 실제 보상 정의로 등록하거나 효과를 적용하지 않습니다.
-    private static LevelUpCardData[] ReferenceCards() => new[]
-    {
-        new LevelUpCardData { Name = "불꽃 탄환", Rarity = "common", Accent = new Color32(202, 201, 218, 255),
-            ActiveDescription = "불꽃 탄환(8*피해량 1.2)으로 이루어진 탄환 1발을 적에게 쏜다.",
-            PassiveDescription = "불꽃 탄환(1*피해량 1.2)으로 이루어진 탄환 1발을 적에게 2초에 한 번 쏜다.",
-            FlavorText = "사원의 열정은 불꽃과 같아서 금세 사그라든다." },
-        new LevelUpCardData { Name = "피해량 증가", Rarity = "Uncommon", Accent = new Color32(51, 255, 201, 255),
-            Description = "피해량 5 % 증가" },
-        new LevelUpCardData { Name = "화염 심장", Rarity = "Rare", Accent = new Color32(217, 96, 215, 255),
-            Description = "화염 속성 피해량 30% 증가", FlavorText = "불사조 관련 내용" }
-    };
 }

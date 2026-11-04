@@ -32,6 +32,14 @@ public sealed class PlayerLoadout
     public int UnlockedAttackSlots => Mathf.Clamp(unlockedAttackSlots, 6, AttackCapacity);
     public IReadOnlyList<PlayerOwnedItem> Relics => relics.AsReadOnly();
     public IReadOnlyList<PlayerOwnedItem> Augments => augments.AsReadOnly();
+    public bool HasFreeAttackSlot
+    {
+        get
+        {
+            for (int i = 0; i < UnlockedAttackSlots; i++) if (GetAttackSkill(i) == null) return true;
+            return false;
+        }
+    }
 
     private void EnsureSlots()
     {

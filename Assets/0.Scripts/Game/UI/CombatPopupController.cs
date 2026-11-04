@@ -16,6 +16,7 @@ public sealed class CombatPopupController : MonoBehaviour
     [SerializeField] private Player statusPlayer;
     private PlayerStatusPanel statusPanel;
     private LevelUpSelectionPanel levelUpPanel;
+    private readonly System.Random levelUpRandom = new System.Random();
 
     private readonly HashSet<UI_CombatPopup> activePopups = new HashSet<UI_CombatPopup>();
     private float previousTimeScale;
@@ -54,9 +55,7 @@ public sealed class CombatPopupController : MonoBehaviour
         if (!CanShow() || pausePopup == null) return null;
         if (pausePopup.ContentRoot != null && pausePopup.CloseButton != null)
         {
-            if (statusPlayer == null)
-                foreach (Player candidate in FindObjectsByType<Player>())
-                    if (candidate.gameObject.scene == gameObject.scene) { statusPlayer = candidate; break; }
+            ResolveStatusPlayer();
             if (statusPanel == null)
                 statusPanel = Util.GetOrAddComponent<PlayerStatusPanel>(pausePopup.gameObject);
             TMPro.TMP_FontAsset font = null;
@@ -69,14 +68,84 @@ public sealed class CombatPopupController : MonoBehaviour
         return popup;
     }
 
-    /// <summary>추후 레벨업 이벤트 구독자가 호출합니다. 성장 선택지와 효과는 호출자가 소유합니다.</summary>
+    /// <summary>보유하지 않은 약공격을 추첨하고 선택 시 보유 목록에 등록합니다.</summary>
     public UI_CombatPopup ShowLevelUp()
     {
         if (!CanShow() || levelUpPopup == null) return null;
         EnsureLevelUpPanel();
+        if (levelUpPanel == null) return null;
+        // 중복 열기나 겹친 일시정지창에서 복귀할 때 선택지가 바뀌지 않게 합니다.
+        if (!levelUpPopup.gameObject.activeSelf)
+        {
+            ResolveStatusPlayer();
+            if (statusPlayer == null || statusPlayer.data == null)
+            {
+                Debug.LogError("레벨업 스킬을 등록할 Player/PlayerData가 없습니다.", this);
+                return null;
+            }
+            PlayerLoadout loadout = statusPlayer.data.Loadout;
+            if (!loadout.HasFreeAttackSlot)
+            {
+                ShowAttackSlotsFull();
+                return OpenLevelUpPanel();
+            }
+            var excluded = new HashSet<int>();
+            for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
+                if (loadout.GetAttackSkill(i) is Data.SkillData owned) excluded.Add(owned.DataId);
+            CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
+            var skills = LevelUpSkillDraft.Draw(table, 3, 10000, 20000, levelUpRandom.NextDouble, excluded);
+            if (skills.Count == 0)
+            {
+                levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
+                return OpenLevelUpPanel();
+            }
+            var choices = new List<LevelUpCardData>();
+            foreach (var skill in skills) choices.Add(CreateSkillCard(skill, table.rarities));
+            levelUpPanel.SetChoices(choices, index =>
+            {
+                // 열려 있는 동안 보유 상태가 바뀌어도 성공한 획득만 완료합니다.
+                if (index < 0 || index >= skills.Count || !CanShow()) return;
+                if (LevelUpSkillReward.TryAcquire(loadout, skills[index])) CompleteLevelUp();
+                else if (!loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
+                else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록할 수 없습니다.", CompleteLevelUp);
+            });
+        }
+        return OpenLevelUpPanel();
+    }
+
+    private void ResolveStatusPlayer()
+    {
+        if (statusPlayer != null) return;
+        foreach (Player candidate in FindObjectsByType<Player>())
+            if (candidate.gameObject.scene == gameObject.scene) { statusPlayer = candidate; break; }
+    }
+
+    private void ShowAttackSlotsFull()
+    {
+        levelUpPanel.ShowMessage("스킬 슬롯 가득 참", "공격 스킬 슬롯이 가득 찼습니다.", CompleteLevelUp);
+    }
+
+    private UI_CombatPopup OpenLevelUpPanel()
+    {
         UI_CombatPopup popup = Managers.UI.ShowPopupUI<UI_CombatPopup>(LevelUpKey);
         if (popup != null) levelUpPanel?.Focus();
         return popup;
+    }
+
+    private static LevelUpCardData CreateSkillCard(CombatSkillRecord skill, List<SkillRarityRecord> rarities)
+    {
+        string id = SkillRarityRecord.NormalizeId(skill.Rarity);
+        SkillRarityRecord rarity = rarities.Find(value => value != null
+            && string.Equals(SkillRarityRecord.NormalizeId(value.Id), id, System.StringComparison.OrdinalIgnoreCase));
+        Color accent = Color.white;
+        if (rarity != null && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color)) accent = color;
+        return new LevelUpCardData
+        {
+            SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
+            Icon = string.IsNullOrEmpty(skill.Icon) ? null : Managers.Resource.Load<Sprite>(skill.Icon),
+            ActiveDescription = LevelUpSkillDraft.FormatDescription(skill), ActiveButtonLabel = "N",
+            FlavorText = skill.Explanation
+        };
     }
 
     public UI_CombatPopup ShowLevelUp(IReadOnlyList<LevelUpCardData> choices, System.Action<int> onSelected)
@@ -85,7 +154,7 @@ public sealed class CombatPopupController : MonoBehaviour
         EnsureLevelUpPanel();
         if (levelUpPanel == null) return null;
         levelUpPanel.SetChoices(choices, onSelected);
-        return ShowLevelUp();
+        return OpenLevelUpPanel();
     }
 
     private void EnsureLevelUpPanel()
@@ -176,6 +245,16 @@ public sealed class CombatPopupController : MonoBehaviour
     private void PreviewLevelUp()
     {
         if (Application.isPlaying) ShowLevelUp();
+    }
+
+    [ContextMenu("테스트/카드 소진 안내")]
+    private void PreviewExhaustedCards()
+    {
+        if (!Application.isPlaying || !CanShow() || levelUpPopup == null || levelUpPopup.gameObject.activeSelf) return;
+        EnsureLevelUpPanel();
+        if (levelUpPanel == null) return;
+        levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
+        OpenLevelUpPanel();
     }
 
     [ContextMenu("테스트/레벨업 선택 완료")]

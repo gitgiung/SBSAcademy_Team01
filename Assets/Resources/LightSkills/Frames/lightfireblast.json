@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "lightfireblast 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 1.png",
+   "frame": {
+    "x": 101,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 2.png",
+   "frame": {
+    "x": 202,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 3.png",
+   "frame": {
+    "x": 303,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 4.png",
+   "frame": {
+    "x": 0,
+    "y": 98,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 5.png",
+   "frame": {
+    "x": 101,
+    "y": 98,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 6.png",
+   "frame": {
+    "x": 202,
+    "y": 98,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 7.png",
+   "frame": {
+    "x": 303,
+    "y": 98,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 8.png",
+   "frame": {
+    "x": 0,
+    "y": 196,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 9.png",
+   "frame": {
+    "x": 101,
+    "y": 196,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 10.png",
+   "frame": {
+    "x": 202,
+    "y": 196,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "lightfireblast 11.png",
+   "frame": {
+    "x": 303,
+    "y": 196,
+    "w": 101,
+    "h": 98
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 101,
+    "h": 98
+   },
+   "sourceSize": {
+    "w": 101,
+    "h": 98
+   },
+   "pivot": {
+    "x": 0.48514851485148514,
+    "y": 0.5
+   },
+   "duration": 71
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "lightfireblast.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 404,
+   "h": 294
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 49,
+   "y": 49
+  },
+  "frameTags": [
+   {
+    "name": "lightfireblast",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

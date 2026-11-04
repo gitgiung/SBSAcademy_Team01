@@ -1,5 +1,39 @@
 # 작업 인수인계
 
+## 2026-11-04 전투 수치 엑셀 변환
+
+- 시작 상태: 약공격 21개의 피해·MP·범위는 `LightSkillCatalog` 배열에 적혀 있었고, `SkillDatatable.xlsx`와 따로 놀 수 있었다. 기존 `Tools/ParseExcel`은 `Data.SkillData` 필드 순서로 CSV만 읽어서 이 표에 붙일 수 없다.
+- 완료: `Tools > Parse Combat Skill Table`이 프로젝트 루트의 `SkillDatatable.xlsx`에서 약·강·전략 시트와 `Area_Typetable`을 ID로 합쳐 `Assets/Resources/Data/CombatSkillTable.json`에 저장한다. 수식 ID는 저장된 값, `Reach`는 범위 시트의 길이, `Projecttile`은 Projectile이다. 약공격 시전은 이 JSON의 MP·범위·탄수·타격·기본 수치·계수를 읽는다. 그림 5종과 셰이더 색은 그대로다. 강공격·전략은 수치만 들어 있고 실행은 없다. 상태창용 `SkillData`는 바꾸지 않았다.
+- 검증: 변환 결과 46줄(약 21, 강 15, 전략 10). 불꽃 탄환은 MP 5, 사거리 7, 폭 0.5, 기본 8, 계수 1.2. Unity 메뉴 재실행, 플레이, 테스트 러너는 실행하지 않음.
+- 다음 확인: 엑셀을 저장한 뒤 Unity 메뉴 `Tools > Parse Combat Skill Table`을 누른다. Console에 전투 스킬 46개가 보여야 한다. 이어서 `MainTestScene`에서 Play From Title을 끄고 Play한 뒤 적 앞에서 마우스 왼쪽 또는 Enter를 누른다. MP가 5 줄고 불꽃 탄환이 날아가면 정상이다. Console에 `CombatSkillTable이 없습니다`가 보이면 메뉴를 다시 실행하고, 그림이 분홍 네모면 `LightSkills/LightSkillGlow` 셰이더가 `AllIn1Urp2dRenderer`인지 본다.
+
+## 2026-11-04 약공격 인게임 시전
+
+- 시작 상태: 약공격 표 수치는 있었고, 버튼 시전과 이펙트는 없었다. 약공격 잠금과 MP 차감 API만 있었다.
+- 완료: 마우스 왼쪽, Enter, 게임패드 서쪽 버튼의 Attack 입력으로 장착된 약공격을 시전한다. 장착이 없으면 불꽃 탄환(10001)을 쓴다. 비용은 표의 MP, 피해는 기본 수치 + 공격력 × 계수다. 시전 중에는 기존 약공격 잠금이 이동·회피·막기·다음 약공격을 막는다. 자동 탄환은 그대로 따로 나간다.
+- 완료: PixelLab 이펙트 5종을 `Assets/Resources/LightSkills`에 넣었다. 탄환 `lightfirebolt`, 원 `lightfireblast`, 직선 `lightthrust`, 부채꼴·호 `lightslash`, 고리 `lightflamering`. Point 필터. `LightSkillGlow`는 `AllIn1SpriteShader/AllIn1Urp2dRenderer`의 Glow와 HSV로 속성 색을 입힌다.
+- 검증: 표 수치와 시트 프레임 수를 읽었다. Unity 플레이와 테스트 러너는 실행하지 않음.
+- 다음 확인: MainTestScene에서 Play From Title을 끄고 Play한다. 적 앞에서 마우스 왼쪽 또는 Enter를 누른다. MP가 5 줄고 불꽃 탄환이 조준 방향으로 날아가 맞으면 적이 피해를 입는다. 시전 순간에 이동·회피·막기가 안 되고, 잠시 뒤 다시 되면 정상이다. UI 위 클릭은 나가지 않는다. 그림이 분홍 네모면 Console의 셰이더 오류와 `LightSkills/LightSkillGlow` 셰이더가 `AllIn1Urp2dRenderer`인지 본다. 그림이 흐리면 해당 PNG의 Filter Mode가 Point인지 본다.
+
+## 2026-11-04 보스 피격 범위 VFX
+
+- 시작 상태: 보스 스와이프 그림은 피격 부채꼴보다 작고, 빨간 범위 표시는 `BossPatternRangeView`에서 꺼져 있었다. 베기 판정은 선입력 때 고정된 방향의 `slashRange`·`slashAngle`이고, 돌진 판정은 도달한 순간의 플레이어 위치에 `dashEndDamageRadius` 원이다.
+- 완료: `BossAttackHitVfx`가 All In 1 URP 2D 셰이더로 그 판정 모양을 그린다. 베기는 스와이프가 시작된 뒤 끝날 때까지 방향이 고정되고, 돌진 원은 타격 순간 0.2초 동안 사라진다. 부모 스케일을 나눠 월드 지름이 반지름의 두 배가 된다. 데미지 계산과 애니메이션 클립은 바꾸지 않았다. 디버그 범위 표시는 그대로 꺼 두었다.
+- 연결: `BossMvp` 프리팹. 머티리얼 `Assets/1.Prefabs/Materials/BossAttackHitVfx.mat`는 `RADIALCLIPPING_ON`, `GLOW_ON`. `MainTestScene`의 보스 스케일 4, 베기 반지름 6, 각도 120은 씬 덮어쓰기라 그대로다. 그 씬의 `landingDamageRadius`, `leapDuration`은 현재 필드와 이름이 달라 돌진 반지름은 프리팹 값 2다.
+- 검증: 크기 계산 테스트 `BossAttackHitVfxShapeTests`를 추가했다. Unity가 이미 열려 있어 테스트 러너는 실행하지 않음. 에디터 재생, 화면, 빌드, 기기는 확인하지 않음.
+- 다음 확인: Unity 임포트가 끝난 뒤 `MainTestScene`을 재생한다. 보스가 가까이서 베면 몸 앞에 주황 부채꼴이 스와이프 동안 유지되고, 플레이어가 움직여도 방향은 그대로여야 한다. 멀리서 돌진해 닿으면 플레이어 자리에 원이 잠깐 보였다가 사라진다. 부채꼴이 안 보이면 Console에 머티리얼 오류가 있는지, 머티리얼 셰이더가 `AllIn1SpriteShader/AllIn1Urp2dRenderer`인지 본다.
+
+## 2026-11-04 강공격 20001~20005와 전략 스킬 수치
+
+- 시작 상태: `main`. HeavySkilltable 20001~20005는 이름·등급·불 속성만 있고, UtilitySkilltable 30001~30010은 이름·속성·자원 Count만 있었다. 20006~20015와 약공격 수치는 이미 채워져 있었다.
+- 완료: 20001 화염 망치~20005 운석검에 MP, 쿨타임 0, Charge, 차징 0.5~0.8초, 사거리, 범위, 타격, 기본 수치, ATK 계수, 슈퍼아머, 넉백, 설명을 넣었다. 같은 등급의 20006~20015 위력대에 맞췄고, 기획서의 강공격 최대 차징 0.8초를 넘기지 않았다. 20006~20015는 바꾸지 않았다.
+- 완료: 전략 10개에 소모 횟수 1, 쿨타임 6초, Instant, 시전 0초, 효과 종류, 기본 수치, 계수, 지속 시간, 설명을 넣었다. 기획서의 초기 기준은 사용마다 횟수 1, 스테이지당 5회, 쿨타임 6초다. 횟수 상한 칸은 표에 없어 설명에 적었다. 회복·방어막·증가량은 플레이어 최대 체력·마력 비율이다. 등급은 전략 스킬에 없다는 기존 정리를 유지해 비워 두었다.
+- 완료: Area_Typetable 34~39행에 화염 망치, 화염 돌진, 대폭발, 화염 폭풍, 운석검, 불타는 갑주의 범위 수치를 추가했다. 자기 자신에게만 쓰는 전략 스킬은 Point라 반경 칸이 없어 범위 표에는 넣지 않았다.
+- 수정: 바람의 가호 영문 `Blessing of Wind)`의 닫는 괄호를 뺐다.
+- 그대로 빈 칸: 아이콘, 애니메이션, 이펙트 프리팹, 사운드. 상태이상 ID는 None. 차징 1·2·3단계 배율 칸은 이 표에 없다.
+- 검증: 저장 파일에서 20001~20005, 30001~30010, 범위 34~39행의 아이디·비용·기본 수치·계수를 다시 읽었다. 20006 기본 수치 14와 20015, 아이디 수식은 유지됐다. Unity 테스트 0개. 전투 로딩은 확인하지 않음.
+- 다음 확인: HeavySkilltable 3~7행, UtilitySkilltable 3~12행, Area_Typetable 34~39행. 엑셀을 저장 전에 열어 두었다면 닫을 때 덮어쓰지 말고 다시 연다.
+
 ## 2026-11-04 스킬 개요 PPT
 
 - 완료: `docs/스킬_개요.pptx` 12장. 레어도 테두리 7장 뒤에, 약공격 21·강공격 15는 해당 등급 테두리 안에 문양을 넣은 모습, 전략 10개는 등급이 없어 문양만 넣었다. 이 합성 그림은 PPT에만 있고 프로젝트 아이콘 파일로 추가하지 않았다.

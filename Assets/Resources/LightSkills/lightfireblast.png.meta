@@ -1,0 +1,624 @@
+fileFormatVersion: 2
+guid: 4591c9dbf94fe1e49a5de85861522f04
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 11326476539469649
+    second: lightfireblast_0
+  - first:
+      213: 8726854663407857839
+    second: lightfireblast_1
+  - first:
+      213: -4770924669834336441
+    second: lightfireblast_2
+  - first:
+      213: -5887866586234604802
+    second: lightfireblast_3
+  - first:
+      213: -3189256162691503005
+    second: lightfireblast_4
+  - first:
+      213: -6621219994062022338
+    second: lightfireblast_5
+  - first:
+      213: 8201546357002634992
+    second: lightfireblast_6
+  - first:
+      213: 6487745938779022775
+    second: lightfireblast_7
+  - first:
+      213: 3246286456862738325
+    second: lightfireblast_8
+  - first:
+      213: -3841388528289595401
+    second: lightfireblast_9
+  - first:
+      213: 635888883122725861
+    second: lightfireblast_10
+  - first:
+      213: -908090529600033834
+    second: lightfireblast_11
+  - first:
+      213: 8429182018368540673
+    second: lightfireblast_12
+  - first:
+      213: 7675115229422789850
+    second: lightfireblast_13
+  - first:
+      213: 886943326818768614
+    second: lightfireblast_14
+  - first:
+      213: -1293966944776372357
+    second: lightfireblast_15
+  - first:
+      213: -4165830027991563944
+    second: lightfireblast_16
+  - first:
+      213: -519219040025522425
+    second: lightfireblast_17
+  - first:
+      213: 5259802254215496109
+    second: lightfireblast_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: lightfireblast_0
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 240
+        width: 10
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15f11b2de5d382000800000000000000
+      internalID: 11326476539469649
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_1
+      rect:
+        serializedVersion: 2
+        x: 127
+        y: 222
+        width: 46
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fa0f2ea54140c1970800000000000000
+      internalID: 8726854663407857839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_2
+      rect:
+        serializedVersion: 2
+        x: 220
+        y: 214
+        width: 63
+        height: 62
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 747606c4a454acdb0800000000000000
+      internalID: -4770924669834336441
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_3
+      rect:
+        serializedVersion: 2
+        x: 315
+        y: 208
+        width: 78
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef2389af8881a4ea0800000000000000
+      internalID: -5887866586234604802
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_4
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 104
+        width: 89
+        height: 86
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 36c2c0dda6c7db3d0800000000000000
+      internalID: -3189256162691503005
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_5
+      rect:
+        serializedVersion: 2
+        x: 103
+        y: 100
+        width: 96
+        height: 94
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3918320f73bc14a0800000000000000
+      internalID: -6621219994062022338
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_6
+      rect:
+        serializedVersion: 2
+        x: 207
+        y: 116
+        width: 94
+        height: 67
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0f68a0245feb1d170800000000000000
+      internalID: 8201546357002634992
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_7
+      rect:
+        serializedVersion: 2
+        x: 308
+        y: 118
+        width: 91
+        height: 66
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b528e9ce8a190a50800000000000000
+      internalID: 6487745938779022775
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_8
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 25
+        width: 87
+        height: 61
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 597077c35502d0d20800000000000000
+      internalID: 3246286456862738325
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_9
+      rect:
+        serializedVersion: 2
+        x: 132
+        y: 35
+        width: 47
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7ffb90f6c75a0bac0800000000000000
+      internalID: -3841388528289595401
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_10
+      rect:
+        serializedVersion: 2
+        x: 239
+        y: 73
+        width: 13
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e36623f19123d800800000000000000
+      internalID: 635888883122725861
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_11
+      rect:
+        serializedVersion: 2
+        x: 258
+        y: 71
+        width: 11
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6db2b4f7970d563f0800000000000000
+      internalID: -908090529600033834
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_12
+      rect:
+        serializedVersion: 2
+        x: 118
+        y: 47
+        width: 20
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 10097ffc2687af470800000000000000
+      internalID: 8429182018368540673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_13
+      rect:
+        serializedVersion: 2
+        x: 222
+        y: 57
+        width: 13
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad4afebf2ac738a60800000000000000
+      internalID: 7675115229422789850
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_14
+      rect:
+        serializedVersion: 2
+        x: 245
+        y: 60
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e69feaa14e0f4c00800000000000000
+      internalID: 886943326818768614
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_15
+      rect:
+        serializedVersion: 2
+        x: 265
+        y: 54
+        width: 13
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b7fb1816be7ea0ee0800000000000000
+      internalID: -1293966944776372357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_16
+      rect:
+        serializedVersion: 2
+        x: 238
+        y: 44
+        width: 10
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 85148ea39afff26c0800000000000000
+      internalID: -4165830027991563944
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_17
+      rect:
+        serializedVersion: 2
+        x: 253
+        y: 46
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70fc8a6b80d5bc8f0800000000000000
+      internalID: -519219040025522425
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: lightfireblast_18
+      rect:
+        serializedVersion: 2
+        x: 169
+        y: 31
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da1405758429ef840800000000000000
+      internalID: 5259802254215496109
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      lightfireblast_0: 11326476539469649
+      lightfireblast_1: 8726854663407857839
+      lightfireblast_10: 635888883122725861
+      lightfireblast_11: -908090529600033834
+      lightfireblast_12: 8429182018368540673
+      lightfireblast_13: 7675115229422789850
+      lightfireblast_14: 886943326818768614
+      lightfireblast_15: -1293966944776372357
+      lightfireblast_16: -4165830027991563944
+      lightfireblast_17: -519219040025522425
+      lightfireblast_18: 5259802254215496109
+      lightfireblast_2: -4770924669834336441
+      lightfireblast_3: -5887866586234604802
+      lightfireblast_4: -3189256162691503005
+      lightfireblast_5: -6621219994062022338
+      lightfireblast_6: 8201546357002634992
+      lightfireblast_7: 6487745938779022775
+      lightfireblast_8: 3246286456862738325
+      lightfireblast_9: -3841388528289595401
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

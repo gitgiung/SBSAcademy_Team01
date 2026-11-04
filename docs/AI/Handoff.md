@@ -1,5 +1,11 @@
 # 작업 인수인계
 
+## 2026-11-04 맵 개발 지시서
+
+- 완료: `docs/superpowers/specs/2026-11-04-map-development-directive.md` 작성. 현재 `WorldWrap2D`(전체 타일맵 8장 복제 + 플레이어 래핑)는 임시로 두고, 정식은 뱀서식 **청크 재배치·플레이어 비래핑**으로 지시했다. 청크 크기·동시 개수 등 수치는 미정. 코드·씬은 이 문서로 바꾸지 않음.
+- 검증: 문서만. Unity 테스트 0개.
+- 다음: 지시서 합의 후 MainTestScene에서 작은 청크 프로토타입. 검증되면 `WorldWrap2D`와 공존하지 않게 정리.
+
 ## 2026-11-04 WorldWrap2D 리스타트 시 Unity 정지
 
 - 시작 상태: `EnemyEXP`, HEAD `dec1a74`. `main`에는 없고 이 브랜치의 `WorldWrap2D`만 해당.

@@ -176,19 +176,18 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     // 기존 씬의 버튼과 Animator가 사용하는 진입점을 유지합니다.
     public bool TryUseLightSkill()
     {
-        if (lightSkill == null || !CanAcceptGameplayInput) return false;
-        return lightSkill.TryCast(CurrentAim(), lightAttackProjectile);
+        return TryCastLightSkill(CurrentAim());
     }
 
     public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);
     public void NotifyLightAttackAnimationFinished(int actionId) => lightSkill?.OnAnimationFinished(actionId);
 
-    /// <summary>장착된 약공격이 없으면 불꽃 탄환을 시전합니다. 실패하면 MP를 쓰지 않습니다.</summary>
+    /// <summary>장착된 약공격만 시전합니다. 미장착 또는 실패 시 MP를 쓰지 않습니다.</summary>
     public bool TryCastLightSkill(Vector2 aim)
     {
         int id = data != null && data.Loadout != null
             ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Light) : 0;
-        if (id == 0) id = 10001;
+        if (id == 0) return false;
         if (!LightSkillCatalog.TryGet(id, out LightSkillCast skill)) return false;
         if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
         if (aim.sqrMagnitude < 0.0001f)

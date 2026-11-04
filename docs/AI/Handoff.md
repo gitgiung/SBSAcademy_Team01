@@ -1,5 +1,29 @@
 # 작업 인수인계
 
+## 2026-11-04 레벨업 패널 참고 이미지 적용
+
+- 시작 상태: 브랜치 `feature/Player-Growth-Design`, HEAD `b55f733`. 직전 약공격 장착 관련 미커밋 변경을 모두 보존했다. 기존 레벨업 프리팹은 제목과 빈 ContentRoot만 있고 레벨업 이벤트/보상 선택은 아직 미연결이다.
+- 완료: `LevelUpSelectionPanel`이 기존 레벨업 ContentRoot에 남색 배경, 청록 제목, 가로 3장 카드, common/Uncommon/Rare 테두리색, 아이콘 자리, 이름·등급, 액티브 N·패시브 구획, 설명·하단 문구·정보 버튼을 생성한다. 정보 버튼은 해당 카드에 제공된 텍스트를 상세 창에 표시하고 닫기를 제공한다. 실제 이미지 아이콘은 도안처럼 빈 자리이며 새 그림은 만들지 않았다.
+- 완료: `CombatPopupController.ShowLevelUp()`에 생성 경로를 연결했다. `ShowLevelUp(IReadOnlyList<LevelUpCardData>, Action<int>)`로 실제 선택지 최대 3장과 선택 콜백을 공급할 수 있다. 선택 콜백은 한 SetChoices당 한 번 실행되며, 보상 적용과 CompleteLevelUp 호출은 성장 담당자가 소유한다. 인자 없는 호출은 사용자 도안의 불꽃 탄환/피해량 증가/화염 심장을 표시 예시로 보여 준다. 이 예시의 수치·문구는 실제 보상 정의나 전투 수치를 변경하지 않으며 예시 카드를 클릭해도 지급/완료하지 않는다.
+- 보존: 기존 UIManager 등록·팝업 수명·Time.timeScale 정지/복원·CompleteLevelUp API를 사용한다. 기존 프리팹 제목만 숨기고 외부 ContentRoot 콘텐츠는 제거하지 않는다. 씬·기존 프리팹·기존 meta·Project Settings·패키지는 변경하지 않았다. 신규 C#과 그 meta만 추가했다.
+- 독립 리뷰: 겹친 일시정지창에서 돌아올 때 기존 closeButton=null 레벨업 Focus가 선택을 지우는 문제를 찾아 새 카드 뷰 Focus로 연결했다. 실제 선택 데이터가 있으면 카드, 예시 화면이면 정보 버튼, 상세창이 열려 있으면 닫기 버튼으로 복귀한다. 실제 입력 검증은 남아 있다.
+- 검증: Unity 6000.5.0f1 설치본 Roslyn 및 기존 응답 파일에 신규 소스를 포함해 Assembly-CSharp/Assembly-CSharp-Editor 각각 종료 코드 0, 오류·경고 0. 출력은 `.utmp/LevelUpPanel`로 격리했다. 기존 독립 검증은 장착 모델 4/4, 전투 표 7/7 재실행 통과. `git diff --check` 통과. 이번 표시 변경 전용 자동 테스트나 Assets/Tests는 추가하지 않았다. 실행한 Unity 테스트 0개.
+- 검증 제한: 열린 MainTestScene Unity 창이 최소화되어 UI 캡처 도구가 `window is minimized`로 연결에 실패했다. 두 번째 에디터를 열지 않았다. 실제 임포트·플레이 화면·한글 줄바꿈·정보 버튼 조작·해상도별 배치·Android/기기는 미확인이다.
+- 사용자 직접 확인: Unity 복원 → 컴파일 완료 → MainTestScene/GiungTestScene에서 Play From Title 끄고 Play → Hierarchy의 CombatUI 선택 → Inspector의 CombatPopupController 컴포넌트 메뉴 → `테스트/레벨업 팝업 열기`. 전투가 정지하고 가로 3장 카드와 상단 레벨 업 제목이 보여야 한다. 각 카드 우측 i를 누르면 제공된 설명이 뜨고 닫기로 카드 화면에 복귀해야 한다. 예시 카드 자체는 보상 선택을 완료하지 않는다. 닫기는 컴포넌트 메뉴 `테스트/레벨업 선택 완료`를 사용한다. 전투가 원래 시간 배율로 복원되어야 한다.
+- 오류 확인: Console 첫 컴파일 오류, CombatPopupController의 Level Up Popup/ContentRoot 참조를 확인한다. 옛 제목만 보이면 Unity `Assets > Refresh` 후 재생을 다시 시작한다. 카드 내용이 잘리면 Game 뷰 해상도와 실제 화면을 확인한다.
+- 다음 작업: 실제 Unity 화면 검증. 레벨업 발생/실제 선택지 추첨·획득·보상 효과는 별도 미구현이며 임의 확정하지 않았다. 향후 실제 성장 시스템에서 데이터와 콜백을 공급한다.
+
+## 2026-11-04 일시정지 창 약공격 장착/해제
+
+- 시작 상태: 실제 브랜치 `feature/Player-Growth-Design`, HEAD `b55f733`, 작업 트리 깨끗함. 사용자는 우선 약공격만 연결하고 향후 강공격은 강공격 버튼에 할당하도록 요청했다.
+- 완료: 일시정지 창의 보유 약공격 셀 클릭으로 Light 버튼에 장착하고, 같은 셀을 다시 누르면 해제한다. 다른 약공격을 누르면 교체한다. 장착 셀은 녹색과 `[장착]`으로 표시한다. 빈 칸·잠금 칸·강공격은 클릭 불가다. 강공격 효과는 추가하지 않았고 기존 TryEquip의 Light/Heavy/Tactical 분류 검증을 보존했다.
+- 완료: `PlayerLoadout.TryUnequip`은 보유 스킬을 제거하지 않고 버튼 참조만 비운다. 기존 `Changed`로 UI를 갱신하며 팝업을 다시 열어도 클릭 리스너를 중복 등록하지 않는다. 버튼의 `TryUseLightSkill`과 키보드/마우스는 같은 `TryCastLightSkill` 표 경로를 사용한다. 미장착 시 불꽃 탄환 10001로 대체 발사하던 처리를 제거해 입력 시전·MP 차감 없이 종료한다. 기존 공개 콜백과 직렬화 필드는 보존했다. 자동 패시브는 보유 기준 별도 실행이므로 해제 후에도 발사할 수 있다.
+- 검증: 새 독립 모델 검증은 구현 전 1/4 통과(해제 API 부재로 3개 실패), 구현 후 4/4 통과. `tools/PlayerLoadoutValidation/Run.ps1`에서 실제 Loadout과 SkillData 코드로 보유 유지·교체·독립 Heavy 할당·잘못된 분류·알림·잠금·제거를 검증한다. 기존 `tools/CombatSkillTableValidation/Run.ps1`도 7/7 통과. Unity 6000.5.0f1 설치본 Roslyn과 기존 응답 파일로 Assembly-CSharp/Assembly-CSharp-Editor 컴파일 각각 종료 코드 0, 오류·경고 0. 출력은 `.utmp/PlayerLoadout`으로 격리해 Library DLL을 덮어쓰지 않았다. `git diff --check` 통과.
+- 실행한 Unity 테스트 0개. 실제 에디터 임포트·UI 클릭·플레이·Android 빌드·기기는 확인하지 않았다. 씬·프리팹·meta·Project Settings·패키지는 변경하지 않았다. Assets/Tests와 테스트 asmdef도 복원하지 않았다.
+- 사용자 직접 확인: Unity 컴파일 완료 → `MainTestScene` 또는 `GiungTestScene` 열기 → Play From Title 끄기 → Play → 일시정지 → 공격 스킬의 불꽃 탄환 클릭. 녹색 `[장착]` 표시 후 뒤로가기 → `N_Attack` 버튼 또는 Enter를 눌러 불꽃 탄환과 MP 5 소모 확인. 다시 일시정지 → 같은 셀 클릭해 표시 해제 → 복귀 후 같은 입력을 눌렀을 때 추가 액티브 발사·MP 차감이 없어야 한다. 자동 패시브 탄환과 구분한다. 다른 보유 약공격이 있으면 교체 후 해당 효과가 나오는지, 빈/잠금/강공격 칸이 장착되지 않는지 확인한다.
+- 오류 확인: Console 첫 컴파일 오류, Player의 `lightAttackButton` 연결, PlayerData의 보유 ID/Light 장착 ID, `Assets/Resources/Data/CombatSkillTable.json` 유무를 확인한다. 표가 없으면 엑셀 저장 후 `Tools > Parse Combat Skill Table` 실행. 이번부터 버튼도 표 비용을 쓰므로 씬의 과거 SkillData.MPCost 10 대신 현재 표의 불꽃 탄환 비용 5가 적용된다.
+- 다음 작업: 실제 플레이에서 위 절차 확인. 이후 강공격 구현 시 기존 Heavy 분류와 강공격 버튼/차징 기반을 연결한다. 단계별 배율·시간, 최대 차징 시간 충돌, 취소 MP 정책은 여전히 미정이며 임의 확정하지 않는다.
+
 ## 2026-11-04 전투 스킬 효과 데이터 확장
 
 - 시작 상태: `main`, HEAD `1706cda`, 작업 트리 깨끗함. 사용자 요청은 테이블 기반 다음 구현 진행이다. 이번 단계는 기존 엑셀 변환기의 실행 데이터 보완이며 강공격·전략 실제 시전 구현은 후속이다.

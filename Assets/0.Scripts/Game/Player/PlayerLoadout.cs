@@ -96,6 +96,19 @@ public sealed class PlayerLoadout
             : button == PlayerSkillButton.Heavy ? heavySkillId : button == PlayerSkillButton.Tactical ? tacticalSkillId : 0;
         return Owns(id) ? id : 0;
     }
+    /// <summary>보유 스킬을 제거하지 않고 해당 버튼의 장착만 해제합니다.</summary>
+    public bool TryUnequip(PlayerSkillButton button)
+    {
+        switch (button)
+        {
+            case PlayerSkillButton.Light: if (lightSkillId == 0) return false; lightSkillId = 0; break;
+            case PlayerSkillButton.Heavy: if (heavySkillId == 0) return false; heavySkillId = 0; break;
+            case PlayerSkillButton.Tactical: if (tacticalSkillId == 0) return false; tacticalSkillId = 0; break;
+            default: return false;
+        }
+        Changed?.Invoke();
+        return true;
+    }
     public bool RemoveSkill(int id)
     {
         EnsureSlots();

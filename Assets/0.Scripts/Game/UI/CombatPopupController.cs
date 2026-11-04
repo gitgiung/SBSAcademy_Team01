@@ -15,6 +15,7 @@ public sealed class CombatPopupController : MonoBehaviour
     [SerializeField] private GameManager gameManager;
     [SerializeField] private Player statusPlayer;
     private PlayerStatusPanel statusPanel;
+    private LevelUpSelectionPanel levelUpPanel;
 
     private readonly HashSet<UI_CombatPopup> activePopups = new HashSet<UI_CombatPopup>();
     private float previousTimeScale;
@@ -72,9 +73,29 @@ public sealed class CombatPopupController : MonoBehaviour
     public UI_CombatPopup ShowLevelUp()
     {
         if (!CanShow() || levelUpPopup == null) return null;
+        EnsureLevelUpPanel();
         UI_CombatPopup popup = Managers.UI.ShowPopupUI<UI_CombatPopup>(LevelUpKey);
-        if (popup != null) popup.Focus();
+        if (popup != null) levelUpPanel?.Focus();
         return popup;
+    }
+
+    public UI_CombatPopup ShowLevelUp(IReadOnlyList<LevelUpCardData> choices, System.Action<int> onSelected)
+    {
+        if (!CanShow() || levelUpPopup == null) return null;
+        EnsureLevelUpPanel();
+        if (levelUpPanel == null) return null;
+        levelUpPanel.SetChoices(choices, onSelected);
+        return ShowLevelUp();
+    }
+
+    private void EnsureLevelUpPanel()
+    {
+        if (levelUpPanel != null || levelUpPopup.ContentRoot == null) return;
+        levelUpPanel = Util.GetOrAddComponent<LevelUpSelectionPanel>(levelUpPopup.gameObject);
+        TMPro.TMP_FontAsset font = null;
+        foreach (var label in levelUpPopup.GetComponentsInChildren<TMPro.TMP_Text>(true))
+            if (label.font != null) { font = label.font; break; }
+        levelUpPanel.Initialize(levelUpPopup.ContentRoot, font);
     }
 
     public void CompleteLevelUp()
@@ -101,7 +122,11 @@ public sealed class CombatPopupController : MonoBehaviour
         if (activePopups.Count > 0)
         {
             if (activePopups.Contains(pausePopup)) pausePopup.Focus();
-            else if (activePopups.Contains(levelUpPopup)) levelUpPopup.Focus();
+            else if (activePopups.Contains(levelUpPopup))
+            {
+                if (levelUpPanel != null) levelUpPanel.Focus();
+                else levelUpPopup.Focus();
+            }
             return;
         }
         RestoreTimeScale();

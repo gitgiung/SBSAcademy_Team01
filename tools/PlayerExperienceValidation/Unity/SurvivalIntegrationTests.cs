@@ -62,6 +62,32 @@ public class SurvivalIntegrationTests
         Assert.That(Collect(pickup,player),Is.True); Assert.That(Collect(pickup,player),Is.False);
         Assert.That(player.CurrentEXP,Is.EqualTo(2)); Assert.That(Managers.Pool.GetActiveCount(pickupPrefab),Is.Zero); Assert.That(pool.ActiveEnemyCount,Is.Zero);
     }
+    [UnityTest]
+    public IEnumerator PooledAreaSkillKillReturnsEnemyAndDropsExperience(
+        [Values(LightSkillShape.Circle, LightSkillShape.Ring, LightSkillShape.Line,
+            LightSkillShape.Cone, LightSkillShape.Arc)] LightSkillShape shape)
+    {
+        enemyPrefab.tag = "Respawn";
+        GameObject enemy = Spawn();
+        Vector3 origin = Vector3.left * 2f;
+        var skill = new LightSkillCast(10003, "Area skill", "ELEM_FIRE", 0f, shape,
+            2.5f, 90f, 0.8f, 1, 1, 1f, 3f, 0f);
+        var effectPrefab = new GameObject("Area skill prefab");
+        effectPrefab.transform.SetParent(root.transform);
+        effectPrefab.SetActive(false);
+        effectPrefab.AddComponent<LightSkillFx>();
+        Physics2D.SyncTransforms();
+
+        Managers.Pool.Pop(effectPrefab, origin, Quaternion.identity, initialize: effect =>
+            effect.GetComponent<LightSkillFx>().Play(skill, Vector2.right, skill.Damage(0f), enemyPrefab.tag));
+        yield return null;
+        yield return null;
+
+        Assert.That(enemy.GetComponent<EnemyHealth>().IsDead, Is.True);
+        Assert.That(enemy.activeSelf, Is.False);
+        Assert.That(pool.ActiveEnemyCount, Is.Zero);
+        Assert.That(Managers.Pool.GetActiveCount(pickupPrefab), Is.EqualTo(1));
+    }
     [Test] public void DespawnAndExternalReturnsDoNotDropAndCounterRecovers()
     {
         var enemy=Spawn(); enemy.GetComponent<EnemyHealth>().Despawn();

@@ -5,7 +5,6 @@ using UnityEngine;
 /// <summary>Runs the parry-to-guard state flow and exposes its defensive state.</summary>
 internal sealed class PlayerDefense
 {
-    private readonly BossParry boss;
     private readonly PlayerView view;
     private readonly float parryStartup;
     private readonly float parryActive;
@@ -22,17 +21,17 @@ internal sealed class PlayerDefense
     private bool parryVfxPlayed;
 
     public event Action ParrySucceeded;
+    public GameObject LastParrySource { get; private set; }
     public bool IsInDefenseMotion { get; private set; }
 
     public bool CanStart => canStart;
     public bool IsBlockingDamage => isParrying || isGuarding;
     public bool IsMovementSlowed => IsBlockingDamage;
 
-    public PlayerDefense(BossParry boss, PlayerView view, float parryStartup, float parryActive,
+    public PlayerDefense(PlayerView view, float parryStartup, float parryActive,
         float parryRecovery, float guardTransitionTime, float maxGuardDuration,
         float normalGuardCooldown, float breakGuardCooldown)
     {
-        this.boss = boss;
         this.view = view;
         this.parryStartup = Mathf.Max(0f, parryStartup);
         this.parryActive = Mathf.Max(0f, parryActive);
@@ -60,9 +59,8 @@ internal sealed class PlayerDefense
         while (activeTimer < parryActive)
         {
             if (version != actionVersion) yield break;
-            if ((boss != null && boss.TryParry()) || parrySucceeded)
+            if (parrySucceeded)
             {
-                NotifyIncomingAttackBlocked();
                 succeeded = true;
                 if (!parryVfxPlayed) view.PlayParryVfx();
                 break;
@@ -83,7 +81,7 @@ internal sealed class PlayerDefense
             yield break;
         }
 
-        Debug.Log("[패링 실패] 판정 창 닫힘");
+        //Debug.Log("[패링 실패] 판정 창 닫힘");
         if (isGuardHeld())
         {
             float extraWait = guardTransitionTime - (parryStartup + parryActive);
@@ -125,10 +123,13 @@ internal sealed class PlayerDefense
     }
 
     /// <summary>Marks an incoming attack blocked during the parry window as a successful parry.</summary>
-    public void NotifyIncomingAttackBlocked()
+    public void NotifyIncomingAttackBlocked() => NotifyIncomingAttackBlockedFrom(null);
+
+    public void NotifyIncomingAttackBlockedFrom(GameObject source)
     {
         if (!isParrying || parrySucceeded) return;
         parrySucceeded = true;
+        LastParrySource = source;
         ParrySucceeded?.Invoke();
         if (parryVfxPlayed) return;
         parryVfxPlayed = true;

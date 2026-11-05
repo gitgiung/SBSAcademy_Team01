@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 30
+  bossAppearTime: 1
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -1259,6 +1259,12 @@ MonoBehaviour:
     - 0.1
     - 0.5
     SuperArmor: 0
+  parryZoomRatio: 0.05
+  parryZoomInDuration: 0.06
+  parryZoomOutDuration: 0.18
+  parryHitStopDuration: 0.08
+  parryRecoilDistance: 0.35
+  parryRecoilDuration: 0.12
   data: {fileID: 454020001}
   bulletPrefab: {fileID: 7471816246809313549, guid: ca61cadf05c05be42aac42e0884ec18b, type: 3}
   healthSlider: {fileID: 496842392}
@@ -1284,7 +1290,6 @@ MonoBehaviour:
   dashSpeedMultiplier: 3
   dashDuration: 0.15
   dashCooldown: 3
-  boss: {fileID: 2094942144}
 --- !u!114 &454020001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1684,8 +1689,8 @@ MonoBehaviour:
     heavySkillId: 0
     tacticalSkillId: 0
   speed: 5
-  maxHealth: 100
-  currentHealth: 100
+  maxHealth: 10000
+  currentHealth: 10000
   attackRange: 5
   attackCooldown: 1
   attackDamage: 3
@@ -30730,6 +30735,22 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Size.x
+      value: 0.52039677
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Size.y
+      value: 0.24147578
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Offset.x
+      value: 0.011497736
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Offset.y
+      value: -0.30426213
+      objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Size.x
       value: 0.91
@@ -30759,24 +30780,16 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SortingOrder
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_SortingLayerID
       value: -630562447
       objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_WasSpriteAssigned
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: m_Enabled
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: PlayerObject
-      value: 
-      objectReference: {fileID: 454019994}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: redParryWindow
-      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 7670373938179878916, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: maxHealth
@@ -30802,17 +30815,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2af0082067224da419333f7836b97ec7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Boss.Runtime::BossController
---- !u!114 &2094942144 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-  m_PrefabInstance: {fileID: 2094942133}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0bc860bbdede2704dacbbf9a3a4e8fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossParry
 --- !u!1 &2100000000
 GameObject:
   m_ObjectHideFlags: 0

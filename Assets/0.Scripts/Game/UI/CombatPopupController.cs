@@ -90,6 +90,9 @@ public sealed class CombatPopupController : MonoBehaviour
         if (!isActiveAndEnabled || (popup != pausePopup && popup != levelUpPopup) || !activePopups.Add(popup))
             return;
         if (ownsPause) return;
+        // Transfer a temporary parry stop back to its original scale before owning popup pause.
+        foreach (Player candidate in FindObjectsByType<Player>())
+            if (candidate.gameObject.scene == gameObject.scene) candidate.EndParryHitStop();
         previousTimeScale = Time.timeScale;
         ownsPause = true;
         Time.timeScale = 0f;

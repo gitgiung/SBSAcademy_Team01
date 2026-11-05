@@ -1260,7 +1260,6 @@ MonoBehaviour:
   dashSpeedMultiplier: 3
   dashDuration: 0.15
   dashCooldown: 3
-  boss: {fileID: 2094942144}
 --- !u!114 &454020001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30682,18 +30681,6 @@ PrefabInstance:
       propertyPath: m_WasSpriteAssigned
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: m_Enabled
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: PlayerObject
-      value: 
-      objectReference: {fileID: 454019994}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: redParryWindow
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 7670373938179878916, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: maxHealth
       value: 500
@@ -30718,17 +30705,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2af0082067224da419333f7836b97ec7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Boss.Runtime::BossController
---- !u!114 &2094942144 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-  m_PrefabInstance: {fileID: 2094942133}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0bc860bbdede2704dacbbf9a3a4e8fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossParry
 --- !u!1 &2100000000
 GameObject:
   m_ObjectHideFlags: 0

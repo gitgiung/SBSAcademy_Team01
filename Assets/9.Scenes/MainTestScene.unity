@@ -1307,13 +1307,13 @@ MonoBehaviour:
     unlockedAttackSlots: 6
     attackSkills:
     - DataId: 0
-      Name:
+      Name: 
       ClassName: 
       Description: 
       ProjectileId: 0
       PrefabLabel: 
       IconLabel: 
-      AnimName:
+      AnimName: 
       CoolTime: 0
       DamageMultiplier: 0
       Duration: 0
@@ -1330,7 +1330,7 @@ MonoBehaviour:
       MPCost: 0
       BaseDamage: 0
       PassiveConfigured: 0
-      PassivePrefabKey:
+      PassivePrefabKey: 
       PassiveDamage: 0
       PassiveInterval: 0
       PassiveSpeed: 0
@@ -1689,16 +1689,16 @@ MonoBehaviour:
     lightSkillId: 0
     heavySkillId: 0
     tacticalSkillId: 0
-  speed: 5
+  speed: 6
   maxHealth: 10000
   currentHealth: 10000
   attackRange: 5
-  attackCooldown: 1
-  attackDamage: 3
+  attackCooldown: 0.333
+  attackDamage: 1
   bulletSpeed: 3
   maxMP: 100
   currentMP: 100
-  mpRecoveryPerSecond: 1
+  mpRecoveryPerSecond: 10
   dashMPCost: 10
   parryMPRecovery: 10
   experienceSettings:
@@ -1706,8 +1706,8 @@ MonoBehaviour:
     linearNumerator: 19800
     quadraticNumerator: 675
   maxEXP: 10
-  currentEXP: 4
-  experiencePickupDistance: 0
+  currentEXP: 0
+  experiencePickupDistance: 1
 --- !u!114 &454020004
 MonoBehaviour:
   m_ObjectHideFlags: 0

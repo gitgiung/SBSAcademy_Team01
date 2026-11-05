@@ -13,6 +13,7 @@ public sealed class BossEncounterController : MonoBehaviour
 {
     [SerializeField] private BossController boss;
     [SerializeField] private HordeLordBoss hordeLord;
+    [SerializeField] private ZombieSlimeBoss zombieSlime;
     [SerializeField] private EnemySpawner[] spawners = new EnemySpawner[0];
     [SerializeField] private EnemySpawnDirector spawnDirector;
     [SerializeField, Min(0.01f)] private float bossAppearTime = 10f;
@@ -30,18 +31,26 @@ public sealed class BossEncounterController : MonoBehaviour
 
     private void Awake()
     {
-        if (boss == null && hordeLord == null)
+        if (boss == null && hordeLord == null && zombieSlime == null)
         {
             Debug.LogWarning("BossEncounterController requires a boss reference.", this);
             enabled = false;
             return;
         }
 
-        bossHealth = hordeLord != null ? hordeLord.Health : boss.GetComponent<EnemyHealth>();
+        if (hordeLord != null)
+            bossHealth = hordeLord.Health;
+        else if (boss != null)
+            bossHealth = boss.GetComponent<EnemyHealth>();
+        else
+            bossHealth = zombieSlime.Health;
+
         if (boss != null)
             boss.gameObject.SetActive(false);
         if (hordeLord != null)
             hordeLord.gameObject.SetActive(false);
+        if (zombieSlime != null)
+            zombieSlime.gameObject.SetActive(false);
 
         // [�߰�] ���� �� ü�¹� ����
         if (bossHealthSlider != null)
@@ -83,7 +92,8 @@ public sealed class BossEncounterController : MonoBehaviour
         {
             if (enemy.gameObject.scene != gameObject.scene ||
                 enemy.GetComponent<BossController>() != null ||
-                enemy.GetComponent<HordeLordBoss>() != null)
+                enemy.GetComponent<HordeLordBoss>() != null ||
+                enemy.GetComponent<ZombieSlimeBoss>() != null)
                 continue;
 
             if (enemy.TryGetComponent<EnemyHealth>(out var health)) health.Despawn();
@@ -96,8 +106,10 @@ public sealed class BossEncounterController : MonoBehaviour
 
         if (hordeLord != null)
             hordeLord.gameObject.SetActive(true);
-        else
+        else if (boss != null)
             boss.gameObject.SetActive(true);
+        else
+            zombieSlime.gameObject.SetActive(true);
 
         // [�߰�] ���� ���� �� �����̴� Ȱ��ȭ
         if (bossHealthSlider != null)

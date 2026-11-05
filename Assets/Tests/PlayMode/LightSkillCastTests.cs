@@ -48,6 +48,32 @@ public sealed class LightSkillCastTests
         Assert.That(Field(ice, "Element"), Is.EqualTo("ELEM_ICE"));
     }
 
+    [Test]
+    public void FlameRingStaysFlatAroundThePlayerForEveryAim()
+    {
+        object ring = Skill(10014);
+        var go = new GameObject("flame ring");
+        go.transform.position = new Vector3(80f, 80f, 0f);
+        go.transform.localScale = new Vector3(0.2f, 4f, 1f);
+        go.transform.rotation = Quaternion.Euler(0f, 0f, 90f);
+        SpriteRenderer sprite = go.AddComponent<SpriteRenderer>();
+        Component fx = go.AddComponent(Runtime("LightSkillFx"));
+        Vector2[] aims = { Vector2.up, Vector2.down, Vector2.left, new Vector2(1f, 1f) };
+        foreach (Vector2 aim in aims)
+        {
+            Call(fx, "Play", ring, aim, 10f, "Enemy");
+            Assert.That(go.transform.position, Is.EqualTo(new Vector3(80f, 80f, 0f)));
+            Assert.That(go.transform.right.x, Is.GreaterThan(0.99f));
+            Assert.That(Mathf.Abs(go.transform.right.y), Is.LessThan(0.01f));
+            Assert.That(go.transform.localScale.x, Is.EqualTo(go.transform.localScale.y).Within(0.0001f));
+            Assert.That(sprite.bounds.size.x, Is.GreaterThan(sprite.bounds.size.y));
+        }
+
+        Call(fx, "Play", Skill(10001), Vector2.up, 10f, "Enemy");
+        Assert.That(go.transform.right.y, Is.GreaterThan(0.99f));
+        Object.Destroy(go);
+    }
+
     [UnityTest]
     public IEnumerator UnarmedLightCastSpendsFlameBulletCostAndUnlocks()
     {

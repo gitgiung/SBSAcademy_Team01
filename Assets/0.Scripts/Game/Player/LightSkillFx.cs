@@ -55,7 +55,11 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             spriteRenderer.sprite = frames.Length > 0 ? frames[0] : null;
             spriteRenderer.sortingOrder = 30;
         }
-        transform.right = this.direction;
+        // 화염 고리 그림은 바닥에 깔린 가로 타원이다. 조준과 상관없이 플레이어 주위의 가로 범위로 둔다.
+        if (skill.Shape == LightSkillShape.Ring)
+            transform.rotation = Quaternion.identity;
+        else
+            transform.right = this.direction;
         ApplyScale();
         if (hitCollider != null)
         {

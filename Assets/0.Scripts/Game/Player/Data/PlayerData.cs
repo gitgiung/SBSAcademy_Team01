@@ -27,7 +27,16 @@ public class PlayerData : MonoBehaviour
     public event System.Action<float, float> MPChanged;
     public event System.Action<float> MPSpendRejected;
 
-    [Header("EXP 표시 상태 (요구량/레벨업 규칙 미정)")]
+    [Header("성장 설정 (1차 플레이테스트용)")]
+    [SerializeField] private PlayerExperienceSettings experienceSettings = new PlayerExperienceSettings();
+    private PlayerExperienceProgress experienceProgress;
+    private PlayerExperienceProgress ExperienceProgress => experienceProgress ??
+        (experienceProgress = new PlayerExperienceProgress(experienceSettings ?? (experienceSettings = new PlayerExperienceSettings())));
+    public int CurrentLevel => ExperienceProgress.Level;
+    public int PendingLevelUps => ExperienceProgress.PendingLevelUps;
+    public event System.Action<int> LevelChanged;
+
+    [Header("EXP 표시 상태 (요구량은 현재 레벨에서 자동 계산)")]
     [Min(0f)] public float maxEXP;
     [SerializeField] private float currentEXP;
     public float CurrentEXP => currentEXP;
@@ -47,33 +56,48 @@ public class PlayerData : MonoBehaviour
         InitEXP();
     }
 
-    [ContextMenu("EXP/현재 목표로 초기화")]
+    [ContextMenu("EXP/레벨 1로 초기화")]
     public void InitEXP()
     {
-        if (!IsValidAmount(maxEXP)) maxEXP = 0f;
-        SetEXP(0f, maxEXP);
+        ExperienceProgress.Reset();
+        PublishExperience();
+        LevelChanged?.Invoke(CurrentLevel);
     }
 
-    /// <summary>성장 담당이 계산한 현재 EXP/목표를 받습니다. 레벨업과 초과분 처리는 하지 않습니다.</summary>
+    /// <summary>현재 레벨의 XP를 지정합니다. maximum은 호환 인자이며 실제 요구량은 성장 설정으로 계산합니다.</summary>
     public bool SetEXP(float current, float maximum)
     {
         if (!IsValidAmount(current) || !IsValidAmount(maximum)) return false;
-        currentEXP = current;
-        maxEXP = maximum;
-        EXPChanged?.Invoke(currentEXP, maxEXP);
+        int previousLevel = CurrentLevel;
+        ExperienceProgress.SetExperience(current);
+        PublishExperience(previousLevel);
         return true;
     }
 
-    /// <summary>줍기 등에서 EXP를 더합니다. 레벨업 요구량을 넘는 EXP도 보존합니다.</summary>
+    /// <summary>요구 XP를 차감해 성장하고 초과분을 이월합니다. 중간 레벨의 선택도 모두 대기합니다.</summary>
     public bool AddEXP(float amount)
     {
         if (IsDead || !IsValidAmount(amount) || amount <= 0f ||
-            !IsValidAmount(currentEXP) || !IsValidAmount(maxEXP))
+            ExperienceProgress.Experience + amount > float.MaxValue)
             return false;
-
-        float updatedEXP = currentEXP + amount;
-        return IsValidAmount(updatedEXP) && SetEXP(updatedEXP, maxEXP);
+        int previousLevel = CurrentLevel;
+        if (!ExperienceProgress.Add(amount)) return false;
+        PublishExperience(previousLevel);
+        return true;
     }
+
+    private void PublishExperience(int previousLevel = 0)
+    {
+        currentEXP = (float)ExperienceProgress.Experience;
+        maxEXP = ExperienceProgress.RequiredXP;
+        // 모든 상태와 선택 대기를 확정한 뒤 관찰자에게 알립니다.
+        if (previousLevel > 0)
+            for (int level = previousLevel + 1; level <= CurrentLevel; level++) LevelChanged?.Invoke(level);
+        EXPChanged?.Invoke(currentEXP, maxEXP);
+    }
+
+    public bool TryCompleteLevelUp() => !IsDead && ExperienceProgress.CompleteLevelUp();
+    public void CancelPendingLevelUps() => ExperienceProgress.CancelPendingLevelUps();
 
     [ContextMenu("MP/현재 설정으로 초기화")]
     public void InitMP()
@@ -130,7 +154,10 @@ public class PlayerData : MonoBehaviour
         currentHealth = Mathf.Max(0f, currentHealth - damage);
         HealthChanged?.Invoke(currentHealth, maxHealth);
         if (IsDead)
+        {
+            CancelPendingLevelUps();
             PlayerDeath?.Invoke();
+        }
         return true;
     }
 }

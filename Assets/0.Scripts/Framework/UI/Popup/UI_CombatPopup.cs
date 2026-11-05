@@ -17,6 +17,12 @@ public sealed class UI_CombatPopup : UI_Popup
         owner = controller;
     }
 
+    public override void ClosePopupUI()
+    {
+        if (owner != null && !owner.CanClosePopupUI(this)) return;
+        base.ClosePopupUI();
+    }
+
     public override bool Init()
     {
         if (!base.Init()) return false;

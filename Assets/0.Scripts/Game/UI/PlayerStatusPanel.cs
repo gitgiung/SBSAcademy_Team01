@@ -16,6 +16,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
     private Button backButton;
     private RectTransform contentRoot;
     private readonly List<TMP_Text> statValues = new List<TMP_Text>();
+    private TMP_Text levelValue;
     private readonly List<Cell> attacks = new List<Cell>();
     private readonly List<Cell> tacticals = new List<Cell>();
     private ItemRow relicRow;
@@ -64,7 +65,9 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         mainRoot = Stretch(content, "StatusContent").gameObject;
         var stats = Rect(mainRoot.transform, "Stats", 10, 20, 145, 460);
         Image(stats, new Color32(249, 233, 197, 255));
-        Text(Rect(stats, "Heading", 80, 10, 840, 35), "스탯", font, 30, Color.black, TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
+        Text(Rect(stats, "Heading", 80, 10, 400, 35), "스탯", font, 30, Color.black, TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
+        levelValue = Text(Rect(stats, "PlayerLevel", 490, 10, 450, 35), "", font, 30, Color.black, TextAlignmentOptions.Right);
+        levelValue.textWrappingMode = TextWrappingModes.NoWrap;
         string[] labels = { "체력", "체력 재생", "피해량", "이동속도", "방어력", "MP", "MP 회복", "재사용 대기시간",
             "속성 피해량(전체)", "투사체 개수", "투사체 크기", "방어막 체력", "기술 범위", "경험치 획득", "획득 반경" };
         for (int i = 0; i < labels.Length; i++)
@@ -222,6 +225,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         ? Managers.Resource.Load<Sprite>(skill.IconLabel) : null;
     private void RefreshStats()
     {
+        if (levelValue != null) levelValue.text = source != null ? $"Lv.{source.CurrentLevel}" : "Lv.—";
         foreach (var label in statValues) label.text = "—";
         if (source == null) return;
         statValues[0].text = $"{source.currentHealth:0.#} / {source.maxHealth:0.#}";

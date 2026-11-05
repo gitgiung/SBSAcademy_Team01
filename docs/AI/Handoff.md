@@ -1,5 +1,24 @@
 # 작업 인수인계
 
+## 2026-11-05 레벨·XP 계산과 카드 자동 연결·상태창 레벨 표시
+
+- 사용자 승인: 요구 XP만 차감하고 초과분 이월. 이번에는 18분 명세의 첫 두 단계(계산/기존 카드 자동 연결)와 추가 요청인 스탯 제목 오른쪽 검정색 `Lv.1` 표시를 구현했다. 시작 실제 상태는 `feature/player-growth-design` / `5d34dad`, 작업 트리 깨끗함. 브랜치 전환·커밋·PR은 하지 않았다.
+- 읽은 자료: NextCodex-LevelSpawnXP, Handoff, CoreInitialization, ResourceLoading, 기존 카드 계획, Markdown 명세 전체와 루트 ImplementationSpec DOCX 텍스트. 두 명세의 핵심 규칙 차이 없음. 아래 11월4일의 “성장 런타임 미구현”은 당시 기록이며 이번 첫 두 단계에는 더 이상 해당하지 않는다.
+- 계산: `PlayerExperienceSettings`가 Inspector에서 조정 가능한 정수 공식 계수를, `PlayerExperienceProgress`가 Lv1~100·잔여 XP·선택 대기를 소유한다. 새 전역 매니저나 asmdef 없음. 기본 Lv1 요구13, Lv2 요구15, 1→100 합33,033. 15XP를 얻으면 Lv2/잔여2, 30XP면 Lv3/잔여2/선택2회. 최대 레벨에서는 추가 선택 없이 남는 XP를 보존한다. 요구량0에서 EXP Slider는 기존 표시 규칙대로0이다. 최대 레벨 보상은 추가하지 않았다.
+- PlayerData: AddEXP/SetEXP/EXPChanged와 기존 직렬화 필드명을 보존했다. CurrentLevel/PendingLevelUps/LevelChanged/TryCompleteLevelUp을 추가했다. 실제 요구량은 공식이 소유하므로 `maxEXP` Inspector 구값은 시작 시 요구13으로 갱신된다. `SetEXP(current, maximum)`의 maximum은 유효성 검사만 유지하는 호환 인자이며 요구량을 덮어쓰지 않는다. current는 현재 레벨 XP 지정이며 초과 시 정상 성장한다. 기존 호출 검색에서 외부 런타임 호출은 없었다. InitEXP는 Lv1/0XP/선택0으로 초기화한다. 소수 AddEXP 호출 호환은 유지하며 후속 +25% 보정은 아직 연결하지 않았다.
+- 카드: CombatPopupController가 같은 씬 PlayerData에 구독하고 XP 획득 후 자동으로 기존 ShowLevelUp을 연다. 대기 선택마다 기존 약공격 추첨·보유 등록·보유 제외·미장착 정책을 사용한다. 카드 소진/가득 참 확인도1건 완료다. 같은 창에서 다음 프레임에 선택지를 교체해 같은 프레임 중복 클릭/확인과 중간 전투 재개를 막았다. 자동 선택은 일반 닫기 버튼으로 건너뛸 수 없다. 수동 미리보기는 대기 선택을 소비하지 않는다.
+- 수명: 컨트롤러 비활성은 구독/코루틴/창을 정리하고 대기는 PlayerData에 남겨 재활성 때 재개한다. 사망/승패 종료는 대기를 취소하고 전투 정지를 복원하지 않는다. 비활성 중 승패 후 재활성 시에도 대기를 정리한다. 완료창 위에 일시정지창이 있는 경우 완료창을 비활성화해 기존 UIManager의 지연 스택 정리를 이용하며 나머지 창의 정지는 유지한다. 보스전/진행 시간 규칙은 변경하지 않았다.
+- 표시: PlayerStatusPanel의 기존 스탯 제목 영역을 나눠 오른쪽에 검정색 `Lv.{현재레벨}`을 추가했다. 기존 EXPChanged 경로로 갱신하며 씬/프리팹을 재저장하지 않았다. 기존 meta/GUID·Project Settings·패키지·xlsx·JSON 변경 없음. 새 C# 두 파일에만 새 meta를 추가했다.
+- 검증 도구: `tools/PlayerExperienceValidation/Run.ps1`, `RunUnity.ps1`, `RunCompile.ps1`, README와 검증 소스를 추가했다. 원본 Assets/Tests/asmdef는 복원하지 않았다. 구현 전 성장 검증14개 중13개 실패(레벨/요구량/선택 기능 부재), 구현 후 최종 독립17/17 통과. 장착 도구4/4 통과.
+- Unity: `.utmp/GrowthUnity` 격리 프로젝트에서 Unity6000.5.0f1 PlayMode 실행. 검증 경계의 Canvas null비교/SetGuard 누락을 수정한 뒤 기능 구현 전9/9실패→구현 후9/9통과. 추가 중첩 사례12개 중1실패→수정 후12/12. 추가 수명 사례15개 중1실패(비활성 중 승리 후 대기 잔존)→순서 수정 후 **최종15/15 통과, 실패/생략0, 종료0**. 실제 PlayerView EXP Slider 이월비율, 실제 UIManager/카드 패널의 자동 열기·획득·연속 선택·중복 클릭/확인·소진/가득 참·중첩 양방향·비활성 재개·사망/승패·초기화·재부모화 팝업 Destroy·검정색 레벨 텍스트 갱신을 확인했다. 사본에 복사한 관련 실제 런타임 소스는 원본과 해시를 비교한다. 결과 `.utmp/GrowthUnity/final-lifecycle.xml`/`.log`는 생성물이다.
+- 컴파일: Unity 설치본 Roslyn으로 현재 원본 소스의 Assembly-CSharp와 Editor 각각 종료0. 새 성장 소스를 포함하고 Editor는 이번 런타임 ref DLL을 참조한다. 출력은 `.utmp/PlayerExperience/Compile`로 격리하여 Library DLL을 덮어쓰지 않았다. 기존 Player.ParryCamera.cs CS0252 경고1개가 남는다. `git diff --check` 통과. 독립 리뷰에서 중요 추가 발견 없음; 이후 수명 검증을 보강했다.
+- 기존 데이터 실패: CombatSkillTable 도구는 **8/17 통과·9실패**로 인수인계에 기록된 43개/기준46개 불일치가 그대로다. 이번에 엑셀·JSON을 재출력/보충하지 않았다. 실패 항목은 가득 참 획득 fixture, 설명 토큰, 약공격 수, 재생, 강공격, 빈 자원, 범위 분리, inline문자열, JSON 비교다. 이 실패를 새 성장 테스트 통과와 혼동하지 않는다.
+- 한계: Unity 사본은 Player 전투/입력·GameManager 승패 판정·방어 VFX·리소스/사운드·UI_Base 바인딩을 경계로 대체했다. 실제 GameManager.LateUpdate/Player 입력 Submit·터치, 실제 씬 언로드·화면 해상도/폰트 시각 확인, 운영 카탈로그/번들, Android/기기는 미검증. 객체 Destroy 검사를 실제 씬 전환 전체 검사로 설명하지 않는다.
+- 직접 확인1: Tools > Play From Title 해제 → MainTestScene Play → CombatUI의 CombatPopupController 메뉴 `테스트/경험치 13 획득`. 새 판에서 Lv2/잔여XP0으로 카드가 자동으로 열려야 한다. 카드 본문 선택 → 창 닫힘/전투 재개 → 일시정지 → 스탯 오른쪽 검정색 `Lv.2` 및 보유 스킬 등록 확인. 새 스킬은 자동 장착되지 않으며 클릭 장착 후 N_Attack/Enter로 사용한다.
+- 직접 확인2: Play를 재시작하고 같은 메뉴 `테스트/경험치 30 획득 (연속 레벨업)` → Lv3/잔여XP2/요구17, 두 번 선택해야 한다. 첫 선택 뒤 전투가 재개되면 안 되고 마지막 선택 뒤 재개되어야 한다. 보유창을 채운 뒤 같은 메뉴로 가득 참 확인의 연속 처리도 확인한다. `테스트/카드 소진 안내`는 기존 수동 표시 확인용이다. 실제 보석은 현재 Inspector 경험치량이 양수인 기존 보석으로 회수→자동 표시를 확인한다(시각별 rawXP/풀링은 다음 단계).
+- 오류 확인: Console 첫 오류 전체, CombatPopupController의 Status Player/두 Popup/ContentRoot/버튼과 PlayerData 연결, Player의 EXP Slider, 보석 experienceAmount 양수 여부를 확인한다. 레벨 글씨는 가로가 좁은 해상도와 Lv100까지 잘리는지 직접 확인한다. 스킬 후보 이상은 기존 엑셀/JSON 불일치와 Skill_Rarity 설정도 확인한다.
+- 다음 우선순위: 실제 씬 수동 확인 후 **3단계 처치→보석→회수(생성 시 rawXP 스냅샷/기존 Managers.Pool/획득1회/재사용 초기화)**. 이어 단일 진행 시계·30초 스폰 예산·18분 일반스폰 중단·성장 보정/소수carry·관측을 진행한다. 첫 두 단계와 카드 UI/획득을 다시 만들지 않는다. 설계/실행 기록은 `docs/superpowers/plans/2026-11-05-player-experience.md`.
+
 ## 2026-11-05 Player·Boss Capsule Collider 2D 교체 호환성
 
 - 요청: 사용자가 Player·Boss의 Box를 Capsule로 교체하기 전 호환성을 확인하고 장애 코드 수정. 실제 콜라이더 크기·방향·씬·프리팹 교체는 하지 않았다. 시작 상태 `main` / `9d740cc`, 직전 EnemyMvp·ZombieHound Trigger 및 문서 변경을 모두 보존했다.

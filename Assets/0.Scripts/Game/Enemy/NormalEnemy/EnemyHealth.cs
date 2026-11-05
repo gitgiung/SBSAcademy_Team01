@@ -19,6 +19,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     [SerializeField] private GameObject experiencePickupPrefab; // 적 사망 시 드랍할 경험치 오브젝트 프리팹. null이면 드랍하지 않음
 
     public float CurrentHealth { get; private set; }
+    public float MaxHealth => Mathf.Max(1f, maxHealth);
     public bool IsDead { get; private set; }
     public int SpawnGeneration { get; private set; }
     public event System.Action Died;
@@ -46,16 +47,16 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         initialized = true;
         CurrentHealth = Mathf.Max(1f, maxHealth);
 
-        // 그림자는 피격 색을 따르지 않습니다.
+        // 그림자와 독립 VFX는 각자의 색을 유지합니다.
         SpriteRenderer[] found = GetComponentsInChildren<SpriteRenderer>(true);
         int visualCount = 0;
         for (int i = 0; i < found.Length; i++)
-            if (!GroundShadow.IsShadow(found[i])) visualCount++;
+            if (!IsExcludedFromHitFlash(found[i])) visualCount++;
         visuals = new SpriteRenderer[visualCount];
         originalColors = new Color[visualCount];
         for (int i = 0, visualIndex = 0; i < found.Length; i++)
         {
-            if (GroundShadow.IsShadow(found[i])) continue;
+            if (IsExcludedFromHitFlash(found[i])) continue;
             visuals[visualIndex] = found[i];
             originalColors[visualIndex] = found[i].color;
             visualIndex++;
@@ -69,6 +70,11 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         follow = GetComponent<EnemyFollow>();
         followEnabled = follow != null && follow.enabled;
         UpdateHealthUI();
+    }
+
+    private static bool IsExcludedFromHitFlash(SpriteRenderer renderer)
+    {
+        return GroundShadow.IsShadow(renderer) || renderer.GetComponent<HitFlashExcluded>() != null;
     }
 
     /// <summary>풀 initialize에서 호출합니다. 최초 Awake보다 먼저 호출돼도 안전합니다.</summary>

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Shows the boss slash arc and dash impact circle on the actual hit shape.</summary>
+/// <summary>Shows boss slash, dash impact and phase-two area attack shapes.</summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(BossController))]
 public sealed class BossAttackHitVfx : MonoBehaviour
@@ -15,10 +15,19 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     [SerializeField] private Material rangeMaterial;
     [SerializeField] private Color rangeColor = new Color(1f, 0.35f, 0.08f, 0.4f);
     [SerializeField, Min(0f)] private float dashDisplayDuration = 0.2f;
+    [Header("테스트용 원형 타격 확산")]
+    [SerializeField] private Sprite areaBurstSprite;
+    [SerializeField] private Color areaBurstColor = Color.red;
+    [SerializeField, Min(0.01f)] private float areaBurstDuration = 0.2f;
 
     private SpriteRenderer bossRenderer;
     private SpriteRenderer slashRenderer;
     private SpriteRenderer dashRenderer;
+    private SpriteRenderer areaRenderer;
+    private SpriteRenderer burstRenderer;
+    private Material burstMaterial;
+    private float burstTimeRemaining;
+    private float burstRadius;
     private MaterialPropertyBlock propertyBlock;
     private Texture2D circleTexture;
     private Sprite circleSprite;
@@ -33,10 +42,19 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         circleSprite = CreateCircleSprite();
         slashRenderer = CreateRenderer("Boss Slash Hit VFX", circleSprite);
         dashRenderer = CreateRenderer("Boss Dash Hit VFX", circleSprite);
+        areaRenderer = CreateRenderer("Boss Area Hit VFX", circleSprite);
+        burstRenderer = CreateRenderer("Boss Area Burst Test VFX", areaBurstSprite);
+        burstRenderer.sortingOrder = bossRenderer != null ? bossRenderer.sortingOrder + 1 : 1;
+        Shader burstShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+        if (burstShader == null) burstShader = Shader.Find("Sprites/Default");
+        if (burstShader != null)
+        {
+            burstMaterial = new Material(burstShader) { name = "Boss Area Burst Test Material" };
+            burstRenderer.sharedMaterial = burstMaterial;
+        }
         if (rangeMaterial == null)
             Debug.LogError("보스 피격 범위 VFX 머티리얼이 없습니다.", this);
-        HideSlash();
-        HideDash();
+        Hide();
     }
 
     public void ShowSlash(Vector2 forward, float radius, float angle)
@@ -56,6 +74,56 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     {
         HideSlash();
         HideDash();
+        HideArea();
+        HideBurst();
+    }
+
+    public void ShowArea(float radius)
+    {
+        if (areaRenderer == null) return;
+        areaRenderer.transform.localPosition = Vector3.zero;
+        Place(areaRenderer, transform.position, Vector2.right, radius, 360f, rangeColor.a);
+        areaRenderer.enabled = true;
+    }
+
+    public void HideArea()
+    {
+        if (areaRenderer != null) areaRenderer.enabled = false;
+    }
+
+    public void ShowAreaBurst(float radius)
+    {
+        if (!isActiveAndEnabled || burstRenderer == null || areaBurstSprite == null || burstMaterial == null) return;
+        burstRadius = Mathf.Max(0f, radius);
+        burstTimeRemaining = Mathf.Max(0.01f, areaBurstDuration);
+        burstRenderer.enabled = true;
+        UpdateBurst();
+    }
+
+    private void UpdateBurst()
+    {
+        if (burstRenderer == null || !burstRenderer.enabled) return;
+        if (burstTimeRemaining <= 0f)
+        {
+            HideBurst();
+            return;
+        }
+        float t = 1f - Mathf.Clamp01(burstTimeRemaining / Mathf.Max(0.01f, areaBurstDuration));
+        float expansion = Mathf.Lerp(0.1f, 1f, 1f - Mathf.Pow(1f - t, 3f));
+        float spriteDiameter = Mathf.Max(areaBurstSprite.bounds.size.x, areaBurstSprite.bounds.size.y);
+        burstRenderer.transform.localPosition = Vector3.zero;
+        burstRenderer.transform.rotation = Quaternion.identity;
+        burstRenderer.transform.localScale = BossAttackHitVfxShape.LocalScale(
+            burstRadius * expansion / Mathf.Max(0.0001f, spriteDiameter), transform.lossyScale);
+        Color color = areaBurstColor;
+        color.a *= 1f - t;
+        burstRenderer.color = color;
+    }
+
+    private void HideBurst()
+    {
+        burstTimeRemaining = 0f;
+        if (burstRenderer != null) burstRenderer.enabled = false;
     }
 
     public void ShowDashImpact(Vector2 center, float radius)
@@ -70,6 +138,8 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     private void LateUpdate()
     {
+        burstTimeRemaining -= Time.deltaTime;
+        UpdateBurst();
         if (dashRenderer == null || !dashRenderer.enabled) return;
 
         dashTimeRemaining -= Time.deltaTime;
@@ -86,8 +156,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     private void OnDisable()
     {
-        HideSlash();
-        HideDash();
+        Hide();
     }
 
     private void OnDestroy()
@@ -95,12 +164,14 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         if (!Application.isPlaying) return;
         if (circleSprite != null) Destroy(circleSprite);
         if (circleTexture != null) Destroy(circleTexture);
+        if (burstMaterial != null) Destroy(burstMaterial);
     }
 
     private void OnValidate()
     {
         dashDisplayDuration = Mathf.Max(0f, dashDisplayDuration);
         rangeColor.a = Mathf.Clamp01(rangeColor.a);
+        areaBurstDuration = Mathf.Max(0.01f, areaBurstDuration);
     }
 
     private SpriteRenderer CreateRenderer(string objectName, Sprite sprite)
@@ -112,6 +183,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         visual.transform.localScale = Vector3.one;
 
         SpriteRenderer renderer = visual.AddComponent<SpriteRenderer>();
+        visual.AddComponent<HitFlashExcluded>();
         renderer.sprite = sprite;
         renderer.sharedMaterial = rangeMaterial;
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

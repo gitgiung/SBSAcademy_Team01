@@ -720,3 +720,165 @@
 - 실행한 Unity 테스트: 0개. 설정 파일 검사만 수행했으며 Unity 재임포트, 화면 표시, 빌드와 기기는 검증하지 않음.
 - 다음 확인: Unity로 돌아가 자동 임포트 완료 후 Project → Assets/2.Resources에서 스프라이트 선택 → Inspector → Filter Mode가 `Point (no filter)`인지 확인. 이전 값이 보이면 해당 에셋 우클릭 → Reimport 후 Console의 임포트 오류 확인.
 - 이번 작업에서 씬, 프리팹, 코드, Project Settings, 패키지는 변경하지 않음.
+
+## 2026-11-05 Beast Boss 애니메이션 연결 조사
+
+- 요청은 연결되지 않은 애니메이션 확인이며 런타임/클립/컨트롤러/씬은 수정하지 않았다. 실제 상태 BossRevise / 5d34dad. 시작 때 수정된 AllIn1SpriteShaderLit.shader·LitTransparent.shader를 보존했다.
+- BossMvp의 Animator는 Beast_Zombie_Boss/Animator/Boss.controller를 참조한다. idle·move·swipe·swipe-left·body-charge 클립은 컨트롤러에 참조가 있다. 할퀴기 16상태는 BossController의 Animator.Play 직접 호출로 진입하며 화살표 부재만으로 미연결로 판단하지 않는다. 돌진은 body-charge → body-charge-loop 전환과 코드의 BossIdle 복귀가 있다.
+- 미사용 원본 이미지: Idle/animations/run 64장, sprint 64장, swipe-both 64장은 Beast Boss 아래 .anim에서 GUID 참조 0개. 각 동작 전용 상태도 현재 Boss.controller에 없다. BossIdle.anim은 컨트롤러 참조가 없는 옛 단일 이미지 클립이며 실제 BossIdle 상태는 방향별 BlendTree를 사용한다.
+- swipe 일부 방향은 Animator/FrameSources의 대체 이미지를 사용하므로 원본 이미지 참조 0을 공격 연결 누락으로 해석하지 않는다. idle 일부 원본 프레임도 대체 GUID를 사용하며 이번에는 화면 품질을 판정하지 않았다.
+- 검증은 에셋 텍스트·GUID·코드 호출 대조만 수행. 실행 테스트 0개, Unity 재생/컴파일 미실행. 다음은 사용자가 run/sprint/swipe-both를 어떤 패턴에 사용할지 정한 뒤 필요한 연결 작업. 자동으로 패턴을 추가하지 않았다.
+- 직접 확인: Project → Beast_Zombie_Boss/Animator/Boss.controller → Animator에서 BossIdle/BossWalk의 BlendTree, 할퀴기 16상태와 body-charge 두 상태 확인. Idle/animations의 run/sprint/swipe-both는 이미지가 있어도 현재 전용 재생 상태가 없는 것이 조사 결과다. 플레이 검증 시 Tools > Play From Title 해제 → MainTestScene에서 보스 추적/할퀴기/돌진 확인. 이상 시 Console 첫 오류, BossMvp 및 씬 인스턴스 Animator Controller와 Overrides 확인.
+
+## 2026-11-05 Beast Boss 미사용 동작 클립·상태 추가
+
+- 사용자 요청에 따라 run/sprint/swipe-both의 8방향 원본을 사용하는 .anim 24개와 meta를 추가했다. 기존 BossWalk의 12fps 형식을 기준으로 8프레임, 길이 약 0.667초. run/sprint는 반복, swipe-both는 비반복이다. 기존 클립·meta GUID는 유지했다.
+- Boss.controller에 BossRun/BossSprint/BossSwipeBoth와 FacingX/FacingY 방향 BlendTree 3개를 추가했다. BossSwipeBoth는 종료 시 기존 BossIdle로 복귀한다. 기존 기본 상태·파라미터·전이·런타임 패턴/피해/이동 속도는 변경하지 않았다. 새 상태는 재생 가능하도록 등록한 단계이며 기존 BossController가 자동 호출하지 않는다. 양손 공격 피해 이벤트는 임의로 추가하지 않았다.
+- 정적 검증: 새 24클립의 컨트롤러 참조, 원본 192프레임 GUID/fileID 일치, 각 클립 9키(끝 유지 키 포함), 컨트롤러 YAML 객체 ID 중복 없음 확인. Unity 컴파일/임포트/실행 테스트 0개. 씬·BossMvp 프리팹 사용자 변경 및 셰이더 사용자 변경을 보존했다.
+- 직접 확인: Unity 임포트 완료 → Console 첫 오류 확인 → Project에서 Beast_Zombie_Boss/Animator/Boss.controller 열기 → BossRun/BossSprint/BossSwipeBoth 더블클릭 → Inspector BlendTree Preview에서 FacingX/FacingY를 (1,0), (0,1), (-1,0), (0,-1) 및 대각선으로 바꿔 방향별 클립 확인. Run/Sprint는 반복, SwipeBoth는 비반복이어야 한다. 새 동작은 기존 플레이 패턴에서 자동 발동하지 않는다. Missing이면 Console 첫 오류와 클립 Sprite 참조 확인. 다음 작업은 각 동작의 실제 사용 패턴을 정한 뒤 코드 진입·이탈/공격 판정을 연결하는 것이다.
+
+## 2026-11-05 Idle West/NorthWest Missing Sprite 修正
+
+- 사용자 지적대로 BossIdle_West의 0·1프레임과 BossIdle_NorthWest의 2프레임은 프로젝트에 존재하지 않는 GUID를 참조했다. 이전 조사에서 대체 이미지 참조로 추정한 설명을 정정한다. PNG는 존재하며 클립 연결이 깨진 상태였다.
+- 해당 3개 참조를 현재 idle/west 및 idle/north-west PNG meta의 GUID와 실제 Sprite fileID로 교체했다. 커브와 pptrCurveMapping 양쪽을 수정했다. 이미지·meta·클립 GUID·재생 타이밍·씬/프리팹 사용자 변경은 보존했다.
+- 정적 검증: 두 클립 8/8 프레임 키와 바인딩 매핑이 원본 Sprite GUID/fileID와 일치. Unity 실행 테스트 0개, 임포트·화면 미검증.
+- 직접 확인: Unity 임포트 완료 → 보스 선택 → Window > Animation > Animation → BossIdle_West와 BossIdle_NorthWest 선택 → 4개 Sprite 키에 Missing이 없고 Preview 재생 중 사라지는 프레임이 없어야 한다. 남으면 Console 첫 오류, 해당 클립 Reimport, 현재 선택 객체의 Animator Controller를 확인한다.
+
+## 2026-11-05 West/NorthWest Sprite 미생성 원인 수정 및 실제 에디터 확인
+
+- 사용자 재보고로 재조사. 앞선 GUID 수정만으로는 불충분했다. 실제 PNG 8장(west/north-west 각 4장)은 96×95인데 meta의 Sprite rect가 96×96이었다. 열려 있는 Unity에서 강제 임포트 시 rect가 이미지 밖이라 Sprite가 생성되지 않는 경고와 LoadAllAssetsAtPath Sprite 부재를 재현했다.
+- 해당 8개 meta의 Sprite rect height만 96 → 95로 수정했다. 이미지·GUID·Sprite internalID는 유지했다. 임시 Editor 도구로 원본을 강제 재임포트하고 실제 Sprite 객체를 두 Idle 클립의 키에 할당해 해당 클립만 저장했다. 도구와 자동 생성 meta는 검증 후 제거했다. 씬·프리팹·셰이더 사용자 변경은 보존했다.
+- 실제 검증: 실행 중 Unity 6000.5.0f1에서 임시 도구 컴파일/실행 완료, 두 클립 8/8 키가 null이 아닌 imported Sprite임을 AnimationUtility.GetObjectReferenceCurve로 확인. 정적 PNG 경계 검사 8/8 통과. 실행 PlayMode 테스트 0개, 화면 재생 미검증. 결과 .utmp/BossIdleWestRepair/result.txt는 생성물이며 영속 근거는 이 기록과 meta/클립 변경이다.
+- 직접 확인: Project에서 BossIdle_West 선택 → Animation 창에서 Preview → 4개 키에 Sprite가 있고 보스가 사라지는 구간이 없어야 한다. BossIdle_NorthWest도 동일. 안 보이면 Console 첫 오류와 Preview 대상 SpriteRenderer/Animator를 확인한다. 이전 Sprite 영역 오류 로그는 수정 전 재현 기록이다.
+
+## 2026-11-05 그림자 크기·발밑 위치 고정
+
+- 사용자 요청에 따라 GroundShadow의 크기/발밑 위치 계산을 최초 유효 Sprite 배치 때 한 번만 수행하도록 변경했다. 이후 애니메이션 Sprite 변경 때 재계산하지 않고 부모 자식 Transform으로 이동을 따라간다. 최초 크기는 기존 WidthRatio/HeightRatio/FootOverlap 규칙을 유지하므로 캐릭터별 시작 크기를 보존한다. 같은 몸에 Attach 재호출·풀 재활성화에도 고정을 유지한다. 몸 Renderer가 달라지면 다시 초기화한다. 캐릭터 자체 Transform 스케일 변경은 그림자에도 적용된다.
+- 회귀 소스: GroundShadowTests.AttackSpriteDoesNotResizeOrMoveShadow 추가. 공격용 큰 Sprite 교체 후 크기·발밑 오프셋 유지, 캐릭터 이동 추종, Attach 재호출 후 크기 유지를 확인한다.
+- 실제 검증: 열려 있는 Unity 6000.5.0f1의 임시 Editor 검증 도구로 수정 전 FAIL(attack resized shadow) 재현 → 수정 후 PASS(크기/오프셋 유지·이동 추종·재연결 유지). 원본 프로젝트 C# 재컴파일 완료 후 도구 실행. NUnit 러너 실행은 0개이며 위 결과는 Editor 회귀 검증 1건이다. 임시 도구와 meta는 제거했다. 기존 패키지 HDRP-Editor-ref.asmref 참조 경고는 남아 있다. 결과 .utmp/GroundShadowFixed/result.txt는 생성물이다.
+- 사용자 씬·프리팹·애니메이션·meta·셰이더 변경은 보존했다. 이번에는 GroundShadow 런타임·회귀 테스트·이 문서만 영속 변경. 실제 보스 애니메이션 화면/PlayMode/기기 검증은 미실행.
+- 직접 확인: 컴파일 완료 후 기존 Play를 종료하고 다시 시작 → Tools > Play From Title 해제 → MainTestScene에서 보스 추적·할퀴기·돌진 확인. 그림자는 처음 크기를 유지하며 발밑을 따라가고 공격 때 넓어지지 않아야 한다. 플레이어/일반 적도 동일. 이상 시 Console 첫 오류, Ground Shadow 중복 여부, 부모 Transform 스케일, 최초 스프라이트 상태를 확인한다. 시작 크기 자체의 미세 조정은 별도다.
+
+## 2026-11-05 보스 공격 범위 VFX 피격 반짝임 제외
+
+- 사용자 승인에 따라 Combat.Runtime에 HitFlashExcluded 표식 컴포넌트를 추가하고 BossAttackHitVfx가 생성하는 할퀴기/돌진 SpriteRenderer 오브젝트에 붙였다. EnemyHealth는 색 수집 때 기존 GroundShadow와 이 표식을 제외한다. 따라서 Flash/RestoreColors/재스폰 색 복원은 몸 렌더러만 처리하고 VFX의 Range Color/알파를 덮어쓰지 않는다. 기존 어셈블리 참조 방향과 씬·프리팹은 변경하지 않았다.
+- 회귀 소스 HitFlashExclusionTests 추가: 몸의 흰색 반짝임·원래 색 복원 유지, 제외 VFX의 RGBA가 반짝임·복원·재스폰 동안 유지되는지 확인한다.
+- 수정 전 열린 에디터의 임시 검증 도구에서 FAIL: VFX color overwritten by flash를 재현했다. 중단 후 사용자가 검증은 직접 하겠다고 했으므로 수정 후 Unity 실행·테스트 검증은 수행하지 않았다. 임시 Editor 검증 도구 및 meta는 제거했고 영속 회귀 테스트 소스는 유지했다. 코드 diff 공백 검사만 수행했다.
+- 직접 확인: 기존 Play 종료 → 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 보스 할퀴기 중 플레이어 공격으로 보스를 피격. 몸만 잠시 흰색이고 부채꼴은 설정한 Range Color와 투명도를 유지해야 한다. 돌진 충돌 원도 유지되는지 확인한다. 다음 공격과 재스폰 후에도 확인. 이상 시 Console 첫 오류, 생성된 Boss Slash/Dash Hit VFX의 HitFlashExcluded 컴포넌트, Range Material 연결 확인. Range Color Inspector 값 자체 변경이나 Glow 과다 노출은 이번 수정과 별개다.
+
+## 2026-11-05 Beast Boss 2페이즈 진입 로그
+
+- 사용자 요청의 Boss 페이지를 현재 Beast Boss의 페이즈로 해석해 BossController.CurrentPhase(초기 1)를 추가했다. 생존 중 현재 HP가 전체 최대 HP의 50% 이하이면 2로 전환하고 요청 문구 `2페이지 돌입!`을 한 번 출력한다. 공격 패턴·속도·애니메이션·피해·UI는 변경하지 않았다.
+- EnemyHealth에 읽기 전용 MaxHealth를 노출해 진입 시점의 남은 HP가 아니라 실제 최대 HP를 기준으로 판정한다. SpawnGeneration 변경 시 1페이즈로 초기화하므로 풀 재스폰에 대응하며 단순 disable/enable만으로 로그를 반복하지 않는다. 사망 타격으로 즉사한 경우에는 페이즈 로그를 출력하지 않는다. HordeLordBoss의 기존 별도 페이즈 로직은 변경하지 않았다.
+- 검증: diff 공백 검사만 수행. 사용자 요청대로 Unity 실행/컴파일/자동 테스트는 수행하지 않았으며 새 테스트 결과 0개. 기존 변경 모두 보존.
+- 직접 확인: 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → Beast Boss 체력을 줄인다. 최대 HP의 50%를 초과할 때 로그가 없어야 하며 정확히 절반 또는 그 이하가 되는 첫 프레임에 Console `2페이지 돌입!` 한 번. 추가 피격에도 반복되지 않아야 한다. 실제 풀 재스폰 시 다시 1페이즈부터 시작. 오류 시 Console 첫 오류, BossController 활성/EnemyHealth MaxHealth와 CurrentHealth 확인. 2페이즈 패턴은 아직 추가하지 않았다.
+
+## 2026-11-05 2페이즈 패턴 1·2 사이 원형 공격 추가
+
+- 최종 사용자 정정: 패턴 1 대체가 아니라 패턴 1 → 조건부 추가 원형 공격 → 패턴 2(오른손/왼손) → 패턴 1이다. 보스 중심·반경 8·애니메이션 없음·기본 대기 0.8초(Inspector 변경 가능), 기존 돌진 종료 반경 3은 유지하도록 승인받았다.
+- BossController에 phaseTwoAreaDistance(4,14), phaseTwoAreaRadius(8), phaseTwoAreaDelay(0.8)를 추가했다. 패턴 1 종료 후 기존 pattern1ToPattern2Delay를 기다린 다음 선택 시점에 거리를 한 번 확인한다. 2페이즈이고 거리 >4 && <=14이면 BossPattern.PhaseTwoArea를 1회 삽입한다. 조건 불충족이면 건너뛰고 기존 일반/돌진 거리 선택으로 돌아간다. 추가 공격 자체는 nextNormalPattern을 바꾸지 않으므로 이후 근거리에서 패턴 2를 이어간다. 원거리 돌진도 기존 일반 패턴 순서를 보존한다.
+- 원형 공격 동안 EnemyFollow를 잠시 중지하고 게임 시간 0.8초 후 현재 Rigidbody2D 보스 위치에서 판정한다. 애니메이션·애니메이션 이벤트를 새로 호출하지 않는다. 기존 ShowDashImpact를 반경 8로 호출해 타격 시점에만 원을 표시한다. 피해 수신자별 1회 적용을 기존 돌진과 공통 ApplyCircleDamage로 분리했다. 피해량은 현재 damage(사용자가 추가한 2페이즈 배수 포함)를 사용한다. 일시정지 시 대기 시간도 멈춘다. 사망/비활성화/타깃 소멸 시 늦은 피해를 막고 추적 복원은 기존 생존 가드를 따른다.
+- 선택 거리 4~14와 실제 피해 반경 8은 서로 다르므로, 선택 시점에 8~14에 있던 플레이어는 공격 시 반경 밖이면 피해를 받지 않는다. 이는 승인 수치를 그대로 적용한 결과다. 기존 BossPatternRangeView/Gizmo는 기본 패턴 디버그 표시를 유지하며 새 원형 공격의 사전 경고는 추가하지 않았다.
+- 사용자 변경인 Multiple2·damage/follow.moveSpeed 배수·기존 Inspector 수치·씬/프리팹/애니메이션 변경은 보존했다. 이번 변경은 BossController/BossPattern/인수인계뿐이다. 사용자 요청대로 Unity 컴파일/플레이/자동 테스트는 실행하지 않았다. diff 공백 검사 통과, 새 실행 테스트 0개.
+- 직접 확인: Play 종료 → 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → Boss HP 50% 이하로 2페이즈 진입 → 패턴 1 한 번 할퀴기 후 다음 선택 시점에 플레이어 거리를 4 초과~14로 유지. 보스가 멈춰 0.8초 후 보스 중심에 반경 8 원 표시/피해, 근거리 복귀 후 패턴 2의 두 번 할퀴기, 다음은 패턴 1이어야 한다. Inspector의 2페이즈 추가 원형 공격/Phase Two Area Delay로 시간 변경 확인. 1페이즈·거리4이하·14초과에는 추가 공격이 없어야 하고 기존 돌진 반경은 그대로여야 한다. 이상 시 Console 첫 오류, CurrentPhase/다음 패턴 시점의 거리, BossController의 새 거리·반경·대기값, Range Material과 BossAttackHitVfx 연결을 확인한다.
+
+## 2026-11-05 BossPatternRangeView 2페이즈 범위 연계·Scene 조절
+
+- 사용자 요청에 따라 BossPatternRangeView에 추가 원형 공격 전용 Mesh/Renderer와 최소·최대 발동 거리 선을 연결했다. PhaseTwoArea의 대기 구간 동안 보스 중심에 실제 PhaseTwoAreaRadius의 원을 표시한다. 반경 변경 시 메시를 갱신한다. 거리 선은 2페이즈부터 표시하며 추가 공격 중 이전 할퀴기 잔류 범위는 숨긴다. showInGameRanges와 컴포넌트 비활성화 시 표시를 숨기고 새 메시도 파괴 시 정리한다.
+- BossController의 원형 반경·발동 거리 읽기 전용 프로퍼티를 추가했다. 값의 소유권은 BossController에 유지하고 씬·프리팹은 자동 저장하지 않았다.
+- Scene 비재생 미리보기: BossPatternRangeView의 Show Scene Area Range가 켜져 있고 보스를 선택하면 Gizmos로 피해 반경 주황색, 발동 최소/최대 거리 청록색 원을 표시한다. 새 Assets/Editor/BossPatternRangeViewEditor는 Inspector는 기본 표시를 유지하고 OnSceneGUI의 슬라이더 핸들로 보스 오른쪽(반경), 왼쪽(최소 거리), 위쪽(최대 거리)을 조절한다. SerializedObject/Property로 BossController 실제 설정을 수정해 Undo/Redo 및 프리팹 Overrides를 지원한다. EditMode용 임시 GameObject/Material/Mesh 생성은 하지 않는다.
+- 검증은 diff 공백 검사만 통과. 사용자 요청대로 Unity 실행/컴파일/자동 테스트 미실행, 실행 테스트 0개. UI 핸들·Undo·실제 게임 화면 확인은 사용자에게 남긴다. 기존 사용자 변경 모두 보존.
+- 직접 확인: Play 종료·컴파일 완료 → MainTestScene의 BossMvp 선택(아직 없으면 BossMvp 프리팹 모드) → Scene 뷰 Gizmos 켜기 → BossPatternRangeView의 Show Scene Area Range 켜기 → 주황/청록 원과 3개 라벨 핸들 확인. 오른쪽 주황 핸들을 드래그하면 BossController > 2페이즈 추가 원형 공격 > Phase Two Area Radius와 원 크기가 같이 바뀌어야 한다. 왼쪽/위쪽 청록 핸들로 거리 X/Y 변경 후 Ctrl+Z 복원 확인. 대기 시간은 BossController의 Phase Two Area Delay에서 변경한다. Play 중에는 HP 절반 이하 → 패턴 1 이후 거리 조건 충족 시 추가 원형 공격 대기 구간의 원 표시를 확인한다. Play 중 값은 종료 시 돌아가므로 영속 조절은 EditMode에서 저장한다. 안 보이면 Console 첫 오류, Gizmos/컴포넌트 토글/선택 여부, Show In Game Ranges, RangeView의 부착 여부를 확인한다.
+
+## 2026-11-05 2페이즈 원형 공격을 독립 조건부 특수패턴으로 변경
+
+- 사용자 정정에 따라 패턴 1·2 사이 삽입 예약(areaAttackPending)을 제거했다. SelectAvailablePattern에서 거리 기반 특수패턴으로 직접 선택한다. 우선순위는 돌진 거리 조건 → 2페이즈 원형 거리 조건(기본 >4 && <=14) → 근거리 일반 패턴 → 추적이다. Inspector에서 거리 조건이 겹치면 기존 돌진을 우선한다.
+- 원형 특수패턴은 nextNormalPattern을 변경하지 않아 기존 패턴 1/2 교대 순서를 보존한다. 진행 중인 공격은 중단하지 않고 기존 nextPatternTime 대기가 끝난 다음 선택한다. 특수패턴 종료 후 별도 쿨타임을 임의로 추가하지 않았으므로 거리 조건이 계속 맞으면 원형 공격을 연속 선택할 수 있다(매번 기존 0.8초 대기). 반경8·보스중심·애니메이션 없음·Inspector 대기 조정 및 BossPatternRangeView/Scene 핸들 연계는 유지했다.
+- 변경 파일은 BossController와 이 기록이다. 씬/프리팹 등 기존 변경을 보존했다. diff 공백 검사 통과. 사용자 요청대로 Unity 실행·컴파일·자동 테스트 미실행, 새 실행 테스트 0개.
+- 직접 확인: Play 재시작 → MainTestScene → 보스 2페이즈 → 거리 4 초과~14에서 패턴 1/2 차례와 무관하게 원형 특수패턴 선택 확인. 보스 중심에서 설정 대기 후 반경8 피해/범위 표시가 있어야 한다. 근거리 복귀 시 보류 중이던 일반 패턴을 이어가고 원거리에서는 기존 돌진이 나와야 한다. 거리 유지 시 연속 원형 공격은 현재 의도된 조건 선택 결과다. 안 나오면 Console 첫 오류, CurrentPhase, Inspector의 Phase Two Area Distance와 Special Pattern Distance 중복, 기존 일반 패턴 대기시간을 확인한다.
+
+## 2026-11-05 원형 특수패턴 후 일반 패턴 강제 진행·내부 쿨타임
+
+- 사용자 요청에 따라 원형 공격 종료 후 nextNormalPattern을 패턴1로 지정하고 areaFollowupPending 동안 추적/근거리 패턴1→기존 간격→패턴2를 먼저 완료하도록 변경했다. 이 구간에는 돌진·원형 특수패턴이 끼어들지 않는다. 패턴2 종료 후 기존 패턴2→1 간격을 거쳐 특수패턴 거리 선택을 다시 허용한다. 기존 돌진 종료 처리 자체는 변경하지 않았다.
+- 사용자 지정 내부 쿨타임 3초를 phaseTwoAreaCooldown(Inspector 변경 가능)으로 추가했다. 원형 공격 종료부터 Time.time으로 계산한다. 일반 패턴1·2 완료와 쿨타임 만료를 모두 만족해야 원형 공격을 재사용한다. 일시정지 중에는 쿨타임도 멈춘다. SpawnGeneration 변경 때 재사용 시간과 후속 일반 패턴 가드를 초기화한다.
+- 반경8/대기0.8/거리 조건/Scene 핸들·RangeView는 그대로 유지한다. 씬·프리팹·사용자 배수 변경은 보존했다. 이번 변경은 BossController/인수인계만이다. diff 공백 검사 통과. 사용자 요청대로 Unity 실행·컴파일·자동 테스트 미실행, 실행 테스트0개.
+- 직접 확인: Play 재시작 → MainTestScene → 2페이즈·원형 공격 거리 조건 충족 → 원형 공격 후 보스가 추적하여 근거리 패턴1 한 번·패턴2 두 번을 수행하고 나서야 특수패턴을 다시 선택하는지 확인한다. Inspector > 2페이즈 원형 특수패턴 > Phase Two Area Cooldown 기본3초, 늘려 재사용 제한 확인. 거리를 계속 벌리면 근거리 일반 패턴 완료까지 추적하며 특수패턴이 반복되지 않아야 한다. 오류 시 Console 첫 오류, 가까운 거리 도달/장애물 여부, 패턴 간격/쿨타임, 새 필드에 0 등의 씬 인스턴스 값이 저장되어 있는지 확인한다.
+
+## 2026-11-05 원형 특수패턴 표시 수명 정리
+
+- 사용자 최종 지시는 잠깐 타격 표시가 아니라 패턴 시작 때 범위를 보여주고 패턴 종료 때 즉시 숨기는 것이다. BossPatternRangeView의 areaRenderer.enabled = ActivePattern == PhaseTwoArea를 유지해 대기 시작부터 피해 적용/종료까지 보스 중심의 실제 원형 반경을 표시한다.
+- PerformPhaseTwoAreaAttack에서 ShowDashImpact 호출을 제거해 종료 후 0.2초 추가로 남는 원형 VFX를 없앴다. 기존 돌진 타격 VFX는 그대로 유지한다. 새로 추가했던 게임 중 발동 최소/최대 거리 선은 제거해 원형 특수패턴에는 실제 피해 원만 표시한다. Scene 뷰 Gizmos/핸들의 최소·최대 거리 및 반경 편집은 유지한다. 기존 일반 근접/돌진 디버그 거리 선은 변경하지 않았다.
+- 쿨타임3초·피해반경8·대기0.8·원형 후 일반1/2 진행은 유지. 사용자 씬/프리팹 등 보존. diff 공백 검사만 수행했고 사용자 요청대로 Unity 실행/컴파일/자동 테스트 미실행(실행 테스트0개).
+- 직접 확인: Play 재시작 → MainTestScene → 2페이즈 원형 특수패턴 발동. 패턴 시작과 동시에 보스 중심 원이 나타나고 0.8초 후 피해 적용/종료 시 사라져야 한다. 종료 뒤 발광 원이 더 남지 않아야 한다. 표시가 없으면 BossPatternRangeView 활성과 Show In Game Ranges, Console 첫 오류를 확인한다. Scene의 선택 Gizmos는 편집용이며 게임 표시 수명과 별개다.
+
+## 2026-11-05 원형 특수패턴 인게임 표시를 BossAttackHitVfx로 이전
+
+- 사용자 요청에 따라 원형 특수패턴의 인게임 표시 책임을 BossPatternRangeView의 디버그 MeshRenderer에서 BossAttackHitVfx의 전용 Boss Area Hit VFX SpriteRenderer로 옮겼다. 기존 CreateCircleSprite/CreateRenderer/Place를 재사용해 Range Material/Range Color/Glow/Radial 360도 설정을 할퀴기와 통일했다. 전용 렌더러도 HitFlashExcluded 표식을 받으며 같은 Sprite/Texture를 공유한다.
+- BossAttackHitVfx.ShowArea/HideArea를 추가했다. BossController가 원형 공격 시작 때 ShowArea를 호출하고 finally에서 HideArea를 호출한다. Hide/OnDisable에도 포함해 중단·사망·비활성화 시 숨긴다. 반경은 공격 시작 때 한 번 저장해 표시와 실제 타격 판정에 같은 값을 사용한다. 보스 자식으로 움직임을 따라간다. 종료 후 지연 페이드나 타격 잔류 원은 추가하지 않았다.
+- BossPatternRangeView에서 원형 공격의 인게임 메시 생성/표시/정리를 제거해 중복 표시를 없앴다. 기존 할퀴기·돌진 디버그 표시 및 원형 공격의 Scene Gizmos/편집 핸들은 유지했다. Show In Game Ranges가 꺼져 있어도 새 원형 VFX는 표시된다. 반경/거리/대기/쿨타임은 기존처럼 BossController에서 설정한다. 기존 머티리얼/씬/프리팹/meta를 수정하지 않았다.
+- diff 공백 검사 통과. 사용자 요청대로 Unity 실행·컴파일·자동 테스트는 수행하지 않았다(실행 테스트0개). 기존 사용자 변경 모두 보존했다.
+- 직접 확인: Play 종료 → 컴파일 완료 → MainTestScene Play → 2페이즈 원형 특수패턴 발동. BossAttackHitVfx의 Range Color로 보스 중심 원이 시작부터 0.8초 동안 표시되고 피해 적용/종료 시 즉시 사라져야 한다. Show In Game Ranges를 꺼도 동일해야 한다. 범위 중 보스를 타격해도 색이 흰색으로 덮이지 않아야 한다. 원형 후 일반1·2 및 쿨타임3초는 유지. 안 보이면 Console 첫 오류, BossAttackHitVfx 활성/Range Material/Range Color 알파, 생성된 Boss Area Hit VFX 렌더러와 카메라 레이어를 확인한다. Scene Gizmos/핸들의 편집 기능은 별도로 확인한다.
+
+## 2026-11-05 2페이즈 원형 후 돌진 차단 수정
+
+- 사용자 재보고 원인: SelectAvailablePattern의 areaFollowupPending 분기가 돌진 거리 조건보다 앞에 있어 원형 공격 후 일반1/2를 마칠 때까지 원거리에서도 None을 반환했다. 조건 순서로 원인을 확인했으며 Unity 실행 재현은 사용자 요청에 따라 수행하지 않았다.
+- 돌진 거리 검사를 최우선으로 이동했다. 원형 후 일반 패턴 진행 중에도 원거리면 돌진하여 접근할 수 있고, 돌진은 nextNormalPattern/areaFollowupPending을 변경하지 않아 가까워진 뒤 남은 일반1/2를 이어간다. 원형 재사용은 기존 일반1/2 완료·내부 쿨타임3초 조건을 유지한다. 이전 기록의 돌진도 후속 일반 패턴에 끼어들지 않는다는 동작은 이번 수정으로 변경됐다.
+- 회귀 소스 BossAreaFollowupTests 추가: 일반1/2 각각 대기 중 원거리 돌진 허용·일반 순서 보존·중거리 추가 원형 차단·근거리 일반 패턴 선택 확인. 테스트 실행0개, 컴파일/플레이 미실행. diff 공백 검사만 수행했다. 기존 씬/프리팹/사용자 변경 보존.
+- 직접 확인: Play 재시작 → MainTestScene → 2페이즈에서 원형 공격 사용 후 플레이어를 Special Pattern Distance 이상으로 이동. 돌진 시작 로그와 접근이 나와야 하고 가까워지면 일반1/2를 이어가야 한다. 원형은 연속 발동하지 않아야 한다. 안 되면 Console 첫 오류, 기존 패턴 종료/대기 여부, 플레이어와 보스 실제 중심 거리 및 Inspector Special Pattern Distance, 이동 장애물을 확인한다.
+
+## 2026-11-05 BossPatternRangeView를 Scene 전용으로 정리
+
+- 사용자 요청에 따라 BossPatternRangeView의 모든 인게임 표시 코드/설정(showInGameRanges, 선 두께·색·알파·지속시간, Awake/LateUpdate, GameObject·Mesh·Material·Renderer 생성·갱신·해제)을 삭제했다. Scene의 선택 Gizmos와 기존 범위 편집 핸들에 필요한 showSceneAreaRange/프로퍼티만 유지했다.
+- Gizmos 그리기는 UNITY_EDITOR 내부에서 SceneView 카메라일 때만 허용해 Game 뷰의 Gizmos를 켜도 이 스크립트 표시가 나오지 않도록 했다. 컴포넌트를 끄면 Scene Gizmos/편집 핸들도 숨긴다. 실제 할퀴기·돌진·원형 공격 표시는 기존 BossAttackHitVfx가 그대로 담당한다.
+- 씬/프리팹과 GUID/meta는 자동 저장·수정하지 않았다. 기존 YAML에 남은 삭제 필드 값은 Unity가 다음 정상 저장 시 정리하며 더 이상 코드에서 사용하지 않는다. 기존 사용자 변경 보존. diff 공백 검사 통과 및 인게임 생성/갱신 키워드 잔존 없음 확인. 사용자 요청대로 Unity 실행/컴파일/자동 테스트 미실행(실행 테스트0개).
+- 직접 확인: Play 종료·컴파일 완료 → MainTestScene 보스 선택 → Scene Gizmos/Show Scene Area Range 켜기 → 주황 반경/청록 발동 거리 원·편집 핸들 확인. Play 재시작 후 Boss Pattern Range Debug 자식이 생성되지 않고 Game 뷰에 이 스크립트의 상시 거리 선·붉은 디버그 면이 없어야 한다. 실제 공격 때 BAHV 표시는 유지되어야 한다. 오류 시 Console 첫 오류, Scene 선택/토글 여부, BAHV 활성/Range Material/알파 확인. BossController의 별도 기존 편집용 Gizmos는 이번 요청 범위에서 변경하지 않았다.
+
+## 2026-11-05 원형 특수패턴 Sprint 테스트 애니메이션·이벤트 피해
+
+- 사용자 요청에 따라 기존 BossSprint 방향 BlendTree를 원형 공격 테스트 모션으로 연결했다. 기존 원형 준비 시간 phaseTwoAreaDelay(기본0.8초) 후 Base Layer.BossSprint를 한 번 재생한다. 범위는 준비 시작부터 모션 종료까지 BAHV로 표시한다. 방향은 Sprint 재생 중 고정한다. 일반1/2 후속·원형 쿨타임3초·피해반경8·2페이즈 배수는 유지한다.
+- BossSprint_8방향 .anim을 비반복으로 바꾸고 마지막 원본 프레임 시각0.5833333초에 AnimationEvent_ApplyAreaDamage, 클립 끝0.6666667초에 AnimationEvent_AreaAnimationFinished를 추가했다. 피해 시각은 테스트 초기값이며 Animation 창 이벤트로 조절 가능하다. 기존 0.8초는 준비시간으로 남아 피해는 기본 총 약1.383초 이후 발생한다. Animator 속도 변경 시 이벤트 실제 시간도 달라진다.
+- 타이머 직후 직접 피해 경로를 제거했다. 원형 공격 실행 중/생존/활성/현재 패턴 가드와 areaHitApplied로 이벤트 중복 피해를 막는다. 이벤트가 없거나 모션이 중단되면 임의로 피해를 보충하지 않는다. 종료 이벤트·상태 이탈·normalizedTime>=1에 따라 종료하고 StopAreaAnimation에서 Idle 복귀, finally에서 BAHV 숨김/추적 복원한다. 사망/OnDisable에서도 모션을 정리한다. Sprint는 제자리 재생이며 실제 돌진 이동은 추가하지 않았다.
+- BossController와 Sprint 클립8개 및 인수인계만 변경. .anim meta GUID/Animator Controller/씬/프리팹 사용자 변경 보존. 정적 검사8/8: 각 클립 피해 이벤트1개·종료 이벤트1개·비반복 설정 확인, 코드 공백 검사 통과. 사용자 요청대로 Unity 컴파일·재생·테스트 실행 미수행(실행 테스트0개).
+- 직접 확인: Play 종료 → 임포트/컴파일 완료 → MainTestScene → 2페이즈 원형 공격. 범위 표시/0.8초 준비 → Sprint 단발 → 마지막 프레임에서 반경8 내 피해1회 → 종료 시 Idle/범위 숨김/일반1·2 진행 확인. Animation 창 BossSprint_각방향의 이벤트 마커에서 피해 시각을 옮길 수 있다. 한 방향만 바꾸면 방향별 시각이 달라지므로 필요 시8방향 동일하게 조절한다. 오류 시 Console 첫 오류/AnimationEvent 수신 메시지, Animator BossSprint 상태와 Controller 연결, 각 클립 이벤트 이름/Loop Time, 플레이어가 실제 반경 내에 있는지 확인한다.
+
+## 2026-11-05 Sprint 테스트 연결 제거
+
+- 사용자 요청으로 직전 Sprint 시험 연결만 제거했다. 원형 패턴은 다시 BAHV 범위 표시 → phaseTwoAreaDelay(기본0.8초) 대기 → 보스 중심 피해1회 → 범위 숨김/추적 복원으로 동작한다. 원형 전용 애니메이션 상태 검사·재생·종료·피해 이벤트 메서드와 임시 플래그를 제거하고 기존 방향 갱신을 복원했다.
+- BossSprint 8클립의 시험 피해/종료 이벤트를 제거하고 기존 반복 설정으로 복구했다. Sprint 클립/컨트롤러 상태 자체는 유지했다. 범위8·쿨타임3·후속 일반1/2·원거리 돌진 허용·Scene 전용 RangeView는 유지했다.
+- diff 공백 검사 수행. 사용자 요청대로 Unity 실행/컴파일/자동 테스트 미실행(실행 테스트0개). 씬/프리팹/meta 및 기존 사용자 변경 보존.
+- 직접 확인: Play 종료·컴파일 완료 → MainTestScene → 2페이즈 원형 공격. Sprint 없이 범위가 나타나고 기본0.8초 후 피해/범위 종료여야 한다. 문제 시 Console 첫 오류, Phase Two Area Delay와 BAHV 연결 확인.
+
+## 2026-11-05 원형 패턴을 swipe-both 애니메이션으로 시험 연결
+
+- 사용자 요청으로 원형 패턴에 Base Layer.BossSwipeBoth(기존 8방향 BlendTree)를 연결했다. 기존 phaseTwoAreaDelay 기본0.8초 준비 후 양손 할퀴기를 한 번 재생하고, BAHV 원형 범위는 준비 시작부터 모션 종료까지 유지한다. Sprint는 연결하지 않았다.
+- 기존 PlaySlashAnimation에 선택적 useArea 경로를 추가해 일반 할퀴기의 상태 종료/이탈 감지와 추적 중지/복원을 재사용한다. 원형에서는 부채꼴 VFX를 켜지 않고 외부 원형 표시를 유지한다. 공격 중 방향 BlendTree 입력 갱신은 멈춰 방향을 고정한다. 일반 공격은 기존 방식이다.
+- BossSwipeBoth_8방향 비반복 클립에 AnimationEvent_ApplyAreaDamage(마지막 원본 프레임0.5833333초)와 AnimationEvent_AttackAnimationFinished(클립 종료0.6666667초)를 추가했다. 피해는 이벤트에서만 발생하고 활성/현재패턴/중복가드로 한 번만 적용한다. 반경은 패턴 시작 때 저장한 값 사용. 기본 준비시간 포함 피해까지 약1.383초(Animator 속도1 기준)이며 이벤트 마커로 시각 조정 가능하다. 일반 할퀴기 이벤트는 원형 패턴에서 피해를 적용하지 않는다.
+- 쿨타임3초·원형 후 일반1/2·원거리 돌진 우선·Scene 편집 기능은 유지. 씬/프리팹/meta/AnimatorController 사용자 변경은 보존. 정적 이벤트8클립 연결 및 diff 공백 검사 수행. 사용자 요청대로 Unity 컴파일·재생·테스트 실행 미수행(실행 테스트0개).
+- 직접 확인: Play 재시작 → MainTestScene → 2페이즈 원형 발동 → 0.8초 준비 후 swipe-both 단발/범위 유지 → 마지막 원본 프레임 피해1회 → 종료 후 범위 숨김/Idle/일반1·2 진행. Animation 창 BossSwipeBoth_각방향의 ApplyAreaDamage 이벤트를 옮겨 타격 시점 조정 가능. 오류 시 Console 첫 오류/이벤트 수신 오류, Animator BossSwipeBoth 상태·8클립 이벤트·비반복 설정, 실제 반경8 안인지 확인한다.
+
+## 2026-11-05 원형 피해 순간 빨간 ParryFlash 확산 테스트
+
+- 사용자 요청으로 Assets/Resources/PlayerDefenseVfx/ParryFlash_03.png를 Assets/0.Scripts/Game/Enemy/Boss/Test/ParryFlash_03_Red.png로 복제했다. 원본 픽셀/알파는 변경하지 않고 복제본 전체 이미지를 Single Sprite/Point로 임포트하여 BAHV의 빨간 tint로 표시한다. PNG 자체를 다시 그리지 않았으며 Project 미리보기는 원본색이다. 신규 GUID 사용, 원본 meta/GUID 보존.
+- BossAttackHitVfx에 areaBurstSprite/areaBurstColor/areaBurstDuration(기본0.2초), 전용 Boss Area Burst Test VFX 렌더러와 ShowAreaBurst를 추가했다. 보스 프리팹의 기존 BAHV에 복제본 참조와 빨강/지속시간만 최소 추가했다. 피해 이벤트 AnimationEvent_ApplyAreaDamage에서 실제 피해 반경과 같은 activeAreaRadius로 재생한다. 처음 지름10%에서 cubic ease-out으로 목표 지름(반경*2)까지 확장하며 알파를0으로 줄이고 숨긴다. 이미지 전체 Sprite bounds 기준 크기이며 원본 PNG의 투명 여백은 유지된다. 대기용 범위와 별도라 패턴 정상 종료 뒤에도 짧은 확산을 마치며, 전체 Hide/비활성화 때는 정리한다.
+- 신규 효과는 Unlit Sprite 머티리얼을 사용해 기본색 빨강을 유지한다(URP2D Unlit 우선, Sprites/Default 대체). 몸보다 위 sortingOrder, HitFlashExcluded, 기존 Sprite/Texture 재사용. 생성한 전용 Material은 파괴 시 해제한다. Time.deltaTime이므로 일시정지와 함께 정지한다. 피해/쿨타임/기존 Sprite 애니메이션은 변경하지 않았다.
+- 정적 diff 공백 검사 수행. Unity 임포트/컴파일/화면·테스트 실행은 사용자 요청대로 수행하지 않았다(실행 테스트0개). 사용자 기존 프리팹 변경은 유지하면서 새 필드만 추가, 씬 저장 없음. 실제 프로젝트의 원본·복제본 PNG bytes 동일함을 복제 방식으로 보장한다.
+- 직접 확인: Play 종료 → 임포트/컴파일 완료 → BossMvp의 BAHV > 테스트용 원형 타격 확산에서 Area Burst Sprite/Color(빨강)/Duration0.2 확인 → MainTestScene → 2페이즈 원형 공격. swipe-both 피해 순간 보스 중심에서 작은 빨간 링이 빠르게 반경8 크기까지 퍼졌다 사라져야 한다. Duration으로 속도 조절 가능. 원본 패링 그림은 변경되지 않아야 한다. 안 보이면 Console 첫 오류, Boss 인스턴스 BAHV 새 Sprite 참조(씬 Overrides 포함), Color 알파/머티리얼 Shader 및 카메라 레이어 확인. Project 이미지 색은 tint 전 원본색임에 유의한다.
+
+## 2026-11-05 2페이즈 패턴2 중간 대기 제거
+
+- 사용자 정정: 패턴2의 첫 할퀴기 → 두 번째 할퀴기 사이 딜레이를 2페이즈에서 없앤다. 첫 PlaySlashAnimation 종료 후 CurrentPhase>=2이면 doubleSlashInterval 대기를 건너뛰고 왼손 두 번째 할퀴기를 바로 시작하도록 조건만 변경했다. 1페이즈의 기존 Inspector 간격과 패턴1/2 사이 대기시간은 유지했다. 애니메이션 자체 재생시간/후딜 프레임은 잘라내지 않는다.
+- 변경은 BossController 한 조건과 이 기록뿐이며 기존 사용자 변경 보존. diff 공백 검사 통과. Unity 컴파일/재생/자동 테스트는 요청대로 미실행(실행 테스트0개).
+- 직접 확인: Play 재시작 → MainTestScene → 1페이즈 패턴2는 기존 두 타 사이 간격 → HP50% 이하 2페이즈 패턴2는 첫 모션 종료 직후 두 번째 모션 시작 확인. 차이가 없으면 Console 첫 오류, 2페이즈 진입 로그, doubleSlashInterval과 애니메이션 자체 종료 이벤트/후딜 프레임을 확인한다.
+
+## 2026-11-05 2페이즈 패턴2 두 번째 할퀴기 반경1.5배
+
+- 사용자 지정대로 2페이즈 패턴2의 왼손(두 번째) 할퀴기에만 Slash Range의1.5배를 적용했다. 공격 시작 때 activeSlashRange에 범위를 저장하고 BAHV 표시·OverlapCircleAll 후보 조회·중심 거리 필터에 같은 값을 사용한다. Inspector slashRange 자체는 수정하지 않으며 다음 공격 시작 때 다시 기본값으로 초기화한다. 각도·피해·첫 타/1페이즈/원형 공격은 유지했다.
+- 변경은 BossController와 인수인계뿐이며 기존 사용자 변경 보존. diff 공백 검사 통과. Unity 실행/컴파일/자동 테스트는 요청대로 미실행(실행 테스트0개).
+- 직접 확인: Play 재시작 → MainTestScene → 2페이즈 패턴2. 첫 할퀴기는 원래 반경, 종료 직후 두 번째만1.5배 표시/피해 판정이어야 한다(기본값6이면9). 다음 패턴1은 원래 반경으로 돌아와야 한다. 1페이즈 패턴2는 양쪽 같은 기본 범위. 이상 시 Console 첫 오류, CurrentPhase/패턴2 여부와 Slash Range/BAHV 색·머티리얼을 확인한다. Scene의 기본 할퀴기 Gizmo는 기본 slashRange 표시를 유지한다.
+
+## 2026-11-05 2페이즈 진입 직후 원형 패턴1회
+
+- 사용자 요청에 따라 HP50% 이하 최초 2페이즈 진입 때 현재 패턴 코루틴을 중단하고 이전 돌진/할퀴기 플래그·BAHV 표시를 정리한 뒤 원형 패턴을 즉시 선택한다. phaseEntryAreaPending은 일반 패턴 대기/거리/원형 쿨타임/후속 일반 가드보다 우선해 한 번 소비한다. 타깃 없음/비활성·전투 일시정지 때는 대기하며 정상 조건 복귀 후 한 번 실행한다. SpawnGeneration 변경 시 진입 예약을 초기화한다.
+- 즉시 발동은 패턴 시작을 뜻하며 기존0.8초 준비·swipe-both·피해 애니메이션 이벤트는 그대로다. 완료 뒤 일반1/2·쿨타임3초가 그대로 적용되고 이후 원형은 기존 거리 조건으로 선택한다. 사용자가 추가한 2페이즈 배수와 pattern2ToPattern1Delay=1.5 변경을 보존했다.
+- BossController/인수인계만 수정. diff 공백 검사 통과. 사용자 요청대로 Unity 컴파일/플레이/자동 테스트 미실행(실행 테스트0개). 씬/프리팹/기존 사용자 변경 보존.
+- 직접 확인: Play 재시작 → MainTestScene → 보스 HP를 절반 이하로 낮춘다. 2페이지 돌입 로그와 함께 현재 공격/대기를 중단하고 원형 범위가 표시되어야 한다. 거리 조건 밖에서도 진입1회는 발동하되 실제 반경 밖이면 피해는 없어야 한다. 기존 준비 후 swipe-both 타격 이벤트/빨간 확산 → 일반1/2 확인. 추가 피격마다 강제 원형이 반복되지 않아야 한다. 오류 시 Console 첫 오류, 체력/CurrentPhase, 타깃·일시정지 상태, BAHV/Animator 참조 확인.

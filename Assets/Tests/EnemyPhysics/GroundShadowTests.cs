@@ -4,6 +4,38 @@ using UnityEngine;
 public sealed class GroundShadowTests
 {
     [Test]
+    public void AttackSpriteDoesNotResizeOrMoveShadow()
+    {
+        var bodyObject = new GameObject("Shadow Fixed Size Test");
+        var texture = new Texture2D(16, 16);
+        var idle = Sprite.Create(texture, new Rect(0, 0, 4, 8), Vector2.one * 0.5f, 4);
+        var attack = Sprite.Create(texture, new Rect(0, 0, 16, 16), Vector2.one * 0.5f, 4);
+        try
+        {
+            var body = bodyObject.AddComponent<SpriteRenderer>();
+            body.sprite = idle;
+            var shadow = GroundShadow.Attach(body);
+            Vector3 scale = shadow.transform.localScale;
+            Vector3 offset = shadow.transform.localPosition;
+            body.sprite = attack;
+            bodyObject.transform.position = new Vector3(5, 3, 0);
+            shadow.SendMessage("LateUpdate");
+            Assert.AreEqual(scale, shadow.transform.localScale, "Attack must preserve shadow size.");
+            Assert.AreEqual(offset, shadow.transform.localPosition, "Attack must preserve foot offset.");
+            Assert.AreEqual(bodyObject.transform.TransformPoint(offset), shadow.transform.position);
+            GroundShadow.Attach(body);
+            Assert.AreEqual(scale, shadow.transform.localScale, "Reattachment must preserve size.");
+        }
+        finally
+        {
+            Object.DestroyImmediate(bodyObject);
+            Object.DestroyImmediate(idle);
+            Object.DestroyImmediate(attack);
+            Object.DestroyImmediate(texture);
+        }
+    }
+
+    [Test]
     public void FootShadowSitsAcrossTheBottomOfTheBody()
     {
         Bounds body = new Bounds(new Vector3(2f, 5f, 0f), new Vector3(1f, 2f, 0.2f));

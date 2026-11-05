@@ -3,5 +3,6 @@ public enum BossPattern
     None = -1,
     Pattern1 = 0,
     Pattern2 = 1,
-    Pattern3 = 2
+    Pattern3 = 2,
+    PhaseTwoArea = 3
 }

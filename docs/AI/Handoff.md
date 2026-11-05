@@ -1,5 +1,32 @@
 # 작업 인수인계
 
+## 2026-11-05 Player·Boss Capsule Collider 2D 교체 호환성
+
+- 요청: 사용자가 Player·Boss의 Box를 Capsule로 교체하기 전 호환성을 확인하고 장애 코드 수정. 실제 콜라이더 크기·방향·씬·프리팹 교체는 하지 않았다. 시작 상태 `main` / `9d740cc`, 직전 EnemyMvp·ZombieHound Trigger 및 문서 변경을 모두 보존했다.
+- 확인/수정: BossController·HordeLordBoss가 요구하는 EnemyFollow가 BoxCollider2D를 강제하고 있었다. Capsule을 먼저 붙여도 EnemyFollow 추가 시 Box가 자동 추가되는 현상을 Unity에서 재현했다. EnemyFollow의 RequireComponent에서 Box만 제거하고 Rigidbody2D 요구는 유지했다. 기존 일반 적의 Box Trigger·Circle 몸체는 그대로 유지된다. 새 적을 구성할 때는 몸체용 비 Trigger Collider2D를 직접 붙여야 한다.
+- 경로 조사: PlayerMovement의 일반 이동·대시·밀림과 EnemyFollow/Boss 이동은 CollisionMovement2D의 Collider2D.Cast/Distance를 사용한다. Boss 공격·Player 피격/패링·투사체·EnemyHealth도 몸체의 Box 타입을 요구하지 않는다. LightSkillFx의 Circle 참조는 스킬 이펙트 자체 것으로 이번 몸체 교체 대상이 아니다.
+- 회귀 검증 소스: `Assets/Tests/EnemyPhysics/CapsuleColliderCompatibilityTests.cs`(meta 포함). 별도 최소 Unity 6000.5.0f1 프로젝트에서 원본 EnemyFollow·CollisionMovement2D를 복사하고 런타임/테스트 asmdef를 사본에만 생성해 EditMode 실행. 검증 사본의 최초 테스트 구성 오류(Editor 전용 어셈블리에 런타임 컴포넌트를 넣음)를 고친 뒤 수정 전 4/6 통과·2 실패(Box 자동 추가), 수정 후 6/6 통과·실패/생략 0. 세로/가로 Capsule 벽 차단·이탈, Trigger 장애물 통과, Capsule EnemyFollow 이동, 불필요한 Box 부재, 기존 Circle+Box Trigger 이동을 확인했다. 검증한 두 런타임 파일의 SHA-256이 원본과 일치한다. 최종 사본 C# 오류·경고 0, 종료 코드 0. 원본 테스트 asmdef/런타임 어셈블리는 변경하지 않았다.
+- 결과 파일은 `.utmp/CapsuleValidation/green.xml`·`green.log`(생성물/Git 제외). 원본 프로젝트 전체 컴파일·전체 테스트·실제 Player/Boss 애니메이션/패링·씬 플레이·Android/기기는 이번에 검증하지 않았다. 최소 프로젝트 결과를 전체 게임 검증으로 해석하지 않는다.
+- 사용자 교체 순서: Play 종료 → 컴파일 완료 → 기존 Box의 Size·Offset·Material·레이어 설정 기록 → 같은 Rigidbody2D가 있는 Player/Boss 루트에 Capsule Collider 2D 추가 → Is Trigger 끄기 → 크기·오프셋·방향 설정 → 몸체 Box 제거. Boss에 별도 Circle Trigger가 있으면 보존한다. 기존 Rigidbody2D도 보존한다. CollisionMovement2D와 EnemyHealth가 초기화 때 콜라이더를 캐시하므로 실행 도중 교체하지 않는다. 보스는 기본 프리팹뿐 아니라 씬 인스턴스의 Overrides도 확인한다.
+- 직접 검증: Tools > Play From Title 해제 → MainTestScene Play → Player 이동·벽/보스와 접촉·대시 → 보스 등장 후 추적·돌진·할퀴기·E 패링 → 스킬 피격·처치/재스폰 확인. 정상은 몸체 통과 없이 이동하고 피해/패링/사망 처리가 유지되는 것. Capsule의 둥근 끝 때문에 Box와 모서리 접촉 위치는 달라질 수 있다. 몸체를 크게 늘리면 중심 거리 기반 보스 공격 거리 밖에서 막힐 수 있으므로 기존 Size·Offset 기준부터 조정한다. 이상 시 Console 첫 오류, 중복 비 Trigger 몸체, Capsule Is Trigger/활성 상태, Direction·Size·Offset, 레이어 충돌과 Overrides를 확인한다.
+- 다음 작업: 사용자가 실제 Capsule 크기/방향으로 교체한 뒤 위 플레이 검증. 기존 데이터 표 불일치 등 구현 우선순위는 유지한다.
+
+## 2026-11-05 Box 감지·Circle 몸체 역할 적용
+
+- 사용자 요청에 따라 `Assets/1.Prefabs/EnemyMvp.prefab`·`ZombieHound.prefab`의 BoxCollider2D만 `m_IsTrigger: 1`로 변경했다. CircleCollider2D는 `m_IsTrigger: 0` 유지. 크기·오프셋·GUID·파일 ID·meta·씬·런타임 코드는 변경하지 않았다. 직전 조사 문서 변경을 보존했다. 시작 상태는 `main` / `9d740cc`다.
+- 기존 CollisionMovement2D가 Trigger를 이동 검사에서 제외하므로 Circle이 몸체 충돌을 담당한다. EnemyContactDamage는 기존 Trigger/Collision Stay 경로와 공통 피해 간격을 유지한다. 기존 공격 코드는 Collider 타입을 한정하지 않아 Box 외에 Circle도 피격 검색 대상이 된다. Box만 피격 대상으로 강제하는 변경은 하지 않았다. `docs/EnemyMvp.md`의 역할 설명도 현재 설정으로 수정했다.
+- 검증: 두 프리팹의 Box Trigger/Circle 비 Trigger·활성 상태 정적 확인, 프리팹 diff가 각 Is Trigger 한 줄뿐임을 확인. Assets/9.Scenes의 m_IsTrigger 프리팹 오버라이드 검색 0건. Unity 테스트 0개, 컴파일·에디터 임포트·Play 동작 미검증. 신규 테스트 코드 없이 설정을 직접 검사했다.
+- 직접 확인: Unity 임포트 완료 → Project > Assets/1.Prefabs > 각 프리팹 더블클릭 → Box Collider 2D의 Is Trigger 켜짐·Circle은 꺼짐 확인. Tools > Play From Title 해제 → MainTestScene Play → EnemyMvp에 접근해 몸체 통과 방지·접촉 피해·공격 피격 확인. ZombieHound는 테스트 씬에 배치해 같은 순서로 확인한다. 플레이어 쪽 무적/피해 간격도 있으므로 최종 HP 변화 주기를 적의 0.5초 설정만으로 판단하지 않는다. 오류 시 Console 첫 오류·씬 인스턴스 Overrides·콜라이더 활성 상태·플레이어 피해 수신 설정을 확인한다.
+- 남은 작업: 위 실제 플레이 검증. 기존 구현 우선순위·데이터 표 불일치 후속 작업은 유지한다. 아래 조사 섹션의 “둘 다 비 Trigger”는 적용 전 상태 기록이다.
+
+## 2026-11-05 EnemyMvp·ZombieHound 이중 콜라이더 조사
+
+- 시작 상태: `main` / `9d740cc`, 작업 트리 깨끗함. 조사만 요청받아 코드·프리팹·씬은 변경하지 않았다.
+- 원래 역할은 CircleCollider2D의 공격/접촉 감지 Trigger와 BoxCollider2D의 몸체 충돌 분리다(`docs/EnemyMvp.md:19`, 최초 프리팹 커밋 `d20210e`). 그러나 `803dac7`에서 EnemyMvp 원형의 Is Trigger가 1→0으로 변경됐고, ZombieHound는 최초 추가 `a94be70`부터 두 콜라이더가 모두 비 Trigger다. 변경 이유를 역할 재설계로 확정할 근거는 없다.
+- 현재 EnemyMvp는 박스 0.16×0.16·원 반지름 0.13, ZombieHound는 박스 0.32×0.32·원 반지름 0.16이며 둘 다 같은 루트, 오프셋 0, 활성 상태다. EnemyFollow는 BoxCollider2D를 RequireComponent로 요구하고 CollisionMovement2D는 모든 비 Trigger 콜라이더를 이동 검사에 사용한다. EnemyContactDamage는 Trigger/Collision Stay 모두 처리하며 공통 nextDamageTime을 사용한다. 현재는 두 모양 모두 몸체 충돌·접촉 판정에 참여하는 구조로, 문서의 역할 분리와 다르다.
+- 검증: 프리팹 YAML·관련 코드·Git 이력 정적 조사. 이번 Unity 실행/컴파일/자동 테스트 0개. 다음 변경은 요청 시 현재 이동·접촉·피격 판정을 검증한 뒤 결정한다. 기존 데이터 표 불일치 등 다음 구현 우선순위는 그대로다.
+- 직접 확인: Project > Assets/1.Prefabs > 각 프리팹 더블클릭 > 루트 Inspector의 Circle/Box Collider 2D 확인. 현재 정상 관찰값은 둘 다 활성·Is Trigger 해제이며 크기는 위와 같다. 씬 인스턴스가 다르면 Inspector의 Overrides와 Console 첫 오류를 확인한다. 조사 결과는 실제 Play 동작 검증을 대신하지 않는다.
+
 ## 2026-11-05 main에 보스·스킬 표 브랜치 병합
 
 - 시작: `main` / `6d42f15`, 작업 트리 깨끗함. `git fetch origin` 후 origin/main과 일치 확인. 요청한 원격 끝점은 BossBeastZombie `d44c94c`, feature/skill-data-table `3c1c3d4`다. 원격 push와 브랜치 삭제는 하지 않는다.

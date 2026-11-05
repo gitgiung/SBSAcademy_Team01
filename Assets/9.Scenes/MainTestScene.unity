@@ -795,6 +795,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Encounter.Runtime::BossEncounterController
   boss: {fileID: 2094942134}
+  hordeLord: {fileID: 0}
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
@@ -1120,8 +1121,8 @@ GameObject:
   m_Component:
   - component: {fileID: 454019995}
   - component: {fileID: 454019996}
+  - component: {fileID: 454020005}
   - component: {fileID: 454019999}
-  - component: {fileID: 454020003}
   - component: {fileID: 454020004}
   - component: {fileID: 454020001}
   - component: {fileID: 454020000}
@@ -1703,8 +1704,22 @@ MonoBehaviour:
   maxEXP: 10
   currentEXP: 4
   experiencePickupDistance: 0
---- !u!61 &454020003
-BoxCollider2D:
+--- !u!114 &454020004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454019994}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
+  variableJoystick: {fileID: 1269801976}
+  playerData: {fileID: 0}
+--- !u!70 &454020005
+CapsuleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -1737,32 +1752,9 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.01925996, y: 0.015408024}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.48, y: 0.64}
-    newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 0.54546374, y: 0.66102374}
-  m_EdgeRadius: 0
---- !u!114 &454020004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 454019994}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
-  variableJoystick: {fileID: 1269801976}
-  playerData: {fileID: 0}
+  m_Offset: {x: 0, y: 0}
+  m_Size: {x: 0.25, y: 0.45}
+  m_Direction: 0
 --- !u!1 &496842390
 GameObject:
   m_ObjectHideFlags: 0
@@ -28987,6 +28979,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1371552782}
   m_CullTransparentMesh: 1
+--- !u!1 &1379161153 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+  m_PrefabInstance: {fileID: 2094942133}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1388604589
 GameObject:
   m_ObjectHideFlags: 0
@@ -30867,22 +30864,63 @@ PrefabInstance:
       propertyPath: healthSlider
       value: 
       objectReference: {fileID: 1137732343553467738}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 2094942146}
   m_SourcePrefab: {fileID: 100100000, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
 --- !u!114 &2094942134 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
   m_PrefabInstance: {fileID: 2094942133}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1379161153}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2af0082067224da419333f7836b97ec7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Boss.Runtime::BossController
+--- !u!70 &2094942146
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1379161153}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.018254101, y: -0.2238341}
+  m_Size: {x: 0.48754728, y: 0.48754728}
+  m_Direction: 0
 --- !u!1 &2100000000
 GameObject:
   m_ObjectHideFlags: 0

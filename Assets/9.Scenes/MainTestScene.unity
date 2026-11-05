@@ -795,6 +795,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Encounter.Runtime::BossEncounterController
   boss: {fileID: 2094942134}
+  hordeLord: {fileID: 0}
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
@@ -1120,8 +1121,8 @@ GameObject:
   m_Component:
   - component: {fileID: 454019995}
   - component: {fileID: 454019996}
+  - component: {fileID: 454020005}
   - component: {fileID: 454019999}
-  - component: {fileID: 454020003}
   - component: {fileID: 454020004}
   - component: {fileID: 454020001}
   - component: {fileID: 454020000}
@@ -1259,6 +1260,12 @@ MonoBehaviour:
     - 0.1
     - 0.5
     SuperArmor: 0
+  parryZoomRatio: 0.05
+  parryZoomInDuration: 0.06
+  parryZoomOutDuration: 0.18
+  parryHitStopDuration: 0.08
+  parryRecoilDistance: 0.35
+  parryRecoilDuration: 0.12
   data: {fileID: 454020001}
   bulletPrefab: {fileID: 7471816246809313549, guid: ca61cadf05c05be42aac42e0884ec18b, type: 3}
   healthSlider: {fileID: 496842392}
@@ -1284,7 +1291,6 @@ MonoBehaviour:
   dashSpeedMultiplier: 3
   dashDuration: 0.15
   dashCooldown: 3
-  boss: {fileID: 2094942144}
 --- !u!114 &454020001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1684,8 +1690,8 @@ MonoBehaviour:
     heavySkillId: 0
     tacticalSkillId: 0
   speed: 5
-  maxHealth: 100
-  currentHealth: 100
+  maxHealth: 10000
+  currentHealth: 10000
   attackRange: 5
   attackCooldown: 1
   attackDamage: 3
@@ -1698,8 +1704,22 @@ MonoBehaviour:
   maxEXP: 10
   currentEXP: 4
   experiencePickupDistance: 0
---- !u!61 &454020003
-BoxCollider2D:
+--- !u!114 &454020004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454019994}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
+  variableJoystick: {fileID: 1269801976}
+  playerData: {fileID: 0}
+--- !u!70 &454020005
+CapsuleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -1732,32 +1752,9 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.01925996, y: 0.015408024}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.48, y: 0.64}
-    newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  m_Size: {x: 0.54546374, y: 0.66102374}
-  m_EdgeRadius: 0
---- !u!114 &454020004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 454019994}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController2D
-  variableJoystick: {fileID: 1269801976}
-  playerData: {fileID: 0}
+  m_Offset: {x: 0, y: 0}
+  m_Size: {x: 0.25, y: 0.45}
+  m_Direction: 0
 --- !u!1 &496842390
 GameObject:
   m_ObjectHideFlags: 0
@@ -28982,6 +28979,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1371552782}
   m_CullTransparentMesh: 1
+--- !u!1 &1379161153 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+  m_PrefabInstance: {fileID: 2094942133}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1388604589
 GameObject:
   m_ObjectHideFlags: 0
@@ -29958,6 +29960,34 @@ PrefabInstance:
       propertyPath: m_AdditionalShaderChannelsFlag
       value: 25
       objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2918790981676023747, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3611537609009217375, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_isOrthographic
       value: 1
@@ -29977,6 +30007,10 @@ PrefabInstance:
     - target: {fileID: 5521956166370665252, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_ActiveFontFeatures.Array.size
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5815918160366507449, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: 6218128591540567814, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_Pivot.x
@@ -30050,6 +30084,26 @@ PrefabInstance:
       propertyPath: gameManager
       value: 
       objectReference: {fileID: 768851016}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_isOrthographic
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294309357
+      objectReference: {fileID: 0}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 8376890798204989114, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_ActiveFontFeatures.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9186041549367977864, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -30730,6 +30784,38 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Size.x
+      value: 0.52039677
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Size.y
+      value: 0.24147578
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Offset.x
+      value: 0.011497736
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Offset.y
+      value: -0.30426213
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.newSize.x
+      value: 0.91
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.newSize.y
+      value: 0.93
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.oldSize.x
+      value: 0.91
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SpriteTilingProperty.oldSize.y
+      value: 0.93
+      objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Size.x
       value: 0.91
@@ -30759,24 +30845,16 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SortingOrder
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_SortingLayerID
       value: -630562447
       objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_WasSpriteAssigned
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: m_Enabled
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: PlayerObject
-      value: 
-      objectReference: {fileID: 454019994}
-    - target: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: redParryWindow
-      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 7670373938179878916, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: maxHealth
@@ -30786,33 +30864,63 @@ PrefabInstance:
       propertyPath: healthSlider
       value: 
       objectReference: {fileID: 1137732343553467738}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 2094942146}
   m_SourcePrefab: {fileID: 100100000, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
 --- !u!114 &2094942134 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
   m_PrefabInstance: {fileID: 2094942133}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1379161153}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2af0082067224da419333f7836b97ec7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Boss.Runtime::BossController
---- !u!114 &2094942144 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7655376826295206891, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-  m_PrefabInstance: {fileID: 2094942133}
+--- !u!70 &2094942146
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0bc860bbdede2704dacbbf9a3a4e8fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossParry
+  m_GameObject: {fileID: 1379161153}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.018254101, y: -0.2238341}
+  m_Size: {x: 0.48754728, y: 0.48754728}
+  m_Direction: 0
 --- !u!1 &2100000000
 GameObject:
   m_ObjectHideFlags: 0

@@ -1656,5 +1656,56 @@
             "SimpleDescription": "주변 원형에 {Hit_Delay}초마다 화염({Base_Value}+ATK×{Scaling_Factor})을 {Hit_Count}회 가한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "주변 화염 오라"
         }
+    ],
+    "rarities": [
+        {
+            "Id": "Common",
+            "Name": "일반",
+            "Weight": 60,
+            "Frame": "SkillIcons/SkillFrame_Common",
+            "ColorHex": "#B8B2C4"
+        },
+        {
+            "Id": "Uncommon",
+            "Name": "고급",
+            "Weight": 23,
+            "Frame": "SkillIcons/SkillFrame_Uncommon",
+            "ColorHex": "#50C860"
+        },
+        {
+            "Id": "Rare",
+            "Name": "희귀",
+            "Weight": 11,
+            "Frame": "SkillIcons/SkillFrame_Rare",
+            "ColorHex": "#4696FF"
+        },
+        {
+            "Id": "Epic",
+            "Name": "영웅",
+            "Weight": 4,
+            "Frame": "SkillIcons/SkillFrame_Epic",
+            "ColorHex": "#B064FF"
+        },
+        {
+            "Id": "Legendary",
+            "Name": "전설",
+            "Weight": 1.7,
+            "Frame": "SkillIcons/SkillFrame_Legendary",
+            "ColorHex": "#FFBE40"
+        },
+        {
+            "Id": "Mythic",
+            "Name": "신화",
+            "Weight": 0.3,
+            "Frame": "SkillIcons/SkillFrame_Mythic",
+            "ColorHex": "#FF5438"
+        },
+        {
+            "Id": "Fusion",
+            "Name": "시너지",
+            "Weight": 0,
+            "Frame": "SkillIcons/SkillFrame_Fusion",
+            "ColorHex": "#FFECA0"
+        }
     ]
 }

@@ -1,7 +1,8 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
+[RequireComponent(typeof(Rigidbody2D))]
+// The authored body collider may be a circle, box, or capsule; do not add a second shape.
 public sealed class EnemyFollow : MonoBehaviour
 {
     [SerializeField, Min(0f)] private float moveSpeed = 2f;

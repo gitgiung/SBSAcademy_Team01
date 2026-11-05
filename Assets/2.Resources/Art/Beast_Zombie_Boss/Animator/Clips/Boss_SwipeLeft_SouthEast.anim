@@ -28,15 +28,15 @@ AnimationClip:
       value: {fileID: 6937817954938267909, guid: 3d490b1813904034c8d28f97fa791ecd, type: 3}
     - time: 0.25
       value: {fileID: -6470460504253458178, guid: f8d0e98a43ad4744b906c2a0a52f8c05, type: 3}
-    - time: 0.33333334
+    - time: 0.666666673
       value: {fileID: -4178046375966092550, guid: 70a9c614b1eb61f46b81719567eda2af, type: 3}
-    - time: 0.41666666
+    - time: 0.749999993
       value: {fileID: 4130640169021434097, guid: 3ddccd6a9dc67a4469fec1a8e4e513d7, type: 3}
-    - time: 0.5
+    - time: 0.833333333
       value: {fileID: 3465286685962602723, guid: 182a59af8798ec8498494bb84cd80232, type: 3}
-    - time: 0.5833333
+    - time: 0.916666633
       value: {fileID: 7028616704906629411, guid: 0db077093da1c644cb09ca67e7c28aad, type: 3}
-    - time: 0.6666667
+    - time: 1.00000003
       value: {fileID: 7028616704906629411, guid: 0db077093da1c644cb09ca67e7c28aad, type: 3}
     attribute: m_Sprite
     path: 
@@ -75,7 +75,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.75
+    m_StopTime: 1.08333333
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -95,14 +95,14 @@ AnimationClip:
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
   m_Events:
-  - time: 0.45833334
+  - time: 0.791666673
     functionName: AnimationEvent_ApplySlashDamage
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 0.65833336
+  - time: 0.991666693
     functionName: AnimationEvent_AttackAnimationFinished
     data: 
     objectReferenceParameter: {fileID: 0}

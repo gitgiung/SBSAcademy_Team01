@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using static StatusPanelUI;
 
-/// <summary>기존 일시정지 팝업 내부의 상태 조회/음량 옵션. 전투 정지와 팝업 스택은 소유하지 않습니다.</summary>
+/// <summary>기존 일시정지 팝업 내부의 상태/약공격 장착/음량 옵션. 전투 정지와 팝업 스택은 소유하지 않습니다.</summary>
 public sealed class PlayerStatusPanel : MonoBehaviour
 {
     private PlayerData source;
@@ -80,7 +80,15 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         Header(mainRoot.transform, "유물", 175, 175, 100, new Color32(248, 197, 173, 255), font);
         Header(mainRoot.transform, "증강", 175, 333, 100, new Color32(182, 227, 154, 255), font);
         Header(mainRoot.transform, "전략 스킬", 790, 140, 170, new Color32(195, 234, 248, 255), font);
-        for (int i = 0; i < 8; i++) attacks.Add(new Cell(Rect(mainRoot.transform, "AttackSlot" + i, 175 + i * 70, 80, 60, 60), font));
+        for (int i = 0; i < 8; i++)
+        {
+            int index = i;
+            var cell = new Cell(Rect(mainRoot.transform, "AttackSlot" + i, 175 + i * 70, 80, 60, 60), font);
+            cell.SetAction(() => ToggleLightSkill(index));
+            attacks.Add(cell);
+        }
+        Text(Rect(mainRoot.transform, "AttackEquipHint", 175, 143, 560, 26),
+            "약공격 클릭: 장착 / 다시 클릭: 해제 · 강공격은 추후 연결", font, 17, Color.white, TextAlignmentOptions.Left);
         for (int i = 0; i < 5; i++) tacticals.Add(new Cell(Rect(mainRoot.transform, "TacticalSlot" + i, 790 + i % 3 * 72, 200 + i / 3 * 75, 60, 60), font));
         relicRow = new ItemRow(mainRoot.transform, "Relics", 230, font);
         augmentRow = new ItemRow(mainRoot.transform, "Augments", 390, font);
@@ -188,7 +196,9 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < attacks.Count; i++)
         {
             var skill = loadout?.GetAttackSkill(i);
-            attacks[i].Show(skill?.Name, SkillIcon(skill), i >= (loadout?.UnlockedAttackSlots ?? 6));
+            bool equipped = skill != null && loadout.GetEquippedSkillId(PlayerSkillButton.Light) == skill.DataId;
+            attacks[i].Show(skill?.Name, SkillIcon(skill), i >= (loadout?.UnlockedAttackSlots ?? 6), equipped);
+            attacks[i].SetInteractable(skill != null && skill.DataId >= 10000 && skill.DataId < 20000);
         }
         for (int i = 0; i < tacticals.Count; i++)
         {
@@ -197,6 +207,16 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         }
         relicRow.Refresh(loadout?.Relics);
         augmentRow.Refresh(loadout?.Augments);
+    }
+    private void ToggleLightSkill(int index)
+    {
+        var skill = loadout?.GetAttackSkill(index);
+        // 강공격은 실행 연결 전까지 조회만 허용합니다. 분류별 장착 제한은 Loadout이 검증합니다.
+        if (skill == null || skill.DataId < 10000 || skill.DataId >= 20000) return;
+        if (loadout.GetEquippedSkillId(PlayerSkillButton.Light) == skill.DataId)
+            loadout.TryUnequip(PlayerSkillButton.Light);
+        else
+            loadout.TryEquip(PlayerSkillButton.Light, skill.DataId);
     }
     private static Sprite SkillIcon(Data.SkillData skill) => skill != null && !string.IsNullOrEmpty(skill.IconLabel)
         ? Managers.Resource.Load<Sprite>(skill.IconLabel) : null;

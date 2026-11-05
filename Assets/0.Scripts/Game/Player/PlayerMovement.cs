@@ -65,6 +65,8 @@ internal sealed class PlayerMovement
         IsDashing = false;
     }
 
+    public void ApplyDisplacement(Vector2 displacement) => Move(displacement);
+
     private void Move(Vector2 displacement)
     {
         if (collisionMovement != null) collisionMovement.Move(displacement);

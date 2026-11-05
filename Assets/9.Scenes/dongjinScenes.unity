@@ -838,7 +838,6 @@ MonoBehaviour:
   enemyTag: Enemy
   playerMeshRenderer: {fileID: 0}
   parrySpeedRatio: 0.8
-  boss: {fileID: 0}
 --- !u!58 &1107222926
 CircleCollider2D:
   m_ObjectHideFlags: 0

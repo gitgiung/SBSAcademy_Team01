@@ -84,6 +84,18 @@ internal static class StatusPanelUI
         private readonly Image background;
         private readonly Image icon;
         private readonly TMP_Text label;
+        private Button button;
+        internal void SetAction(UnityAction action)
+        {
+            button = Rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            background.raycastTarget = true;
+            button.onClick.AddListener(action);
+        }
+        internal void SetInteractable(bool value)
+        {
+            if (button != null) button.interactable = value;
+        }
         internal Cell(RectTransform rect, TMP_FontAsset font)
         {
             Rect = rect;
@@ -97,12 +109,13 @@ internal static class StatusPanelUI
             label = Text(StatusPanelUI.Rect(rect, "Name", 45, 20, 910, 460), "", font, 19);
             label.textWrappingMode = TextWrappingModes.NoWrap;
         }
-        internal void Show(string name, Sprite sprite = null, bool locked = false)
+        internal void Show(string name, Sprite sprite = null, bool locked = false, bool equipped = false)
         {
-            background.color = locked ? new Color32(47, 51, 66, 255) : new Color32(231, 232, 231, 255);
+            background.color = locked ? new Color32(47, 51, 66, 255)
+                : equipped ? new Color32(119, 238, 186, 255) : new Color32(231, 232, 231, 255);
             icon.sprite = sprite;
             icon.enabled = sprite != null && !locked;
-            label.text = locked ? "잠김" : name ?? "";
+            label.text = locked ? "잠김" : equipped ? "[장착]\n" + name : name ?? "";
             label.color = locked ? new Color32(158, 166, 182, 255) : Ink;
             label.rectTransform.anchorMin = new Vector2(.045f, .04f);
             label.rectTransform.anchorMax = new Vector2(.955f, sprite != null ? .25f : .96f);

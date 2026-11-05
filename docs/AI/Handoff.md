@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-05 불꽃 탄환 시작 보유 제거와 기본 탄환 복구
+
+- `feature/player-growth-design` / `35bf8c5`에서 MainTestScene과 GiungTestScene의 시작 장착을 해제하고 첫 보유 슬롯도 비웠다. 기존 보유 불꽃 탄환의 패시브 설정이 시작 자동탄을 발사하던 원인이었다. 불꽃 탄환은 이후 레벨업에서 획득해 직접 장착할 수 있다. 미추적 엑셀 잠금 파일은 보존했다.
+- `PlayerCombat`에서 Player의 기존 `bulletPrefab`으로 기본 자동 공격을 복구했다. 사거리 안의 가장 가까운 적을 향해 풀에서 발사하며 `attackRange`, `attackCooldown`, `attackDamage`, `bulletSpeed`를 사용한다. 기본 자동 공격은 MP를 쓰지 않는다. 입력으로 시전하는 장착 약공격과 보유 패시브의 실행 경로는 별개다.
+- 검증 사본에서 기본탄 회귀 2개가 구현 전 실패했고 구현 후 전체 53/53 통과했다. 기존 장착 모델 4/4 통과, 관련 6개 어셈블리 컴파일 성공, `git diff --check` 통과. 기존 CS0252 경고 1개가 남는다. 원본 씬 재생은 수동 확인 항목이다.
+- Tools > Play From Title 해제 후 MainTestScene을 새로 재생한다. 일시정지에서 공격 스킬 보유 칸이 비어 있는지 확인한다. 재개 후 사거리 안의 적에게 접근하면 버튼 입력 없이 기본 탄환이 발사되어야 한다. 문제가 있으면 Console 첫 오류, Player의 Bullet Prefab, PlayerData의 Attack Range와 Attack Cooldown, 적의 Collider2D와 Enemy 태그를 확인한다.
+- 다음 작업은 스킬 표에서 구현 조건이 정해진 패시브 또는 광역 액티브 후보를 확인하는 것이다.
+
 ## 2026-11-05 18분 스폰·처치 보석 풀·회수 보정 통합
 
 - 사용자 요청: 다음 작업도 이어서 전체 진행. 명세의 단계3~5를 구현하고 자동 통합 검증을 실행했다. 실제 시작 `feature/player-growth-design` / `60fd1a4`. 직전 색상 코드/문서/검증 도구의 미커밋 변경을 보존했다. 브랜치 전환·커밋·PR 없음. 기존 씬/프리팹/기존meta·Project Settings·패키지·xlsx·JSON은 변경하지 않았다. 신규 Survival C#3개에만 새 meta를 생성했다.

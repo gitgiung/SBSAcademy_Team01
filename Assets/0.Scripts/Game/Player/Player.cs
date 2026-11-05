@@ -123,7 +123,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         defense.ParrySucceeded += HandleParrySucceeded;
         actions = new PlayerActionGate(data);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
-        combat = new PlayerCombat(transform, data, enemyTag);
+        combat = new PlayerCombat(transform, data, bulletPrefab, enemyTag);
         if (passiveProjectiles != null)
             foreach (PlayerProjectileBinding binding in passiveProjectiles)
                 if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);

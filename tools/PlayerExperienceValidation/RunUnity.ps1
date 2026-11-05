@@ -7,6 +7,8 @@ $files = @(
  'Assets/0.Scripts/Game/Player/Data/PlayerData.cs',
  'Assets/0.Scripts/Game/Player/PlayerLoadout.cs',
  'Assets/0.Scripts/Game/Player/PlayerView.cs',
+ 'Assets/0.Scripts/Game/Player/PlayerCombat.cs',
+ 'Assets/0.Scripts/Game/Player/Bullet.cs',
  'Assets/0.Scripts/Game/Player/ExperiencePickup.cs',
  'Assets/0.Scripts/Game/Enemy/NormalEnemy/IExperiencePickup.cs',
  'Assets/0.Scripts/Game/Enemy/NormalEnemy/IEnemySpawnPool.cs',
@@ -44,6 +46,7 @@ foreach ($file in $files) {
 }
 Copy-Item "$PSScriptRoot/Unity/Boundary.cs" "$validationRoot/Assets/Runtime/" -Force
 Copy-Item "$PSScriptRoot/Unity/GrowthPopupTests.cs" "$validationRoot/Assets/Tests/" -Force
+Copy-Item "$PSScriptRoot/Unity/BasicBulletTests.cs" "$validationRoot/Assets/Tests/" -Force
 Copy-Item "$PSScriptRoot/Unity/ExperiencePickupColorTests.cs" "$validationRoot/Assets/Tests/" -Force
 Copy-Item "$PSScriptRoot/Unity/SurvivalIntegrationTests.cs" "$validationRoot/Assets/Tests/" -Force
 Copy-Item "$projectRoot/Assets/TextMesh Pro/Resources" "$validationRoot/Assets/" -Recurse -Force

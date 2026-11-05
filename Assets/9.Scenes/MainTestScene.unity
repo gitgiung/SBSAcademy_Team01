@@ -798,7 +798,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 30
+  bossAppearTime: 1
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -1222,12 +1222,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5b649f83919c8644aace3832ce73178, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  data: {fileID: 454020001}
-  bulletPrefab: {fileID: 7471816246809313549, guid: ca61cadf05c05be42aac42e0884ec18b, type: 3}
-  healthSlider: {fileID: 496842392}
-  mpSlider: {fileID: 1395659084}
-  expSlider: {fileID: 1801941379}
-  lightAttackButton: {fileID: 1415531113}
   heavyAttackButton: {fileID: 452539071}
   heavyChargeSettings:
     Configured: 1
@@ -1241,11 +1235,23 @@ MonoBehaviour:
     - 0.1
     - 0.5
     SuperArmor: 0
+  parryZoomRatio: 0.05
+  parryZoomInDuration: 0.06
+  parryZoomOutDuration: 0.18
+  parryHitStopDuration: 0.08
+  parryRecoilDistance: 0.35
+  parryRecoilDuration: 0.12
+  data: {fileID: 454020001}
+  bulletPrefab: {fileID: 7471816246809313549, guid: ca61cadf05c05be42aac42e0884ec18b, type: 3}
+  healthSlider: {fileID: 496842392}
+  mpSlider: {fileID: 1395659084}
+  expSlider: {fileID: 1801941379}
+  inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  lightAttackButton: {fileID: 1415531113}
   lightAttackProjectile: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
   passiveProjectiles:
   - Key: FlameBullet
     Prefab: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
-  inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   enemyTag: Enemy
   playerSpriteRenderer: {fileID: 454019996}
   playerAnimator: {fileID: 0}
@@ -1276,7 +1282,7 @@ MonoBehaviour:
     unlockedAttackSlots: 6
     attackSkills:
     - DataId: 10001
-      Name: 불꽃 탄환
+      Name: "\uBD88\uAF43 \uD0C4\uD658"
       ClassName: 
       Description: 
       ProjectileId: 0
@@ -1324,6 +1330,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1344,6 +1359,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1364,6 +1388,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1384,6 +1417,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1404,6 +1446,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1424,6 +1475,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1444,6 +1504,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     tacticalSkills:
     - DataId: 0
       Name: 
@@ -1465,6 +1534,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1485,6 +1563,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1505,6 +1592,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1525,6 +1621,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1545,14 +1650,23 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     relics: []
     augments: []
     lightSkillId: 10001
     heavySkillId: 0
     tacticalSkillId: 0
   speed: 5
-  maxHealth: 100
-  currentHealth: 100
+  maxHealth: 10000
+  currentHealth: 10000
   attackRange: 5
   attackCooldown: 1
   attackDamage: 3
@@ -28299,6 +28413,22 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Size.x
+      value: 0.52039677
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Size.y
+      value: 0.24147578
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Offset.x
+      value: 0.011497736
+      objectReference: {fileID: 0}
+    - target: {fileID: 4699635760903188121, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Offset.y
+      value: -0.30426213
+      objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Size.x
       value: 0.91
@@ -28326,6 +28456,10 @@ PrefabInstance:
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_SortingLayer
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_SortingOrder
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6809795324689762170, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_SortingLayerID

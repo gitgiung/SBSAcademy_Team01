@@ -11,6 +11,8 @@ public class PlayerDefenseVfx : MonoBehaviour
     public void ResetVfx() { }
 }
 public class Player : MonoBehaviour { public PlayerData data; public void EndParryHitStop() { } }
+public class BossController : MonoBehaviour { }
+public class HordeLordBoss : MonoBehaviour { public EnemyHealth Health => GetComponent<EnemyHealth>(); }
 public enum GameState { Playing, Victory, Defeat }
 public class GameManager : MonoBehaviour
 {
@@ -47,6 +49,7 @@ public sealed class SoundBoundary
 }
 public static class Managers
 {
+    public static PoolManager Pool;
     public static UIManager UI = new UIManager();
     public static ResourceBoundary Resource = new ResourceBoundary();
     public static SoundBoundary Sound = new SoundBoundary();

@@ -41,6 +41,7 @@ static class Program
         Test("중간 레벨 통지 순서 보존", () => { var d=New(); var levels=new List<int>(); typeof(PlayerData).GetEvent("LevelChanged").AddEventHandler(d,(Action<int>)levels.Add); d.AddEXP(30); Equal("2,3",string.Join(",",levels)); });
         Test("모든 요구량 합계33033/범위 밖0", () => { var settings=new PlayerExperienceSettings(); int sum=0; for(int i=1;i<100;i++) sum+=settings.RequiredXP(i); Equal(33033,sum); Equal(0,settings.RequiredXP(0)); Equal(0,settings.RequiredXP(100)); Equal(37,settings.RequiredXP(10)); Equal(736,settings.RequiredXP(90)); });
         Test("변경 가능한 공식 계수/상태 독립", () => { var s=new PlayerExperienceSettings{baseNumerator=20000,linearNumerator=0,quadraticNumerator=0}; var a=new PlayerExperienceProgress(s); var b=new PlayerExperienceProgress(s); a.Add(5); Equal(3,a.Level); Equal(1d,a.Experience); Equal(1,b.Level); Equal(0d,b.Experience); });
+        SurvivalTests.Run(Test);
         Console.WriteLine($"{count-failed}/{count} 통과");
         return failed==0?0:1;
     }

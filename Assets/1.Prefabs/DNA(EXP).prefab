@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2339029323716834036, guid: 23284244c7e17094ab31d482e10fe1fc, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.3019608, g: 0.6509804, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -144,3 +144,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ExperiencePickup
   experienceAmount: 1
   attractionSpeed: 1
+  pickupRenderer: {fileID: 667000003}
+  experienceColors:
+  - minimumExperience: 0
+    color: {r: 0.3019608, g: 0.6509804, b: 1, a: 1}
+  - minimumExperience: 3
+    color: {r: 0.32156864, g: 0.8392157, b: 0.5058824, a: 1}
+  - minimumExperience: 4
+    color: {r: 1, g: 0.83137256, b: 0.36078432, a: 1}
+  - minimumExperience: 6
+    color: {r: 0.70980394, g: 0.54901963, b: 1, a: 1}
+  - minimumExperience: 7
+    color: {r: 1, g: 0.61960787, b: 0.2901961, a: 1}
+  - minimumExperience: 9
+    color: {r: 1, g: 0.36862746, b: 0.49411765, a: 1}

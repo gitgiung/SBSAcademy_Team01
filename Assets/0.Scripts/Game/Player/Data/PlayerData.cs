@@ -35,6 +35,67 @@ public class PlayerData : MonoBehaviour
     public int CurrentLevel => ExperienceProgress.Level;
     public int PendingLevelUps => ExperienceProgress.PendingLevelUps;
     public event System.Action<int> LevelChanged;
+    private SurvivalExperienceBonus experienceBonus;
+    private double experienceGameplayTime;
+    private SurvivalExperienceBonus ExperienceBonus => experienceBonus ??
+        (experienceBonus = new SurvivalExperienceBonus(new SurvivalBalanceSettings()));
+    public bool CatchupActive => CurrentLevel < 100 && ExperienceBonus.Active;
+    public double ExperienceFractionalCarry => ExperienceBonus.FractionalCarry;
+#if UNITY_5_3_OR_NEWER
+    private EnemySpawnDirector survivalDirector;
+    private bool survivalStarted;
+    private void Start() { survivalStarted = true; BindSurvivalDirector(); }
+    private void OnEnable() { if (survivalStarted) BindSurvivalDirector(); }
+    private void OnDisable()
+    {
+        if (survivalDirector != null) survivalDirector.TimeAdvanced -= UpdateExperienceTime;
+    }
+    private void BindSurvivalDirector()
+    {
+        foreach (EnemySpawnDirector candidate in FindObjectsByType<EnemySpawnDirector>())
+            if (candidate.gameObject.scene == gameObject.scene && candidate.Settings.IsValid)
+            {
+                if (survivalDirector != candidate)
+                {
+                    survivalDirector = candidate;
+                    experienceBonus = new SurvivalExperienceBonus(candidate.Settings);
+                }
+                survivalDirector.TimeAdvanced -= UpdateExperienceTime;
+                survivalDirector.TimeAdvanced += UpdateExperienceTime;
+                UpdateExperienceTime(survivalDirector.ElapsedTime);
+                break;
+            }
+    }
+#endif
+
+    public void UpdateExperienceTime(float elapsed)
+    {
+        if (!IsValidAmount(elapsed)) return;
+        experienceGameplayTime = elapsed;
+        ExperienceBonus.Update(experienceGameplayTime, CurrentLevel);
+#if UNITY_5_3_OR_NEWER
+        if (survivalDirector != null) survivalDirector.RecordPlayerState(CurrentLevel, CatchupActive);
+#endif
+    }
+
+    /// <summary>보석을 실제 회수한 시점에만 보정을 적용하고 소수 잔여를 보존합니다.</summary>
+    public bool TryCollectExperience(float rawExperience, out float awarded)
+    {
+        awarded = 0;
+        if (IsDead || !IsValidAmount(rawExperience) || rawExperience <= 0) return false;
+        ExperienceBonus.Update(experienceGameplayTime, CurrentLevel);
+        // 실패하는 지급은 carry도 소비하지 않습니다.
+        double exact = rawExperience * ExperienceBonus.Multiplier + ExperienceBonus.FractionalCarry;
+        if (exact > float.MaxValue || ExperienceProgress.Experience + System.Math.Floor(exact) > float.MaxValue) return false;
+        awarded = (float)ExperienceBonus.Award(rawExperience);
+        if (awarded > 0 && !AddEXP(awarded)) return false;
+        ExperienceBonus.Update(experienceGameplayTime, CurrentLevel);
+#if UNITY_5_3_OR_NEWER
+        if (survivalDirector != null) survivalDirector.RecordPlayerState(CurrentLevel, CatchupActive);
+#endif
+        return true;
+    }
+
 
     [Header("EXP 표시 상태 (요구량은 현재 레벨에서 자동 계산)")]
     [Min(0f)] public float maxEXP;
@@ -60,6 +121,7 @@ public class PlayerData : MonoBehaviour
     public void InitEXP()
     {
         ExperienceProgress.Reset();
+        ExperienceBonus.Reset();
         PublishExperience();
         LevelChanged?.Invoke(CurrentLevel);
     }

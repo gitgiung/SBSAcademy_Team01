@@ -166,4 +166,20 @@ public class GrowthPopupTests
         Assert.That(level==null,Is.True); Assert.That(pause==null,Is.True);
         Assert.That(Managers.UI.GetPopupCount(),Is.Zero); Assert.That(Time.timeScale,Is.EqualTo(1));
     }
+    [UnityTest] public IEnumerator PooledRewardCollectionOpensAndCompletesExistingCard()
+    {
+        yield return null;
+        Managers.Pool=new PoolManager(); var source=root.AddComponent<SceneEnemyPool>();
+        var prefab=new GameObject("XPIntegration"); prefab.SetActive(false); prefab.AddComponent<SpriteRenderer>(); prefab.AddComponent<ExperiencePickup>();
+        try
+        {
+            Assert.That(source.TryDropExperience(prefab,Vector3.zero,data.transform,13),Is.True);
+            var reward=Object.FindObjectsByType<ExperiencePickup>(FindObjectsSortMode.None).First(p=>p.GetComponent<PooledObject>()!=null && p.GetComponent<PooledObject>().IsRented);
+            Assert.That(data.CurrentEXP,Is.Zero); Assert.That(reward.TryCollect(data),Is.True);
+            Assert.That(level.gameObject.activeSelf,Is.True); Assert.That(Time.timeScale,Is.Zero);
+            NamedButton(level,"Choice0").onClick.Invoke(); yield return null; yield return null;
+            Assert.That(data.CurrentLevel,Is.EqualTo(2)); Assert.That(data.Loadout.GetAttackSkill(0),Is.Not.Null); Assert.That(Time.timeScale,Is.EqualTo(1));
+        }
+        finally { Managers.Pool.Dispose(); Managers.Pool=null; Object.Destroy(prefab); }
+    }
 }

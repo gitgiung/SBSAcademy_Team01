@@ -82,6 +82,22 @@ public sealed class EnemySpawner : MonoBehaviour
     public void StopSpawning() { spawningStopped = true; }
     public void ResumeSpawning() { spawningStopped = false; }
 
+    /// <summary>씬 전체의 시도 예산에서 한 번 소비합니다. 실패를 로컬 성공 수로 보충하지 않습니다.</summary>
+    public bool TrySpawnScheduled(int sequence, out EnemySpawnFailure failure)
+    {
+        failure = EnemySpawnFailure.InvalidConfiguration;
+        if (!isActiveAndEnabled || spawningStopped || spawnPool == null || player == null || !TryPlaceOutsideCamera()) return false;
+        GameObject prefab = enemyPrefabs[sequence % enemyPrefabs.Length];
+        if (!spawnPool.TrySpawn(prefab, transform.position, player, gameObject.scene))
+        {
+            failure = spawnPool is IEnemySpawnDiagnostics diagnostics ? diagnostics.LastSpawnFailure : EnemySpawnFailure.PoolUnavailable;
+            return false;
+        }
+        spawnedCount++;
+        failure = EnemySpawnFailure.None;
+        return true;
+    }
+
     public void RestartSpawning()
     {
         spawnedCount = 0;

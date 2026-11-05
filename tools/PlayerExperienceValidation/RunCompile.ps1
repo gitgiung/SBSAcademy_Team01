@@ -11,7 +11,8 @@ if ($null -eq $runtimeResponse) { throw 'Unity 컴파일 응답 파일 없음: �
 New-Item -ItemType Directory -Force -Path $compileRoot | Out-Null
 Push-Location $projectRoot
 try {
-    foreach ($assemblyName in @('Assembly-CSharp','Assembly-CSharp-Editor')) {
+    $assemblyOrder = @('Combat.Runtime','EnemyMvp.Runtime','Boss.Runtime','Encounter.Runtime','Assembly-CSharp','Assembly-CSharp-Editor')
+    foreach ($assemblyName in $assemblyOrder) {
         $responseFile = Join-Path $runtimeResponse.DirectoryName "$assemblyName.rsp"
         $compileLines = Get-Content -LiteralPath $responseFile | Where-Object {
             $sourcePath = $_.Trim('"')
@@ -20,12 +21,17 @@ try {
         } | ForEach-Object {
             if ($_ -match '^[-/]out:') { '-out:"' + (Join-Path $compileRoot "$assemblyName.dll") + '"' }
             elseif ($_ -match '^[-/]refout:') { '-refout:"' + (Join-Path $compileRoot "$assemblyName.ref.dll") + '"' }
-            elseif ($assemblyName -eq 'Assembly-CSharp-Editor' -and $_ -match '^[-/](?:r|reference):.*[/\\]Assembly-CSharp(\.ref)?\.dll"?$') {
-                '-r:"' + (Join-Path $compileRoot 'Assembly-CSharp.ref.dll') + '"'
+            elseif ($_ -match '^[-/](?:r|reference):.*[/\\]([^/\\"]+?)(\.ref)?\.dll"?$' -and
+                $Matches[1] -ne $assemblyName -and $assemblyOrder -contains $Matches[1] -and
+                (Test-Path (Join-Path $compileRoot ($Matches[1] + '.ref.dll')))) {
+                '-r:"' + (Join-Path $compileRoot ($Matches[1] + '.ref.dll')) + '"'
             } else { $_ }
         }
-        if ($assemblyName -eq 'Assembly-CSharp') {
-            foreach ($newSource in Get-ChildItem 'Assets/0.Scripts/Game/Player/Data/PlayerExperience*.cs') {
+        $additionalSources = @()
+        if ($assemblyName -eq 'Assembly-CSharp') { $additionalSources = @(Get-ChildItem 'Assets/0.Scripts/Game/Player/Data/PlayerExperience*.cs') }
+        elseif ($assemblyName -eq 'EnemyMvp.Runtime') { $additionalSources = @(Get-ChildItem 'Assets/0.Scripts/Game/Enemy/NormalEnemy/Survival*.cs') }
+        if ($additionalSources.Count -gt 0) {
+            foreach ($newSource in $additionalSources) {
                 if (!(($compileLines -join "`n").Replace('\','/').Contains('/' + $newSource.Name))) {
                     $compileLines += '"' + $newSource.FullName + '"'
                 }

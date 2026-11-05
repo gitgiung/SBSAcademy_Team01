@@ -49,7 +49,7 @@ public sealed class LightSkillCastTests
     }
 
     [UnityTest]
-    public IEnumerator UnarmedLightCastSpendsFlameBulletCostAndUnlocks()
+    public IEnumerator LightCastRequiresEquipmentSpendsTableCostAndUnlocks()
     {
         var go = new GameObject("light skill player");
         go.SetActive(false);
@@ -66,10 +66,25 @@ public sealed class LightSkillCastTests
         Set(player, "inputActions", asset);
         go.SetActive(true);
 
+        Assert.That(Call(player, "TryCastLightSkill", Vector2.right), Is.False);
+        Assert.That(Read<float>(data, "CurrentMP"), Is.EqualTo(10f));
+        Assert.That(Read<bool>(player, "IsInputLocked"), Is.False);
+
+        object loadout = data.GetType().GetProperty("Loadout").GetValue(data);
+        object ownedSkill = Activator.CreateInstance(Runtime("Data.SkillData"));
+        Set(ownedSkill, "DataId", 10001);
+        Assert.That(Call(loadout, "TryAddAttackSkill", ownedSkill), Is.True);
+        object lightButton = Enum.Parse(Runtime("PlayerSkillButton"), "Light");
+        Assert.That(Call(loadout, "TryEquip", lightButton, 10001), Is.True);
         Assert.That(Call(player, "TryCastLightSkill", Vector2.right), Is.True);
         Assert.That(Read<float>(data, "CurrentMP"), Is.EqualTo(5f));
         Assert.That(Read<bool>(player, "IsInputLocked"), Is.True);
         yield return new WaitForSeconds(0.6f);
+        Assert.That(Read<bool>(player, "IsInputLocked"), Is.False);
+
+        Assert.That(Call(loadout, "TryUnequip", lightButton), Is.True);
+        Assert.That(Call(player, "TryCastLightSkill", Vector2.right), Is.False);
+        Assert.That(Read<float>(data, "CurrentMP"), Is.EqualTo(5f));
         Assert.That(Read<bool>(player, "IsInputLocked"), Is.False);
 
         Object.Destroy(go);

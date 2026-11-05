@@ -45,6 +45,7 @@ ExportedObj/
 .consulo/
 *.csproj
 !/tools/CombatSkillTableValidation/CombatSkillTableValidation.csproj
+!/tools/PlayerLoadoutValidation/PlayerLoadoutValidation.csproj
 *.unityproj
 *.sln
 *.slnx

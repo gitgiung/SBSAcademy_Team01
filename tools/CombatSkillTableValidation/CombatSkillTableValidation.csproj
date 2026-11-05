@@ -16,6 +16,10 @@
     <Compile Include="UnityBoundary.cs" />
     <Compile Include="../../Assets/0.Scripts/Framework/Data/CombatSkillTable.cs" Link="CombatSkillTable.cs" />
     <Compile Include="../../Assets/0.Scripts/Framework/Editor/CombatSkillTableExporter.cs" Link="CombatSkillTableExporter.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/UI/LevelUpSkillDraft*.cs" Link="LevelUpSkillDraft.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/UI/LevelUpSkillReward*.cs" Link="LevelUpSkillReward.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Player/PlayerLoadout.cs" Link="PlayerLoadout.cs" />
+    <Compile Include="../../Assets/0.Scripts/Framework/Data/Data.Contents.cs" Link="Data.Contents.cs" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

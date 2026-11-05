@@ -44,15 +44,33 @@ public sealed class CombatSkillRecord
 }
 
 [Serializable]
+public sealed class SkillRarityRecord
+{
+    public string Id;
+    public string Name;
+    public float Weight;
+    public string Frame;
+    public string ColorHex;
+
+    public static string NormalizeId(string id)
+    {
+        string value = (id ?? "").Trim();
+        return string.Equals(value, "Mystic", StringComparison.OrdinalIgnoreCase) ? "Mythic" : value;
+    }
+}
+
+[Serializable]
 public sealed class CombatSkillTableFile
 {
     public List<CombatSkillRecord> skills = new List<CombatSkillRecord>();
+    public List<SkillRarityRecord> rarities = new List<SkillRarityRecord>();
 }
 
 public static class CombatSkillTable
 {
     private const string ResourcePath = "Data/CombatSkillTable";
     private static Dictionary<int, CombatSkillRecord> skills;
+    private static List<SkillRarityRecord> rarities;
     private static bool missingLogged;
 
     public static bool TryGet(int id, out CombatSkillRecord record)
@@ -82,6 +100,15 @@ public static class CombatSkillTable
         return count;
     }
 
+    public static CombatSkillTableFile CreateSnapshot()
+    {
+        EnsureLoaded();
+        var result = new CombatSkillTableFile();
+        if (skills != null) result.skills.AddRange(skills.Values);
+        if (rarities != null) result.rarities.AddRange(rarities);
+        return result;
+    }
+
     private static void EnsureLoaded()
     {
         if (skills != null) return;
@@ -108,5 +135,6 @@ public static class CombatSkillTable
             }
         }
         skills = loaded;
+        rarities = file?.rarities ?? new List<SkillRarityRecord>();
     }
 }

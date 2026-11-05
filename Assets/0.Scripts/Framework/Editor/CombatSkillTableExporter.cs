@@ -29,7 +29,7 @@ public static class CombatSkillTableExporter
         string jsonPath = Path.Combine(directory, "CombatSkillTable.json");
         File.WriteAllText(jsonPath, JsonUtility.ToJson(file, true), new UTF8Encoding(false));
         AssetDatabase.Refresh();
-        Debug.Log($"전투 스킬 {file.skills.Count}개를 저장했습니다: {jsonPath}");
+        Debug.Log($"전투 스킬 {file.skills.Count}개와 등급 {file.rarities.Count}개를 저장했습니다: {jsonPath}");
     }
 }
 
@@ -49,10 +49,31 @@ public static class CombatSkillWorkbook
         ApplyAreas(zip, sheets, shared, records);
 
         CombatSkillTableFile file = new CombatSkillTableFile();
+        ReadRarities(zip, sheets, shared, file.rarities);
         List<int> ids = new List<int>(records.Keys);
         ids.Sort();
         foreach (int id in ids) file.skills.Add(records[id]);
         return file;
+    }
+
+    private static void ReadRarities(ZipArchive zip, Dictionary<string, string> sheets, List<string> shared,
+        List<SkillRarityRecord> result)
+    {
+        if (!sheets.TryGetValue("Skill_Rarity", out string path))
+            throw new InvalidDataException("Skill_Rarity 시트가 없습니다.");
+        var cells = ReadCells(zip, path, shared);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int row = 3; row < 1000; row++)
+        {
+            string id = SkillRarityRecord.NormalizeId(Cell(cells, "C", row));
+            if (string.IsNullOrEmpty(id)) continue;
+            if (!seen.Add(id)) throw new InvalidDataException($"Skill_Rarity C{row}: 중복 등급 {id}");
+            if (!float.TryParse(Cell(cells, "E", row), NumberStyles.Float, CultureInfo.InvariantCulture, out float weight)
+                || weight < 0f || float.IsNaN(weight) || float.IsInfinity(weight))
+                throw new InvalidDataException($"Skill_Rarity E{row}: 올바르지 않은 가중치입니다.");
+            result.Add(new SkillRarityRecord { Id = id, Name = Cell(cells, "D", row), Weight = weight,
+                Frame = Cell(cells, "F", row), ColorHex = Cell(cells, "G", row) });
+        }
     }
 
     private static void ReadSkills(ZipArchive zip, Dictionary<string, string> sheets, string sheetName,

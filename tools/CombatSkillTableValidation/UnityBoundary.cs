@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace UnityEngine
 {
+    public class Sprite { }
+    public sealed class SerializeField : Attribute { }
+    public sealed class RangeAttribute : Attribute { public RangeAttribute(float min, float max) { } }
     public class TextAsset { public string text; }
     public static class Resources { public static T Load<T>(string path) where T : class => null; }
     public static class Application { public static string dataPath => System.IO.Path.GetFullPath("Assets"); }
@@ -12,7 +15,11 @@ namespace UnityEngine
         public static void Log(object message) => Console.WriteLine(message);
         public static void LogError(object message) => Console.Error.WriteLine(message);
     }
-    public static class Mathf { public static int RoundToInt(float n) => (int)Math.Round(n); }
+    public static class Mathf
+    {
+        public static int RoundToInt(float n) => (int)Math.Round(n);
+        public static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);
+    }
     public static class JsonUtility
     {
         public static string ToJson(object value, bool pretty) => JsonSerializer.Serialize(value, new JsonSerializerOptions
@@ -23,6 +30,8 @@ namespace UnityEngine
         public static T FromJson<T>(string value) => JsonSerializer.Deserialize<T>(value, new JsonSerializerOptions { IncludeFields = true });
     }
 }
+public static class Define { public enum EEffectSize { } }
+public interface ILoader<TKey, TValue> { System.Collections.Generic.Dictionary<TKey, TValue> MakeDict(); }
 namespace UnityEditor
 {
     public sealed class MenuItem : Attribute { public MenuItem(string path) { } }

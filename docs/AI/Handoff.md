@@ -1,5 +1,17 @@
 # 작업 인수인계
 
+## 2026-11-06 야수 좀비 보스 스프라이트의 주먹 스파크 일괄 분리
+
+- 요청: 주먹에 그림으로 구워진 붉은 스파크(VFX)를 모든 방향·동작에서 떼어 낸다. 스파크는 나중에 별도 이펙트로 붙인다.
+- 완료: `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations`의 idle·move·run·sprint·swipe·swipe-both·swipe-left·body-charge 중 이미 작업한 3곳(body-charge/east, move/north-east, move/east)을 뺀 477장을 자동 처리했다. 픽셀이 실제로 바뀐 것은 395장이다. 나머지는 스파크가 없어 HEAD 바이트 그대로 되돌렸다. `rotations/`는 원래 스파크가 없어 건드리지 않았다.
+- 방법(생성물, Git 제외 `.utmp/BeastSpark`): ① 몸 밖으로 뻗은 가는 붉은 줄과 밝은 빨강(R≥225) 스파크 덩어리를 찾는다. ② 그 주변의 붉은 틴트·가는 줄을 지운다. ③ 몸 안쪽은 프레임 안의 원래 피부·바지 팔레트 색 중 밝기가 비슷한 색으로 바꾸고, 몸 밖은 투명 처리한다. ④ 5×5 이상 덩어리 붉은 상처(어깨·무릎)는 보호한다. ⑤ 몸에서 떨어진 20픽셀 미만 조각은 지운다. idle 옆모습 일부(east, west, north-east, north-west)는 주먹 영역을 손으로 지정했고, sprint/south-west 2·3번은 얼굴·가슴 영역을 보호했다. 캔버스 크기·알파(0/255)·meta는 그대로다.
+- 유지함: 어깨·무릎의 붉은 상처, 가슴·등의 붉은 핏줄, 얼굴 피, 팔뚝의 분홍 흉터 줄, 스와이프의 붉은 베기 궤적(별도 이펙트로 볼 수 있어 이번에 지우지 않았다. 지우려면 따로 요청). 스프라이트 GUID·애니메이터·프리팹·코드는 바꾸지 않았다.
+- 알려진 한계(자동 처리라 완벽하지 않다): ① run·sprint·body-charge 일부 프레임에서 주먹이 은은한 붉은 장갑색으로 남았다. ② body-charge 일부 방향(south-west 등)의 주먹 주변 검은 가시 모양은 붉은색이 아니라 건드리지 않았다. ③ 스파크가 얼굴·가슴을 덮은 프레임은 얼굴 피·핏줄이 일부 지워졌을 수 있다. ④ 팔레트 색으로 메운 부분이 평평해 보일 수 있다. 어색한 프레임은 수작업 보정이 필요하다.
+- 백업·되돌리기: 원본은 Git HEAD에 있다(이 폴더는 이후 커밋에서 바뀐 적 없음). 변경은 커밋 전이다. 되돌릴 프레임은 해당 PNG만 `git checkout -- 경로`로 복원한다.
+- 확인용 문서(`Document/`, 미추적, 기존 MotionCheck 덱과 같은 형식, PowerPoint COM으로 생성, 생성 스크립트는 `.utmp/BeastSpark/mkdeck.ps1`): `BeastZombie_MotionCheck_rotation_SparkRemoved.pptx`(방향 8장, 행=동작·열=프레임), `BeastZombie_MotionCheck_SparkRemoved.pptx`(프레임 0~10, 11장, 행=동작·열=방향), `BeastZombie_SparkRemoval_Compare.pptx`(동작별 8장, 프레임 0·3의 원본(HEAD)/수정 비교). 기존 MotionCheck 두 덱은 스파크가 있는 수정 전 상태라 그대로 A/B 비교에 쓴다. PNG를 다시 고치면 이 덱은 다시 생성해야 한다.
+- 검증: 전/후 비교 시트를 눈으로 확인했다. Unity 컴파일·테스트는 하지 않았다(테스트 0개). Unity 재생, 실제 씬 표시, Android는 확인하지 않았다.
+- 다음 확인: Unity가 PNG를 다시 임포트할 때까지 기다린다. Project에서 `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/idle/south`의 0~3번을 열어 주먹 주변 붉은 번개가 없는지 본다. 이어 `run`, `sprint` 아래 여러 방향도 열어 본다. 보스 프리팹을 씬에 두고 Play하면 대기·이동·돌진 때 주먹 스파크가 없고 어깨 상처·핏줄은 남아 있어야 한다. 그림이 비거나 분홍이면 해당 폴더를 우클릭해 Reimport하고 Console 첫 오류를 확인한다. 별도 스파크 VFX 제작과 남은 주먹 장갑색 보정은 다음 작업이다.
+
 ## 2026-11-06 보유 패시브 쿨타임 등급별 값
 
 - 사용자 요청으로 약·강 스킬 35개의 `PassiveCooldown`을 등급별로 넣었다. 약공격 기준: Common 3 / Uncommon 3.5 / Rare 4 / Epic 5 / Legendary 6 / Mythic 7초. 강공격은 같은 등급에서 +1초. 탄 수×타격 수가 3 이상이면 +1초, 2면 +0.5초(10002·10010 4.5, 10012 5, 10013 6, 10016 7, 20004 7, 20009 6, 20015 8.5). 피해가 이미 20%라 등급이 오를수록 쿨타임만 조금 늘렸다. 확정 수치가 아니라 테스트 후 조정할 초기 균형값이다. `PassiveScale`은 그대로 비워 0.2를 쓴다.

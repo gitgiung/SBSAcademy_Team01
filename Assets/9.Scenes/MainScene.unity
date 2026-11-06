@@ -1174,7 +1174,7 @@ GameObject:
   - component: {fileID: 454020000}
   - component: {fileID: 454020006}
   m_Layer: 0
-  m_Name: Player Target
+  m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -28338,7 +28338,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b5617c4b722f512489c8e4a34bbfc95e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Enemy.Runtime::EnemySpawner
+  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemySpawner
   enemyPrefab: {fileID: 5300548243203222094, guid: a74c86675a9f61543b9c183add0dec10, type: 3}
   player: {fileID: 454019995}
   spawnPoints:
@@ -30756,16 +30756,12 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: damage
-      value: 15
-      objectReference: {fileID: 0}
-    - target: {fileID: 40308472465134674, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: target
       value: 
       objectReference: {fileID: 454019995}
     - target: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_Name
-      value: Boss
+      value: BeastZombie
       objectReference: {fileID: 0}
     - target: {fileID: 2801471059774490790, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_LocalPosition.x

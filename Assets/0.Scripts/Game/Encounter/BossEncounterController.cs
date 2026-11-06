@@ -17,6 +17,7 @@ public sealed class BossEncounterController : MonoBehaviour
     [SerializeField] private EnemySpawner[] spawners = new EnemySpawner[0];
     [SerializeField] private EnemySpawnDirector spawnDirector;
     [SerializeField, Min(0.01f)] private float bossAppearTime = 10f;
+    [SerializeField] private Transform bossSpawnAnchor;
 
     // [�߰�] �ν����Ϳ��� ���� ü�¹� UI (�Ǵ� Slider) �Ҵ�
     [SerializeField] private GameObject bossHealthSlider;
@@ -27,6 +28,8 @@ public sealed class BossEncounterController : MonoBehaviour
     public event System.Action DisplayChanged;
 
     private EnemyHealth bossHealth;
+    private Transform encounterBoss;
+    private Vector3 bossSpawnOffset;
     private int displayedSecond = -1;
     private EncounterPhase displayedPhase;
 
@@ -40,11 +43,23 @@ public sealed class BossEncounterController : MonoBehaviour
         }
 
         if (hordeLord != null)
+        {
+            encounterBoss = hordeLord.transform;
             bossHealth = hordeLord.Health;
+        }
         else if (boss != null)
+        {
+            encounterBoss = boss.transform;
             bossHealth = boss.GetComponent<EnemyHealth>();
+        }
         else
+        {
+            encounterBoss = zombieSlime.transform;
             bossHealth = zombieSlime.Health;
+        }
+
+        if (bossSpawnAnchor != null)
+            bossSpawnOffset = encounterBoss.position - bossSpawnAnchor.position;
 
         if (boss != null)
             boss.gameObject.SetActive(false);
@@ -122,12 +137,10 @@ public sealed class BossEncounterController : MonoBehaviour
             }
         }
 
-        if (hordeLord != null)
-            hordeLord.gameObject.SetActive(true);
-        else if (boss != null)
-            boss.gameObject.SetActive(true);
-        else
-            zombieSlime.gameObject.SetActive(true);
+        if (bossSpawnAnchor != null)
+            encounterBoss.position = bossSpawnAnchor.position + bossSpawnOffset;
+
+        encounterBoss.gameObject.SetActive(true);
 
         // [�߰�] ���� ���� �� �����̴� Ȱ��ȭ
         if (bossHealthSlider != null)

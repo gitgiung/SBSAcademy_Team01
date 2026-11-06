@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 2026-11-06 MainTestScene 반복 바닥과 이동 중 보스전
+
+- 시작 브랜치는 feat/infinity-map, 기준 커밋은 eb47661이며 작업 트리는 깨끗했다.
+- Ground의 기존 69×36셀 패턴을 RepeatingGround가 런타임에 읽는다. 실제 카메라 화면과 여유 2셀을 덮는 구역만 같은 Tilemap에 쓰고 멀어진 구역은 비운다. 다시 방문하면 원래 패턴을 복원한다. 씬이 바닥 수명을 관리하고 플레이어, 적, 경험치의 월드 좌표는 바닥 반복과 독립적이다. 원본 타일 데이터·렌더러와 프리팹을 보존했다.
+- MainTestScene의 Boss Encounter에 Player Target을 Boss Spawn Anchor로 연결했다. 등장 순간 보스의 기존 시작 배치 간격(위쪽 7.65유닛)을 플레이어의 현재 위치에 더하고 보스를 활성화한다. 다른 씬에서는 기존 위치를 사용한다. 보스전의 진행 타이머 정지와 기존 추적·돌진 흐름을 유지했다.
+- 검증은 분리된 복사본에서 Unity 6000.5.0f1 컴파일 및 PlayMode 2/2 통과. 같은 테스트는 변경 전 복사본에서 2/2 실패했다. 카메라를 양·음 좌표로 이동해 화면 모서리 타일, 먼 구역 제거와 바닥 범위, 시작 구역 복원 및 씬 재로드를 검사했다. 먼 위치의 플레이어 기준 보스 Transform·Rigidbody2D 좌표, BossFight 상태와 timeScale 1도 확인했다. 씬 참조와 객체 ID 중복 검사, git diff --check를 통과했다. 기존 Player.ParryCamera CS0252 경고가 남았다.
+- 직접 확인 순서는 Unity 임포트 완료 → Tools > Play From Title 해제 → Assets/9.Scenes/MainTestScene.unity → Play다. 시작하자마자 이동하면 보스가 출발점 대신 현재 위치 근처에 나타나야 한다. 보스전에서도 방향을 바꿔 여러 바닥 구역을 건너며 추적·돌진을 확인한다. 경험치를 남겨 두고 돌아왔을 때 같은 자리에 있는지 보고, 사망 후 Game Over > Restart로 새 판의 시작 위치와 바닥을 확인한다.
+- 오류 시 Console 첫 오류를 확인한다. 바닥은 Hierarchy의 Ground > Tilemap에서 Repeating Ground의 World Camera가 Main Camera인지, 보스는 Boss Encounter의 Boss Spawn Anchor가 Player Target인지 확인한다. 실제 Game 뷰의 이음새와 프레임 지연, 장거리 보스 추격 체감, Game Over 버튼 조작 및 Android 빌드·기기는 수동 확인 대상으로 남겼다.
+
 ## 2026-11-06 BossRevise와 플레이어 성장 브랜치 병합
 
 - 로컬 main의 시작점은 b26e7f0이며 작업 트리는 깨끗했다. BossRevise(3a7fc60)에 이어 feature/player-growth-design(6f83583)을 병합했다. 두 브랜치의 인수인계 기록을 함께 보존했다.

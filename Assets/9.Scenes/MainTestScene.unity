@@ -1307,14 +1307,14 @@ MonoBehaviour:
   loadout:
     unlockedAttackSlots: 6
     attackSkills:
-    - DataId: 10001
-      Name: "\uBD88\uAF43 \uD0C4\uD658"
+    - DataId: 0
+      Name: 
       ClassName: 
       Description: 
       ProjectileId: 0
       PrefabLabel: 
       IconLabel: 
-      AnimName: LightAttack
+      AnimName: 
       CoolTime: 0
       DamageMultiplier: 0
       Duration: 0
@@ -1327,15 +1327,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
-      ActiveConfigured: 1
-      MPCost: 10
-      BaseDamage: 10
-      PassiveConfigured: 1
-      PassivePrefabKey: FlameBullet
-      PassiveDamage: 6
-      PassiveInterval: 3
-      PassiveSpeed: 3
-      PassiveRange: 6
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey: 
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1687,24 +1687,28 @@ MonoBehaviour:
       PassiveRange: 0
     relics: []
     augments: []
-    lightSkillId: 10001
+    lightSkillId: 0
     heavySkillId: 0
     tacticalSkillId: 0
   speed: 7
   maxHealth: 100
   currentHealth: 100
   attackRange: 8
-  attackCooldown: 1
-  attackDamage: 3
-  bulletSpeed: 3
+  attackCooldown: 0.333
+  attackDamage: 1
+  bulletSpeed: 6
   maxMP: 100
   currentMP: 100
   mpRecoveryPerSecond: 5
   dashMPCost: 10
   parryMPRecovery: 15
+  experienceSettings:
+    baseNumerator: 108000
+    linearNumerator: 19800
+    quadraticNumerator: 675
   maxEXP: 10
-  currentEXP: 4
-  experiencePickupDistance: 0
+  currentEXP: 0
+  experiencePickupDistance: 1
 --- !u!114 &454020004
 MonoBehaviour:
   m_ObjectHideFlags: 0

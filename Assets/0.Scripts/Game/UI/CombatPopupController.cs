@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,6 +22,10 @@ public sealed class CombatPopupController : MonoBehaviour
     private readonly HashSet<UI_CombatPopup> activePopups = new HashSet<UI_CombatPopup>();
     private float previousTimeScale;
     private bool ownsPause;
+    private PlayerData growthSource;
+    private bool automaticLevelUp;
+    private bool completionPending;
+    private Coroutine advanceLevelUp;
 
     public RectTransform LevelUpContentRoot => levelUpPopup != null ? levelUpPopup.ContentRoot : null;
 
@@ -44,8 +49,50 @@ public sealed class CombatPopupController : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.StateChanged += HandleStateChanged;
-            HandleStateChanged(gameManager.state);
         }
+        BindGrowthSource();
+        // 비활성 중 승패가 결정됐다면 재연결한 플레이어의 대기도 정리합니다.
+        if (gameManager != null) HandleStateChanged(gameManager.state);
+    }
+
+    // Player.Awake와 씬 UI의 OnEnable 순서에 의존하지 않습니다.
+    private void Start() { BindGrowthSource(); TryShowPendingLevelUp(); }
+
+    private void BindGrowthSource()
+    {
+        if (growthSource != null) return;
+        ResolveStatusPlayer();
+        if (statusPlayer == null) return;
+        growthSource = statusPlayer.data != null ? statusPlayer.data : statusPlayer.GetComponent<PlayerData>();
+        if (growthSource == null) return;
+        growthSource.EXPChanged += HandleExperienceChanged;
+        growthSource.PlayerDeath += HandleGrowthPlayerDeath;
+        TryShowPendingLevelUp();
+    }
+
+    private void HandleExperienceChanged(float current, float maximum)
+    {
+        if (automaticLevelUp && !completionPending && growthSource.PendingLevelUps == 0)
+        {
+            CancelLevelUpAdvance();
+            automaticLevelUp = false;
+            HideLevelUpPopup();
+        }
+        TryShowPendingLevelUp();
+    }
+
+    private void TryShowPendingLevelUp()
+    {
+        if (!CanShow() || growthSource == null || growthSource.PendingLevelUps == 0
+            || completionPending || levelUpPopup == null || levelUpPopup.gameObject.activeSelf) return;
+        automaticLevelUp = true;
+        if (ShowLevelUp() == null) automaticLevelUp = false;
+    }
+
+    private void HandleGrowthPlayerDeath()
+    {
+        growthSource.CancelPendingLevelUps();
+        CloseOwnedPopups();
     }
 
     private void OnPauseClicked() { ShowPause(); }
@@ -75,42 +122,45 @@ public sealed class CombatPopupController : MonoBehaviour
         EnsureLevelUpPanel();
         if (levelUpPanel == null) return null;
         // 중복 열기나 겹친 일시정지창에서 복귀할 때 선택지가 바뀌지 않게 합니다.
-        if (!levelUpPopup.gameObject.activeSelf)
-        {
-            ResolveStatusPlayer();
-            if (statusPlayer == null || statusPlayer.data == null)
-            {
-                Debug.LogError("레벨업 스킬을 등록할 Player/PlayerData가 없습니다.", this);
-                return null;
-            }
-            PlayerLoadout loadout = statusPlayer.data.Loadout;
-            if (!loadout.HasFreeAttackSlot)
-            {
-                ShowAttackSlotsFull();
-                return OpenLevelUpPanel();
-            }
-            var excluded = new HashSet<int>();
-            for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
-                if (loadout.GetAttackSkill(i) is Data.SkillData owned) excluded.Add(owned.DataId);
-            CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
-            var skills = LevelUpSkillDraft.Draw(table, 3, 10000, 20000, levelUpRandom.NextDouble, excluded);
-            if (skills.Count == 0)
-            {
-                levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
-                return OpenLevelUpPanel();
-            }
-            var choices = new List<LevelUpCardData>();
-            foreach (var skill in skills) choices.Add(CreateSkillCard(skill, table.rarities));
-            levelUpPanel.SetChoices(choices, index =>
-            {
-                // 열려 있는 동안 보유 상태가 바뀌어도 성공한 획득만 완료합니다.
-                if (index < 0 || index >= skills.Count || !CanShow()) return;
-                if (LevelUpSkillReward.TryAcquire(loadout, skills[index])) CompleteLevelUp();
-                else if (!loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
-                else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록할 수 없습니다.", CompleteLevelUp);
-            });
-        }
+        if (!levelUpPopup.gameObject.activeSelf && !PrepareLevelUpChoices()) return null;
         return OpenLevelUpPanel();
+    }
+
+    private bool PrepareLevelUpChoices()
+    {
+        ResolveStatusPlayer();
+        if (statusPlayer == null || statusPlayer.data == null)
+        {
+            Debug.LogError("레벨업 스킬을 등록할 Player/PlayerData가 없습니다.", this);
+            return false;
+        }
+        PlayerLoadout loadout = statusPlayer.data.Loadout;
+        if (!loadout.HasFreeAttackSlot)
+        {
+            ShowAttackSlotsFull();
+            return true;
+        }
+        var excluded = new HashSet<int>();
+        for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
+            if (loadout.GetAttackSkill(i) is Data.SkillData owned) excluded.Add(owned.DataId);
+        CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
+        var skills = LevelUpSkillDraft.Draw(table, 3, 10000, 20000, levelUpRandom.NextDouble, excluded);
+        if (skills.Count == 0)
+        {
+            levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
+            return true;
+        }
+        var choices = new List<LevelUpCardData>();
+        foreach (var skill in skills) choices.Add(CreateSkillCard(skill, table.rarities));
+        levelUpPanel.SetChoices(choices, index =>
+        {
+            // 열려 있는 동안 보유 상태가 바뀌어도 성공한 획득만 완료합니다.
+            if (index < 0 || index >= skills.Count || !CanShow()) return;
+            if (LevelUpSkillReward.TryAcquire(loadout, skills[index])) CompleteLevelUp();
+            else if (!loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
+            else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록할 수 없습니다.", CompleteLevelUp);
+        });
+        return true;
     }
 
     private void ResolveStatusPlayer()
@@ -151,6 +201,8 @@ public sealed class CombatPopupController : MonoBehaviour
     public UI_CombatPopup ShowLevelUp(IReadOnlyList<LevelUpCardData> choices, System.Action<int> onSelected)
     {
         if (!CanShow() || levelUpPopup == null) return null;
+        // 자동 선택 중인 내용과 완료 계약은 외부 표시 호출로 교체하지 않습니다.
+        if (automaticLevelUp || completionPending) return levelUpPopup;
         EnsureLevelUpPanel();
         if (levelUpPanel == null) return null;
         levelUpPanel.SetChoices(choices, onSelected);
@@ -169,11 +221,52 @@ public sealed class CombatPopupController : MonoBehaviour
 
     public void CompleteLevelUp()
     {
+        if (completionPending || !CanShow() || levelUpPopup == null || !levelUpPopup.gameObject.activeSelf) return;
+        if (automaticLevelUp)
+        {
+            if (growthSource == null || !growthSource.TryCompleteLevelUp()) return;
+            completionPending = true;
+            // 같은 클릭/Submit 입력이 다음 카드까지 처리되지 않도록 다음 프레임에 전환합니다.
+            advanceLevelUp = StartCoroutine(AdvanceLevelUp());
+            return;
+        }
         if (levelUpPopup != null)
-            levelUpPopup.ClosePopupUI();
+            HideLevelUpPopup();
+        TryShowPendingLevelUp();
     }
 
-    private bool CanShow() => isActiveAndEnabled && (gameManager == null || gameManager.state == GameState.Playing);
+    private IEnumerator AdvanceLevelUp()
+    {
+        yield return null;
+        advanceLevelUp = null;
+        completionPending = false;
+        if (!CanShow()) yield break;
+        if (growthSource != null && growthSource.PendingLevelUps > 0)
+        {
+            if (PrepareLevelUpChoices()) levelUpPanel.Focus();
+            yield break;
+        }
+        automaticLevelUp = false;
+        HideLevelUpPopup();
+    }
+
+    private void HideLevelUpPopup()
+    {
+        // 다른 팝업 아래에서도 완료된 창은 닫습니다. UIManager는 다음 스택 접근 시 비활성 항목을 정리합니다.
+        if (levelUpPopup != null) levelUpPopup.gameObject.SetActive(false);
+    }
+
+    private void CancelLevelUpAdvance()
+    {
+        if (advanceLevelUp != null) StopCoroutine(advanceLevelUp);
+        advanceLevelUp = null;
+        completionPending = false;
+    }
+
+    public bool CanClosePopupUI(UI_CombatPopup popup) => popup != levelUpPopup || !automaticLevelUp;
+
+    private bool CanShow() => isActiveAndEnabled && (growthSource == null || !growthSource.IsDead)
+        && (gameManager == null || gameManager.state == GameState.Playing);
 
     public void AcquirePause(UI_CombatPopup popup)
     {
@@ -211,7 +304,8 @@ public sealed class CombatPopupController : MonoBehaviour
         if (!ownsPause) return;
         ownsPause = false;
         // 승패에 의한 정지나 외부에서 바꾼 시간 배율을 덮어쓰지 않습니다.
-        if (Time.timeScale == 0f && (gameManager == null || gameManager.state == GameState.Playing))
+        if (Time.timeScale == 0f && (growthSource == null || !growthSource.IsDead)
+            && (gameManager == null || gameManager.state == GameState.Playing))
             Time.timeScale = previousTimeScale;
     }
 
@@ -220,16 +314,28 @@ public sealed class CombatPopupController : MonoBehaviour
         if (pauseButton != null) pauseButton.onClick.RemoveListener(OnPauseClicked);
         if (gameManager != null) gameManager.StateChanged -= HandleStateChanged;
         CloseOwnedPopups();
+        if (growthSource != null)
+        {
+            growthSource.EXPChanged -= HandleExperienceChanged;
+            growthSource.PlayerDeath -= HandleGrowthPlayerDeath;
+        }
+        growthSource = null;
     }
 
     private void HandleStateChanged(GameState state)
     {
         if (pauseButton != null) pauseButton.interactable = state == GameState.Playing;
-        if (state != GameState.Playing) CloseOwnedPopups();
+        if (state != GameState.Playing)
+        {
+            if (growthSource != null) growthSource.CancelPendingLevelUps();
+            CloseOwnedPopups();
+        }
     }
 
     private void CloseOwnedPopups()
     {
+        CancelLevelUpAdvance();
+        automaticLevelUp = false;
         if (pausePopup != null) pausePopup.gameObject.SetActive(false);
         if (levelUpPopup != null) levelUpPopup.gameObject.SetActive(false);
         activePopups.Clear();
@@ -244,6 +350,22 @@ public sealed class CombatPopupController : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    [ContextMenu("테스트/경험치 13 획득")]
+    private void PreviewExperience()
+    {
+        if (!Application.isPlaying || !CanShow()) return;
+        BindGrowthSource();
+        growthSource?.AddEXP(13);
+    }
+
+    [ContextMenu("테스트/경험치 30 획득 (연속 레벨업)")]
+    private void PreviewMultipleLevels()
+    {
+        if (!Application.isPlaying || !CanShow()) return;
+        BindGrowthSource();
+        growthSource?.AddEXP(30);
+    }
+
     [ContextMenu("테스트/레벨업 팝업 열기")]
     private void PreviewLevelUp()
     {

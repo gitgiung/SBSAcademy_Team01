@@ -1,25 +1,120 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class ExperiencePickup : MonoBehaviour, IExperiencePickup
+public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, IPoolable
 {
+    [System.Serializable]
+    public sealed class ExperienceColorBand
+    {
+        [Min(0f)] public float minimumExperience;
+        public Color color = Color.white;
+
+        public ExperienceColorBand(float minimumExperience, Color color)
+        {
+            this.minimumExperience = minimumExperience;
+            this.color = color;
+        }
+    }
+
     [Header("획득 설정")]
     [Min(0f)]
     [SerializeField] private float experienceAmount; // 획득시 경험치량
     [Min(0f)]
     [SerializeField] private float attractionSpeed; // 플레이어에게 끌려가는 속도. 0이면 끌려가지 않음
 
+    [Header("경험치별 색상 (임시값, 프리팹 Inspector에서 변경)")]
+    [Tooltip("미지정 시 자신 또는 자식의 SpriteRenderer를 사용합니다. 공유 머티리얼은 변경하지 않습니다.")]
+    [SerializeField] private SpriteRenderer pickupRenderer;
+    [Tooltip("최소 경험치 이상인 구간 중 가장 큰 최소값을 사용합니다. 배열 순서는 무관하며 같은 최소값은 앞 항목 우선입니다.")]
+    [SerializeField] private ExperienceColorBand[] experienceColors =
+    {
+        new ExperienceColorBand(0f, new Color32(77, 166, 255, 255)),
+        new ExperienceColorBand(3f, new Color32(82, 214, 129, 255)),
+        new ExperienceColorBand(4f, new Color32(255, 212, 92, 255)),
+        new ExperienceColorBand(6f, new Color32(181, 140, 255, 255)),
+        new ExperienceColorBand(7f, new Color32(255, 158, 74, 255)),
+        new ExperienceColorBand(9f, new Color32(255, 94, 126, 255))
+    };
+
+    // 후속 획득 보정과 무관하게 보석에 담긴 원래 경험치량입니다.
+    public float RawExperience => experienceAmount;
+
     private PlayerData playerData;
     private bool collected;
+    private PooledObject pooledItem;
+    private uint pickupLease;
+    private float defaultExperience;
+    private bool defaultCaptured;
+    private System.Action<float, float> collectedReport;
+
+    public void OnPoolRent()
+    {
+        if (!defaultCaptured) { defaultExperience = experienceAmount; defaultCaptured = true; }
+        pooledItem = GetComponent<PooledObject>();
+        pickupLease = pooledItem != null ? pooledItem.LeaseVersion : 0;
+        collected = false;
+        playerData = null;
+        collectedReport = null;
+    }
+
+    public void OnPoolReturn()
+    {
+        collected = true;
+        playerData = null;
+        collectedReport = null;
+    }
+
+    public void PrepareForSpawn(Transform target, float rawExperience, System.Action<float, float> report)
+    {
+        Initialize(target);
+        SetExperienceAmount(rawExperience >= 0 ? rawExperience : defaultExperience);
+        collectedReport = report;
+    }
 
     private void Awake()
     {
         ResolvePlayerData(null);
     }
 
+    private void OnEnable() => RefreshExperienceColor();
+
     public void Initialize(Transform target)
     {
         ResolvePlayerData(target);
+        RefreshExperienceColor();
+    }
+
+    /// <summary>드롭 생성자가 경험치량을 주입할 때 외형도 함께 갱신합니다. 기존 float 획득값과 호환됩니다.</summary>
+    public bool SetExperienceAmount(float amount)
+    {
+        if (amount < 0f || float.IsNaN(amount) || float.IsInfinity(amount)) return false;
+        experienceAmount = amount;
+        RefreshExperienceColor();
+        return true;
+    }
+
+    [ContextMenu("외형/경험치 색상 미리보기")]
+    public void RefreshExperienceColor()
+    {
+        if (pickupRenderer == null) pickupRenderer = GetComponent<SpriteRenderer>();
+        if (pickupRenderer == null) pickupRenderer = GetComponentInChildren<SpriteRenderer>(true);
+        if (pickupRenderer == null) return;
+
+        Color selectedColor = Color.white;
+        float selectedMinimum = -1f;
+        if (experienceColors != null)
+            foreach (ExperienceColorBand band in experienceColors)
+            {
+                if (band == null || band.minimumExperience < 0f || float.IsNaN(band.minimumExperience)
+                    || float.IsInfinity(band.minimumExperience)) continue;
+                if (experienceAmount >= band.minimumExperience && band.minimumExperience > selectedMinimum)
+                {
+                    selectedMinimum = band.minimumExperience;
+                    selectedColor = band.color;
+                }
+            }
+        // 원본 스프라이트의 명암/색에 tint만 적용하며 material 인스턴스를 생성하지 않습니다.
+        pickupRenderer.color = selectedColor;
     }
 
     private void Update()
@@ -43,15 +138,41 @@ public sealed class ExperiencePickup : MonoBehaviour, IExperiencePickup
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (collected)
-            return;
+        TryCollect(other.GetComponentInParent<PlayerData>());
+    }
 
-        PlayerData collector = other.GetComponentInParent<PlayerData>();
-        if (collector == null || !collector.AddEXP(experienceAmount))
-            return;
-
+    public bool TryCollect(PlayerData collector)
+    {
+        if (collected || !isActiveAndEnabled || collector == null ||
+            (pooledItem != null && (!pooledItem.IsRented || pooledItem.LeaseVersion != pickupLease))) return false;
+        // AddEXP의 알림에서 다른 Trigger가 재진입해도 이 보석은 한 번만 지급합니다.
+        PooledObject item = pooledItem;
+        uint lease = pickupLease;
+        float raw = experienceAmount;
+        var report = collectedReport;
+        bool wasPooled = item != null;
         collected = true;
-        Destroy(gameObject);
+        bool returnReward = true;
+        try
+        {
+            if (!collector.TryCollectExperience(raw, out float awarded))
+            {
+                returnReward = false;
+                if (!wasPooled || (item != null && item.LeaseVersion == lease)) collected = false;
+                return false;
+            }
+            report?.Invoke(raw, awarded);
+            return true;
+        }
+        finally
+        {
+            // XP 알림에서 같은 인스턴스가 재대여돼도 이전 대여만 반환합니다.
+            if (returnReward)
+            {
+                if (wasPooled) { if (item != null) item.ReturnToPool(lease); }
+                else Destroy(gameObject);
+            }
+        }
     }
 
     private void ResolvePlayerData(Transform target)

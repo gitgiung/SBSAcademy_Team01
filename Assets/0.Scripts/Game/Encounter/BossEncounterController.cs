@@ -21,7 +21,8 @@ public sealed class BossEncounterController : MonoBehaviour
     // [�߰�] �ν����Ϳ��� ���� ü�¹� UI (�Ǵ� Slider) �Ҵ�
     [SerializeField] private GameObject bossHealthSlider;
 
-    public float ElapsedTime { get; private set; }
+    private float standaloneElapsedTime;
+    public float ElapsedTime => spawnDirector != null ? spawnDirector.ElapsedTime : standaloneElapsedTime;
     public EncounterPhase Phase { get; private set; }
     public event System.Action DisplayChanged;
 
@@ -62,16 +63,29 @@ public sealed class BossEncounterController : MonoBehaviour
         if (bossHealth != null) bossHealth.Died += OnBossDied;
         if (Phase == EncounterPhase.BossFight && (bossHealth == null || bossHealth.IsDead))
             OnBossDied();
+        if (spawnDirector != null)
+        {
+            spawnDirector.TimeAdvanced += HandleTimeAdvanced;
+            if (Phase == EncounterPhase.TimedCombat) spawnDirector.SetPauseBoundary(Mathf.Max(.01f, bossAppearTime));
+            if (Phase == EncounterPhase.TimedCombat && ElapsedTime >= bossAppearTime) BeginBossFight();
+        }
         RefreshDisplay(true);
+    }
+
+    private void HandleTimeAdvanced(float elapsed)
+    {
+        if (Phase == EncounterPhase.TimedCombat && elapsed >= Mathf.Max(.01f, bossAppearTime)) BeginBossFight();
+        RefreshDisplay();
     }
 
     private void Update()
     {
         if (Phase == EncounterPhase.BossFight) return;
-        ElapsedTime += Time.deltaTime;
+        if (spawnDirector != null) { RefreshDisplay(); return; }
+        standaloneElapsedTime += Time.deltaTime;
         if (Phase == EncounterPhase.TimedCombat && ElapsedTime >= Mathf.Max(0.01f, bossAppearTime))
         {
-            ElapsedTime = Mathf.Max(0.01f, bossAppearTime);
+            standaloneElapsedTime = Mathf.Max(0.01f, bossAppearTime);
             BeginBossFight();
         }
         RefreshDisplay();
@@ -81,7 +95,11 @@ public sealed class BossEncounterController : MonoBehaviour
     {
         Phase = EncounterPhase.BossFight;
 
-        if (spawnDirector != null) spawnDirector.SetPaused(true);
+        if (spawnDirector != null)
+        {
+            spawnDirector.SetPaused(true);
+            if (bossHealth != null) bossHealth.SetExperienceDropper(spawnDirector.SpawnPool as IEnemyExperienceDropper);
+        }
         else foreach (var spawner in spawners)
         {
             if (spawner != null)
@@ -123,7 +141,7 @@ public sealed class BossEncounterController : MonoBehaviour
         if (Phase != EncounterPhase.BossFight) return;
         Phase = EncounterPhase.AfterBoss;
         if (bossHealthSlider != null) bossHealthSlider.SetActive(false);
-        if (spawnDirector != null) spawnDirector.SetPaused(false);
+        if (spawnDirector != null) { spawnDirector.ClearPauseBoundary(); spawnDirector.SetPaused(false); }
         else foreach (var spawner in spawners)
             if (spawner != null) spawner.RestartSpawning();
         RefreshDisplay(true);
@@ -141,5 +159,10 @@ public sealed class BossEncounterController : MonoBehaviour
     private void OnDisable()
     {
         if (bossHealth != null) bossHealth.Died -= OnBossDied;
+        if (spawnDirector != null)
+        {
+            spawnDirector.TimeAdvanced -= HandleTimeAdvanced;
+            if (Phase == EncounterPhase.TimedCombat) spawnDirector.ClearPauseBoundary();
+        }
     }
 }

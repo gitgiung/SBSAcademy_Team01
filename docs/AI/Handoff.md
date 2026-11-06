@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-06 BossRevise와 플레이어 성장 브랜치 병합
+
+- 로컬 main의 시작점은 b26e7f0이며 작업 트리는 깨끗했다. BossRevise(3a7fc60)에 이어 feature/player-growth-design(6f83583)을 병합했다. 두 브랜치의 인수인계 기록을 함께 보존했다.
+- BossMvp의 Capsule은 main 쪽 기존 fileID를 사용했다. MainTestScene은 BossRevise 쪽 이동 속도·HP·사거리·MP 회복 설정을 유지하고 성장 브랜치의 기본 공격 간격 0.333초·공격력 1·탄속 6 및 XP 공식·회수 설정을 반영했다. 스킬 표 변경은 main의 Document/SkillDatatable.xlsx 경로에 반영됐다. 내보내기 도구의 기존 루트 경로 참조는 후속 확인 대상이다.
+- 검증은 Unity 설치본 Roslyn으로 런타임·에디터 어셈블리 6개를 컴파일했다. 오래된 Bee 응답 파일에 빠진 ZombieSlimeBoss.cs를 검증용 사본에 추가했으며 기존 CS0252 경고 1개가 남았다. .NET 9 임시 프로젝트에서 성장·스폰 계산 28/28 통과. Unity 테스트 0개, 원본 씬 Play·Android 빌드·기기 미검증. 수정 대상 프리팹/두 테스트 씬 YAML 객체 ID 중복 및 충돌 표시 0건을 확인했다.
+- 다음 확인은 Unity 임포트 완료 → Tools > Play From Title 해제 → MainTestScene Play 순서다. 기본 탄환이 사거리 내 적에게 자동 발사되는지 확인한다. CombatUI의 CombatPopupController에서 테스트/경험치 13 획득을 실행하면 Lv.2 카드가 열려야 한다. 보스 HP를 절반 이하로 낮추면 2페이즈 원형 패턴이 한 번 시작되는지 확인한다. 이상 시 Console 첫 오류와 PlayerData·CombatPopupController 연결, BossMvp Capsule 및 Animator를 확인한다.
+- 원본 씬 통합 확인 후 기존 스킬 자세히 보기 MP·쿨다운 작업과 성장 브랜치의 실제 스폰·처치·회수율 계측을 이어간다.
+
 ## 2026-11-05 야수 좀비 보스 북동쪽 이동 어깨 상처·팔 흉터 복원
 
 - 완료: `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/move/north-east`의 0~7.png. 붉은 오오라(주먹 주변 피 튀김)는 이미 지워진 상태를 그대로 두고, 오오라를 지우며 같이 회색으로 덮인 어깨의 붉은 상처 안쪽과 팔의 연한 분홍 흉터 줄만 10/28 커밋(`a4faa2b`)의 같은 프레임에서 픽셀 단위로 복원했다. 어깨는 x72~85, y35~47 영역, 팔 흉터는 원본이 옅은 분홍인 픽셀만 대상으로 했다. 프레임 0의 어깨도 같은 원본으로 통일했다.
@@ -57,6 +65,76 @@
 - 불일치(고치지 않음): 1.2 카드 부제 "기본형 / 대량 생성"은 3장 목록의 "기본형 / 군집 추적"과 다르다. 1.3 카드 부제 "기본형 / 돌진 가속"은 3장의 "균형형 / 돌발 가속"과 다르다.
 - 검증: 파워포인트로 15장 모두 PNG로 내보내 눈으로 확인했다. 원본은 작업 전 `C:\tmp\mon\src.pptx`에 복사해 두었다. Unity 테스트 0개. 씬, 프리팹, 코드는 변경하지 않음.
 - 다음 확인: 파워포인트에서 파일을 열어(열려 있던 창은 닫고 다시 연다) 2장 목차, 5~11장 몬스터 카드, 12~15장 엘리트·보스를 본다. 불일치 두 곳과 미정 항목의 확정이 다음 작업이다.
+
+## 2026-11-05 비투사체 약공격의 몬스터 처치 복구
+
+- 시작 상태는 `feature/player-growth-design` / `44210ce`였다. 작업 전부터 수정된 `SkillDatatable.xlsx`와 미추적 엑셀 잠금 파일을 보존했다.
+- 비투사체 `LightSkillFx.Play`가 `PoolManager.Pop`의 초기화 콜백 안에서 첫 피해를 줬다. 치명타로 HP가 0이 되어도 같은 풀에서 경험치 보석 대여는 예외, 몬스터 반납은 거절되어 사망한 적이 화면과 활성 목록에 남았다. 투사체 충돌은 초기화가 끝난 뒤 발생한다.
+- `LightSkillFx`의 첫 타격을 활성화 후 첫 전투 `Update`로 옮겼다. 후속 타격은 기존 타격 횟수와 간격을 사용한다. 기존 풀의 초기화 제한을 유지했다.
+- Unity 6000.5.0f1 격리 PlayMode에서 원형·고리·직선·부채꼴·호형이 모두 같은 풀 예외로 실패했다(53/58 통과). 수정 후 58/58 통과, 실패·생략 0. 다섯 판정 모두 적 사망, 비활성화, 활성 수 감소, 보석 1개 드롭을 검사했다. 프로젝트 응답 파일로 6개 어셈블리를 컴파일했으며 기존 CS0252 경고 1개가 남았다. 테스트 결과는 `.utmp/GrowthUnity/area-skill-red.xml`, `area-skill-green.xml`에 있다.
+- 다음 확인은 원본 씬 수동 재생이다. Tools > Play From Title 해제 → MainTestScene Play → 레벨업에서 화염 강타나 화염창 획득 → 일시정지의 보유 스킬에서 약공격으로 장착 → 재개 후 적을 향해 `N_Attack` 또는 `Enter`. 치명 피해를 받은 적이 사라지고 경험치 보석 1개가 떨어져야 한다. 이상 시 Console 첫 오류, 장착 상태와 남은 MP, 적의 `Enemy` 태그와 Collider2D, `EnemyHealth`의 체력과 경험치 프리팹 참조를 확인한다.
+
+## 2026-11-05 불꽃 탄환 시작 보유 제거와 기본 탄환 복구
+
+- `feature/player-growth-design` / `35bf8c5`에서 MainTestScene과 GiungTestScene의 시작 장착을 해제하고 첫 보유 슬롯도 비웠다. 기존 보유 불꽃 탄환의 패시브 설정이 시작 자동탄을 발사하던 원인이었다. 불꽃 탄환은 이후 레벨업에서 획득해 직접 장착할 수 있다. 미추적 엑셀 잠금 파일은 보존했다.
+- `PlayerCombat`에서 Player의 기존 `bulletPrefab`으로 기본 자동 공격을 복구했다. 사거리 안의 가장 가까운 적을 향해 풀에서 발사하며 `attackRange`, `attackCooldown`, `attackDamage`, `bulletSpeed`를 사용한다. 기본 자동 공격은 MP를 쓰지 않는다. 입력으로 시전하는 장착 약공격과 보유 패시브의 실행 경로는 별개다.
+- 검증 사본에서 기본탄 회귀 2개가 구현 전 실패했고 구현 후 전체 53/53 통과했다. 기존 장착 모델 4/4 통과, 관련 6개 어셈블리 컴파일 성공, `git diff --check` 통과. 기존 CS0252 경고 1개가 남는다. 원본 씬 재생은 수동 확인 항목이다.
+- Tools > Play From Title 해제 후 MainTestScene을 새로 재생한다. 일시정지에서 공격 스킬 보유 칸이 비어 있는지 확인한다. 재개 후 사거리 안의 적에게 접근하면 버튼 입력 없이 기본 탄환이 발사되어야 한다. 문제가 있으면 Console 첫 오류, Player의 Bullet Prefab, PlayerData의 Attack Range와 Attack Cooldown, 적의 Collider2D와 Enemy 태그를 확인한다.
+- 다음 작업은 스킬 표에서 구현 조건이 정해진 패시브 또는 광역 액티브 후보를 확인하는 것이다.
+
+## 2026-11-05 18분 스폰·처치 보석 풀·회수 보정 통합
+
+- 사용자 요청: 다음 작업도 이어서 전체 진행. 명세의 단계3~5를 구현하고 자동 통합 검증을 실행했다. 실제 시작 `feature/player-growth-design` / `60fd1a4`. 직전 색상 코드/문서/검증 도구의 미커밋 변경을 보존했다. 브랜치 전환·커밋·PR 없음. 기존 씬/프리팹/기존meta·Project Settings·패키지·xlsx·JSON은 변경하지 않았다. 신규 Survival C#3개에만 새 meta를 생성했다.
+- 책임: 기존 EnemySpawnDirector가 씬의 단일 진행 시간을 소유한다. BossEncounterController는 연결된 Director.TimeAdvanced에 구독하고 기존 보스 등장 경계를 전달한다. 보스 동안 Director만 정지하며 Time.timeScale은 멈추지 않는다. 처치 후 같은 시계 재개. EncounterTimerView는 기존 encounter.ElapsedTime을 통해 같은 시간을 표시한다. Director 없는 기존 단독 보스 씬은 로컬 시계를 유지한다. 보스 등장 테스트값30초·게임 승패는 변경하지 않았다.
+- 설정: Enemy Spawn System의 EnemySpawnDirector > Settings에 `SurvivalBalanceSettings`가 직렬화된다. 기본값은30초36구간, 첫50회/구간증가10회, 프레임당최대8회, 일반활성130, XP180초별2/3/4/6/7/9, 보정 체크180/360/540/720/900초와목표19/35/51/70/87, 차이3ON/1OFF/2유지, 배율1.25다. 1차 플레이테스트용 조정값이며 최종 밸런스가 아니다. 현재시간/레벨/carry/카운트는 설정에 저장하지 않는다.
+- 스폰: 목표는 씬 전체이며 기존 spawnerCount5로 곱하지 않는다. 구간의 반 간격부터 분산(첫 구간 첫 시도0.3초, 이후0.6초 간격). 기존 분별 minutes는 적 종류를 계속 제공하며, Director 경로의 수량/간격은 새 생존 설정이 소유한다. 단독 EnemySpawner.Configure/기존 standalone 경로는 보존했다. 상한/풀 실패도 시도를 소비하고, 프레임 한도를 넘긴 예정 시도는 frameSkipped로 폐기하며 보충 큐를 만들지 않는다. 1080초에는 새 일반 스폰이 중단되고 게임 승리/새 보스로 자동 전환하지 않는다. 마지막 예정 시도가1080초 이전이어도 해당 프레임이 종료 경계에 도착하면 생성 없이 frameSkipped 처리할 수 있다. 예정8100과 실제 성공 수를 구분한다.
+- 풀/처치: SceneEnemyPool은 일반 생성 시 rawXP를 EnemyHealth.SpawnRawExperience에 고정한다. 실제 죽음만 기존 Managers.Pool로 XP 프리팹을 빌린다. 거리 반환/보스 진입 정리/씬 소유자 비활성에는 드롭하지 않는다. 원본 EnemyHealth 공개 API를 보존하고 일반 풀 초기화 오버로드/선택적 IEnemyExperienceDropper·IPooledExperiencePickup 경계를 추가했다. 보스는 기존 프리팹 보상량을 유지한 채 Encounter에서 같은 드롭 풀을 연결한다. Director/소유자 없는 레거시 비풀 경로는 기존 동작을 보존한다.
+- 활성 정산: PooledObject.LeaseEnded 선택적 알림을 추가해 반환/풀Clear/외부Destroy에 SceneEnemyPool의 lease사전을 정산한다. ActiveEnemyCount 조회마다 전체 적 목록을 순회하지 않는다. 보스/XP는 일반130 상한에 포함하지 않으며 풀의 비활성 보관256과도 별개다. XP의 활성 소유권도 추적해 SceneEnemyPool 비활성/파괴 때 미회수 보석을 지급 없이 반납한다.
+- 회수: ExperiencePickup은 IPoolable 초기화에서 collected/대상/보고콜백을 초기화하고, Pop 초기화에서 rawXP/색/대상을 받는다. TryCollect/실제 Trigger는 한번만 PlayerData.TryCollectExperience로 지급하며, 성공 후 원래 lease를 반납한다. 색은 보정되지 않은 rawXP 기준이다. 보스와 일반이 같은 프리팹을 재사용해도 원래 프리팹XP와 주입rawXP를 구분한다.
+- 보정: PlayerData가 같은 씬의 Director를 한 번 찾아 시간 이벤트에 구독한다. SurvivalExperienceBonus가 체크포인트 히스테리시스와 소수carry를 소유하며 실제 회수 때만 floor 지급한다. 일반 AddEXP/기존 테스트XP 메뉴는 보정하지 않는다. 2XP 두 번+25%는2+3=5, 보정OFF에도carry보존, Lv100에서보정OFF. 이미 떨어진 보석의 rawXP/색은 수정하지 않는다. 처치율85%/회수율90% 가정을 런타임 제거/소멸 기능으로 구현하지 않았다.
+- 관측: Director.Sampled/LastSample의 SurvivalWaveMetrics에30초마다 목표·실행시도·성공·상한스킵·상한외실패·프레임폐기·현재/최대활성·일반처치·XP드롭·raw회수·실지급·레벨·보정을 기록한다. Log Wave Metrics 기본false, Editor/Development에서만 CSV출력한다. 컴포넌트 메뉴 `관측/최근 30초 지표 출력`은 헤더와 최근샘플을 출력한다. `테스트/진행시간 30초 앞으로`는 실제Tick을 사용하므로 보스 정지·팝업정지·프레임8회제한을 우회하지 않는다. 빠른 시간점프의 frameSkipped를 정상 플레이 결과로 해석하지 않는다.
+- 신규/핵심 파일: EnemyMvp.Runtime의 SurvivalBalanceSettings/SurvivalExperienceBonus/SurvivalWaveMetrics, EnemySpawnDirector/EnemySpawner/EnemyHealth/경계인터페이스, Encounter.Runtime의 BossEncounterController, Assembly-CSharp의 SceneEnemyPool/ExperiencePickup/PlayerData, Core의 PooledObject. 새 전역 매니저·이벤트 버스·풀·런타임 asmdef를 만들지 않았다. 구현 기록 `docs/superpowers/plans/2026-11-05-survival-integration.md`.
+- 수치 검증: Run.ps1에서 기존17개+신규11개. 구현 전17/28(신규기능부재11실패)→최종 **28/28통과**. 목표합8100·경계29.999/30·XP179.999/180·종료1080·보정3/1/2·carry 보존·설정/상태분리를 실행했다.
+- Unity 검증: 원본 대신 `.utmp/GrowthUnity` 검증 사본. 구현 전40개중33통과/7실패→구현후40/40. 독립리뷰의 보스 비활성 경계잔존·XP알림중재대여 오반납은49개중2실패로재현→수정후49/49. 추가 사망알림중재대여 후 old finally가 새 적을제거하는문제는51개중1실패→세대비교 수정후 **최종51/51통과, 실패/생략0, 종료0**. 실제 PoolManager/PooledObject/SceneEnemyPool/EnemyHealth/EnemyFollow/Spawner/Director/Encounter/PlayerData/PlayerView/UIManager/카드패널을 실행했다. 테스트원본과 사본 소스 해시를 비교한다. 결과 `.utmp/GrowthUnity/survival-final.xml`/`.log`는 생성물이다.
+- 확인한 통합: 실제 물리 Trigger의 풀 보석 회수1회, 처치1회드롭/미회수XP0/재대여재획득, 반환·Clear·외부Destroy 카운트복구, 130상한,5스포너전체50회, 상한/풀 실패소비·무보충, 프레임급증8회이하, 보스중전투계속/시계정지·재개,1080일반스폰중단·TimeScale1, 생성XP경계스냅샷, 회수시보정/색불변, 보석→레벨업카드→선택→전투복원. 21,600회의0.05초Tick으로 가속한1080초시계 검사에서36샘플·예정8100·최고활성130을 확인했다. 이는 실제18분플레이나FPS검사가 아니다.
+- 컴파일: RunCompile.ps1이 Combat.Runtime→EnemyMvp.Runtime→Boss.Runtime→Encounter.Runtime→Assembly-CSharp→Editor 순으로 설치본Roslyn컴파일. 새 Survival소스와 이번ref DLL을 연결해6개모두종료0. 출력 `.utmp/PlayerExperience/Compile` 격리, Library DLL덮어쓰기없음. 기존Player.ParryCamera CS0252경고1개 유지. 장착4/4통과. 전투표도구8/17통과·기존9실패(엑셀43/기준46·ID/JSON불일치)재확인, 관련xlsx/JSON은 수정하지 않았다. git diff --check 통과. 독립리뷰수명지적2건 수정후읽기재검토에서추가중요발견없음.
+- 검증 한계: 사본은 Player의 전투/입력·실제Boss/HordeLord AI·GameManager승패판정·VFX·리소스/사운드·UI_Base바인딩을 경계로 대체한다. 실제MainTestScene 화면/터치/스킬·보스공격·실제씬언로드·카탈로그/번들/Android/기기는미검증. actual18분 처치율/회수율·체크포인트실측Lv·Lv100도달시각·FPS/GC는아직측정하지않았다. 구현과 가속시계 통과만으로16~17분100Lv를보장하지않는다.
+- 사용자 확인1: Unity컴파일/임포트완료 → Console첫오류확인 → Tools > Play From Title해제 → MainTestScene Play → 일반적처치 → 파랑2XP DNA드롭 → 회수시만EXP증가 → 레벨업카드자동표시/선택 → 일시정지스탯우측검정Lv와보유등록확인. 선택중시간/적이멈추고선택완료후재개되어야한다. 보유스킬은기존대로직접장착한다.
+- 사용자 확인2: 기존30초보스등장 → 일반적정리에는보석추가없음 → 타이머고정/보스와플레이어전투계속 → 보스처치후시계·일반스폰재개. 3분경계전에태어난적은2XP, 이후는3XP로색이구분되며늦게처치해도생성XP유지. 레벨업/일시정지는별도로게임시간정지. Director의Log Wave Metrics를켜30초지표와최대활성130이하를확인한다.
+- 사용자 확인3: Enemy Spawn System의Settings에서시도예산·XP·체크포인트/배율/상한을조정한다(미정HP/DPS/보상추가없음). 정상18분에는타이머18:00/새일반생성중단/남은적과보석유지·임의승리전환없음. 오류시Console첫오류, Director의Pool Provider/Player/Camera/Spawner Template/Minutes적종류/Settings유효성, SceneEnemyPool활성, XP프리팹/IPooledExperiencePickup, PlayerData/슬라이더/팝업연결을확인한다. 색설정은DNA(EXP) Experience Colors에서변경한다.
+- 다음 우선순위: 원본씬수동통합확인 → 실측130상한빈도·처치율/회수율 → 체크포인트레벨·100도달시각 → FPS/GC와기기. 기존전투표43/46불일치도해결대상이나 이번에임의데이터보충은하지않았다. 완료한성장/카드/색상/풀/시계/보정 구현을처음부터반복하지않는다.
+
+## 2026-11-05 경험치 보석 색상 구간 추가
+
+- 사용자 요청: 경험치량에 따라 보석 색을 구분하고, 임시 색/구간은 Codex가 정하되 이후 변경 가능하게 한다. 실제 시작 상태 `feature/player-growth-design` / `60fd1a4`, 작업 트리 깨끗함. 앞선 성장 구현은 사용자가 커밋한 상태이며 다시 만들지 않았다. 이번 커밋/PR 없음.
+- 기존 ExperiencePickup에 `experienceColors` 구간 배열과 선택적 `pickupRenderer` 참조를 추가했다. 기본 구간은 0~3 미만 파랑 `#4DA6FF`, 3~4 미만 초록 `#52D681`, 4~6 미만 노랑 `#FFD45C`, 6~7 미만 보라 `#B58CFF`, 7~9 미만 주황 `#FF9E4A`, 9 이상 분홍 `#FF5E7E`. 현재 프리팹의1XP도 파랑이다. 수치/색은 임시 설정값이며 스킬 등급과 별개다.
+- `RawExperience`와 `SetExperienceAmount(float)`를 추가했다. 값 주입과 동시에 색이 갱신되며 음수/NaN/무한값은 거절한다. 기존 Initialize(Transform)과 OnEnable도 현재 경험치량으로 색을 갱신한다. 기존 experienceAmount/attractionSpeed 필드·회수·끌림 동작과 IExperiencePickup 시그니처는 보존했다. 생성시각별 rawXP 주입·풀링/재사용 획득상태 초기화는 아직 다음 단계다.
+- 색은 현재 경험치량 이하인 최소값 중 가장 큰 구간을 사용한다. 배열 순서는 무관하고 중복 최소값은 앞 항목 우선이다. null/잘못된 최소값은 건너뛰며 유효 구간이 없으면 tint흰색으로 원본을 표시한다. renderer는 지정 참조→자신→자식 순으로 찾는다. 기존 SpriteRenderer.color만 변경하고 공유 머티리얼·텍스처·셰이더를 만들거나 수정하지 않는다. 원본 DNA가 노랑/초록 그림이므로 화면색은 설정 tint와 원본색/명암이 섞인 결과다.
+- 수정: ExperiencePickup.cs, 기존 RunUnity.ps1/검증README. 신규: `tools/PlayerExperienceValidation/Unity/ExperiencePickupColorTests.cs`, `docs/superpowers/plans/2026-11-05-experience-pickup-color.md`. 원본 씬·프리팹·기존 meta/GUID·ProjectSettings·Packages·xlsx·JSON 변경 없음.
+- 검증: 색상 기능 구현 전 격리 Unity31개 중 기존15통과/신규16실패(기능 부재). 구현 후 **31/31 통과·실패/생략0·종료0**. 기본/경계/상한초과 색, Inspector 구간 변경/재정렬, 빈 배열, 잘못된 양 거절, Initialize/재활성 외형 복원, 자식 renderer/renderer 누락을 검사했다. 기존 카드/성장 UI15개 포함이며 실제 SpriteRenderer 색 속성으로 검증했다. 결과 `.utmp/GrowthUnity/color-green.xml`/`.log`는 생성물이다. 해당 사본 ExperiencePickup 원본 해시 일치를 확인한다.
+- 독립 성장 **17/17 통과**. `RunCompile.ps1`으로 런타임/에디터 컴파일 각각 종료0, 기존 Player.ParryCamera.cs CS0252 경고1개 유지. `git diff --check` 통과. 전투 표8/17(기존9실패)·장착4/4는 앞선 세션 결과이며 이번 색상 작업에서는 해당 두 도구를 재실행하지 않았다.
+- 직접 수정/확인: Play 종료 → Project > Assets/1.Prefabs/DNA(EXP) 프리팹 열기 → ExperiencePickup > `경험치별 색상` > Experience Colors 배열의 Minimum Experience/Color 수정 → 컴포넌트 메뉴 `외형/경험치 색상 미리보기`. Experience Amount를2/3/4/6/7/9로 바꾸고 메뉴를 다시 실행하면 구간별 tint가 달라져야 한다. Inspector를 바꾼 직후 자동 미리보기하는 기능은 없으며 메뉴 또는 재활성/Play 시작 때 적용한다. 임시 경험치 변경은 테스트 후 원래 값으로 돌린다. 색을 저장하려면 프리팹의 색상표 변경을 저장한다.
+- 플레이 확인: Tools > Play From Title 해제 → MainTestScene Play → 적 처치 → 떨어진 현재1XP DNA의 색 구분 및 회수/기존 EXP 증가 확인. 모든 보석의 양은 아직 기존 프리팹 값이므로 시간 경과만으로 다른 색이 생기지는 않는다. 보석 풀링/시각별rawXP 연결 후 구간별 실제 드롭을 확인한다. 이상 시 Console 첫 오류, 경험치량·Minimum Experience·Color의 알파, Pickup Renderer, SpriteRenderer/머티리얼 색 지원·씬/프리팹 Overrides를 확인한다.
+- 검증 한계: 실제 게임 화면/폰트·터치·머티리얼의 최종 렌더링·실제 보석 물리 회수/운영 카탈로그/Android/기기는 이번에 검증하지 않았다. 색 테스트는 실제 SpriteRenderer 속성 검사이며 시각 검증으로 설명하지 않는다. 다음 우선순위는 기존과 같이 3단계 처치→보석→회수다.
+
+## 2026-11-05 레벨·XP 계산과 카드 자동 연결·상태창 레벨 표시
+
+- 사용자 승인: 요구 XP만 차감하고 초과분 이월. 이번에는 18분 명세의 첫 두 단계(계산/기존 카드 자동 연결)와 추가 요청인 스탯 제목 오른쪽 검정색 `Lv.1` 표시를 구현했다. 시작 실제 상태는 `feature/player-growth-design` / `5d34dad`, 작업 트리 깨끗함. 브랜치 전환·커밋·PR은 하지 않았다.
+- 읽은 자료: NextCodex-LevelSpawnXP, Handoff, CoreInitialization, ResourceLoading, 기존 카드 계획, Markdown 명세 전체와 루트 ImplementationSpec DOCX 텍스트. 두 명세의 핵심 규칙 차이 없음. 아래 11월4일의 “성장 런타임 미구현”은 당시 기록이며 이번 첫 두 단계에는 더 이상 해당하지 않는다.
+- 계산: `PlayerExperienceSettings`가 Inspector에서 조정 가능한 정수 공식 계수를, `PlayerExperienceProgress`가 Lv1~100·잔여 XP·선택 대기를 소유한다. 새 전역 매니저나 asmdef 없음. 기본 Lv1 요구13, Lv2 요구15, 1→100 합33,033. 15XP를 얻으면 Lv2/잔여2, 30XP면 Lv3/잔여2/선택2회. 최대 레벨에서는 추가 선택 없이 남는 XP를 보존한다. 요구량0에서 EXP Slider는 기존 표시 규칙대로0이다. 최대 레벨 보상은 추가하지 않았다.
+- PlayerData: AddEXP/SetEXP/EXPChanged와 기존 직렬화 필드명을 보존했다. CurrentLevel/PendingLevelUps/LevelChanged/TryCompleteLevelUp을 추가했다. 실제 요구량은 공식이 소유하므로 `maxEXP` Inspector 구값은 시작 시 요구13으로 갱신된다. `SetEXP(current, maximum)`의 maximum은 유효성 검사만 유지하는 호환 인자이며 요구량을 덮어쓰지 않는다. current는 현재 레벨 XP 지정이며 초과 시 정상 성장한다. 기존 호출 검색에서 외부 런타임 호출은 없었다. InitEXP는 Lv1/0XP/선택0으로 초기화한다. 소수 AddEXP 호출 호환은 유지하며 후속 +25% 보정은 아직 연결하지 않았다.
+- 카드: CombatPopupController가 같은 씬 PlayerData에 구독하고 XP 획득 후 자동으로 기존 ShowLevelUp을 연다. 대기 선택마다 기존 약공격 추첨·보유 등록·보유 제외·미장착 정책을 사용한다. 카드 소진/가득 참 확인도1건 완료다. 같은 창에서 다음 프레임에 선택지를 교체해 같은 프레임 중복 클릭/확인과 중간 전투 재개를 막았다. 자동 선택은 일반 닫기 버튼으로 건너뛸 수 없다. 수동 미리보기는 대기 선택을 소비하지 않는다.
+- 수명: 컨트롤러 비활성은 구독/코루틴/창을 정리하고 대기는 PlayerData에 남겨 재활성 때 재개한다. 사망/승패 종료는 대기를 취소하고 전투 정지를 복원하지 않는다. 비활성 중 승패 후 재활성 시에도 대기를 정리한다. 완료창 위에 일시정지창이 있는 경우 완료창을 비활성화해 기존 UIManager의 지연 스택 정리를 이용하며 나머지 창의 정지는 유지한다. 보스전/진행 시간 규칙은 변경하지 않았다.
+- 표시: PlayerStatusPanel의 기존 스탯 제목 영역을 나눠 오른쪽에 검정색 `Lv.{현재레벨}`을 추가했다. 기존 EXPChanged 경로로 갱신하며 씬/프리팹을 재저장하지 않았다. 기존 meta/GUID·Project Settings·패키지·xlsx·JSON 변경 없음. 새 C# 두 파일에만 새 meta를 추가했다.
+- 검증 도구: `tools/PlayerExperienceValidation/Run.ps1`, `RunUnity.ps1`, `RunCompile.ps1`, README와 검증 소스를 추가했다. 원본 Assets/Tests/asmdef는 복원하지 않았다. 구현 전 성장 검증14개 중13개 실패(레벨/요구량/선택 기능 부재), 구현 후 최종 독립17/17 통과. 장착 도구4/4 통과.
+- Unity: `.utmp/GrowthUnity` 격리 프로젝트에서 Unity6000.5.0f1 PlayMode 실행. 검증 경계의 Canvas null비교/SetGuard 누락을 수정한 뒤 기능 구현 전9/9실패→구현 후9/9통과. 추가 중첩 사례12개 중1실패→수정 후12/12. 추가 수명 사례15개 중1실패(비활성 중 승리 후 대기 잔존)→순서 수정 후 **최종15/15 통과, 실패/생략0, 종료0**. 실제 PlayerView EXP Slider 이월비율, 실제 UIManager/카드 패널의 자동 열기·획득·연속 선택·중복 클릭/확인·소진/가득 참·중첩 양방향·비활성 재개·사망/승패·초기화·재부모화 팝업 Destroy·검정색 레벨 텍스트 갱신을 확인했다. 사본에 복사한 관련 실제 런타임 소스는 원본과 해시를 비교한다. 결과 `.utmp/GrowthUnity/final-lifecycle.xml`/`.log`는 생성물이다.
+- 컴파일: Unity 설치본 Roslyn으로 현재 원본 소스의 Assembly-CSharp와 Editor 각각 종료0. 새 성장 소스를 포함하고 Editor는 이번 런타임 ref DLL을 참조한다. 출력은 `.utmp/PlayerExperience/Compile`로 격리하여 Library DLL을 덮어쓰지 않았다. 기존 Player.ParryCamera.cs CS0252 경고1개가 남는다. `git diff --check` 통과. 독립 리뷰에서 중요 추가 발견 없음; 이후 수명 검증을 보강했다.
+- 기존 데이터 실패: CombatSkillTable 도구는 **8/17 통과·9실패**로 인수인계에 기록된 43개/기준46개 불일치가 그대로다. 이번에 엑셀·JSON을 재출력/보충하지 않았다. 실패 항목은 가득 참 획득 fixture, 설명 토큰, 약공격 수, 재생, 강공격, 빈 자원, 범위 분리, inline문자열, JSON 비교다. 이 실패를 새 성장 테스트 통과와 혼동하지 않는다.
+- 한계: Unity 사본은 Player 전투/입력·GameManager 승패 판정·방어 VFX·리소스/사운드·UI_Base 바인딩을 경계로 대체했다. 실제 GameManager.LateUpdate/Player 입력 Submit·터치, 실제 씬 언로드·화면 해상도/폰트 시각 확인, 운영 카탈로그/번들, Android/기기는 미검증. 객체 Destroy 검사를 실제 씬 전환 전체 검사로 설명하지 않는다.
+- 직접 확인1: Tools > Play From Title 해제 → MainTestScene Play → CombatUI의 CombatPopupController 메뉴 `테스트/경험치 13 획득`. 새 판에서 Lv2/잔여XP0으로 카드가 자동으로 열려야 한다. 카드 본문 선택 → 창 닫힘/전투 재개 → 일시정지 → 스탯 오른쪽 검정색 `Lv.2` 및 보유 스킬 등록 확인. 새 스킬은 자동 장착되지 않으며 클릭 장착 후 N_Attack/Enter로 사용한다.
+- 직접 확인2: Play를 재시작하고 같은 메뉴 `테스트/경험치 30 획득 (연속 레벨업)` → Lv3/잔여XP2/요구17, 두 번 선택해야 한다. 첫 선택 뒤 전투가 재개되면 안 되고 마지막 선택 뒤 재개되어야 한다. 보유창을 채운 뒤 같은 메뉴로 가득 참 확인의 연속 처리도 확인한다. `테스트/카드 소진 안내`는 기존 수동 표시 확인용이다. 실제 보석은 현재 Inspector 경험치량이 양수인 기존 보석으로 회수→자동 표시를 확인한다(시각별 rawXP/풀링은 다음 단계).
+- 오류 확인: Console 첫 오류 전체, CombatPopupController의 Status Player/두 Popup/ContentRoot/버튼과 PlayerData 연결, Player의 EXP Slider, 보석 experienceAmount 양수 여부를 확인한다. 레벨 글씨는 가로가 좁은 해상도와 Lv100까지 잘리는지 직접 확인한다. 스킬 후보 이상은 기존 엑셀/JSON 불일치와 Skill_Rarity 설정도 확인한다.
+- 다음 우선순위: 실제 씬 수동 확인 후 **3단계 처치→보석→회수(생성 시 rawXP 스냅샷/기존 Managers.Pool/획득1회/재사용 초기화)**. 이어 단일 진행 시계·30초 스폰 예산·18분 일반스폰 중단·성장 보정/소수carry·관측을 진행한다. 첫 두 단계와 카드 UI/획득을 다시 만들지 않는다. 설계/실행 기록은 `docs/superpowers/plans/2026-11-05-player-experience.md`.
 
 ## 2026-11-05 Player·Boss Capsule Collider 2D 교체 호환성
 

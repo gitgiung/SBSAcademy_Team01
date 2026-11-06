@@ -13,6 +13,7 @@ public sealed class PooledObject : MonoBehaviour
     public bool IsPoolOwned => _manager != null;
     public bool IsRented { get; private set; }
     public uint LeaseVersion { get; private set; }
+    public event Action<PooledObject, uint> LeaseEnded;
 
     /// <summary>먼저 SetActive(false)하거나 Destroy하지 말고 이 메서드로 반납합니다.</summary>
     public bool ReturnToPool()
@@ -46,7 +47,18 @@ public sealed class PooledObject : MonoBehaviour
         unchecked { LeaseVersion++; }
     }
 
-    internal void EndLease() { IsRented = false; }
+    internal void EndLease()
+    {
+        if (!IsRented) return;
+        IsRented = false;
+        if (LeaseEnded == null) return;
+        // 소유자의 관측 실패가 풀의 정리를 중단하지 않게 합니다.
+        foreach (Action<PooledObject, uint> listener in LeaseEnded.GetInvocationList())
+            try { listener(this, LeaseVersion); }
+            catch (Exception exception) { Debug.LogException(exception, this); }
+    }
+
+    private void OnDestroy() { EndLease(); }
 
     internal void ResetForRent()
     {

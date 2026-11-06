@@ -2,102 +2,120 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>씬의 일반 몬스터 소유자. 기존 Managers.Pool을 사용하고 동시 활성 제한을 적용합니다.</summary>
+/// <summary>일반 적/XP의 씬 소유권과 lease를 추적합니다. 저장은 기존 Managers.Pool을 사용합니다.</summary>
 [DisallowMultipleComponent]
-public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool
+public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawnDiagnostics, IEnemyExperienceDropper
 {
     public const int MaxActiveEnemies = 130;
-    private readonly Dictionary<GameObject, uint> activeEnemies = new Dictionary<GameObject, uint>();
-    private readonly List<GameObject> staleEnemies = new List<GameObject>();
+    private readonly Dictionary<PooledObject, uint> activeEnemies = new Dictionary<PooledObject, uint>();
+    private readonly Dictionary<PooledObject, uint> activePickups = new Dictionary<PooledObject, uint>();
+    private readonly SurvivalBalanceSettings fallbackSettings = new SurvivalBalanceSettings();
     private PoolManager pool;
+    private EnemySpawnDirector director;
     private bool closing;
+    public int ActiveEnemyCount => activeEnemies.Count;
+    public EnemySpawnFailure LastSpawnFailure { get; private set; }
 
-    public int ActiveEnemyCount
+    private void ResolveDirector()
     {
-        get
-        {
-            // 외부 Destroy나 공통 풀 Clear 이후에도 제한이 영구히 잠기지 않도록 정리합니다.
-            staleEnemies.Clear();
-            foreach (var pair in activeEnemies)
-                if (pair.Key == null || !pair.Key.TryGetComponent<PooledObject>(out var item) ||
-                    !item.IsRented || item.LeaseVersion != pair.Value)
-                    staleEnemies.Add(pair.Key);
-            foreach (GameObject enemy in staleEnemies) activeEnemies.Remove(enemy);
-            return activeEnemies.Count;
-        }
+        if (director != null) return;
+        foreach (EnemySpawnDirector candidate in FindObjectsByType<EnemySpawnDirector>())
+            if (candidate.gameObject.scene == gameObject.scene) { director = candidate; break; }
     }
 
-    public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene)
-    {
-        return TrySpawn(prefab, position, target, scene, null);
-    }
+    public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene) => TrySpawn(prefab, position, target, scene, null);
 
     public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene, System.Action<GameObject> spawned)
     {
-        if (closing || !isActiveAndEnabled || target == null || prefab == null || !scene.IsValid() || !scene.isLoaded ||
-            !prefab.TryGetComponent<EnemyHealth>(out _) ||
-            !prefab.TryGetComponent<EnemyFollow>(out _) || ActiveEnemyCount >= MaxActiveEnemies)
-            return false;
-
+        ResolveDirector();
+        LastSpawnFailure = EnemySpawnFailure.InvalidConfiguration;
+        if (closing || !isActiveAndEnabled || target == null || prefab == null || !scene.IsValid() || !scene.isLoaded
+            || !prefab.TryGetComponent<EnemyHealth>(out _) || !prefab.TryGetComponent<EnemyFollow>(out _)) return false;
+        if (ActiveEnemyCount >= (director != null ? director.Settings.maxActiveNormalEnemies : MaxActiveEnemies))
+        { LastSpawnFailure = EnemySpawnFailure.Capacity; return false; }
         if (pool == null) pool = Managers.Pool;
+        LastSpawnFailure = EnemySpawnFailure.PoolUnavailable;
         if (pool == null) return false;
-        GameObject created = null;
         try
         {
             pool.Pop(prefab, position, Quaternion.identity, initialize: enemy =>
             {
-                created = enemy;
-                // 활성 몬스터는 씬 루트에 두어 스포너 비활성화와 씬 종료 수명이 분리됩니다.
                 enemy.transform.SetParent(null, true);
                 SceneManager.MoveGameObjectToScene(enemy, scene);
-                enemy.GetComponent<EnemyHealth>().PrepareForSpawn(this);
+                var health = enemy.GetComponent<EnemyHealth>();
+                health.PrepareForSpawn(this, (director != null ? director.Settings : fallbackSettings).RawXP(director != null ? director.ElapsedTime : 0));
+                health.Died -= HandleEnemyDied;
+                health.Died += HandleEnemyDied;
                 enemy.GetComponent<EnemyFollow>().SetTarget(target);
-                activeEnemies.Add(enemy, enemy.GetComponent<PooledObject>().LeaseVersion);
+                var item = enemy.GetComponent<PooledObject>();
+                item.LeaseEnded += HandleEnemyReturned;
+                activeEnemies.Add(item, item.LeaseVersion);
+                if (director != null) director.RecordActiveCount(ActiveEnemyCount);
                 spawned?.Invoke(enemy);
             });
+            LastSpawnFailure = EnemySpawnFailure.None;
             return true;
         }
-        catch
-        {
-            if (created != null) activeEnemies.Remove(created);
-            throw;
-        }
+        catch (System.Exception exception) { Debug.LogException(exception, this); return false; }
+    }
+
+    private void HandleEnemyDied() { if (director != null) director.RecordKill(); }
+    private void HandleEnemyReturned(PooledObject item, uint lease)
+    {
+        item.LeaseEnded -= HandleEnemyReturned;
+        if (item.TryGetComponent<EnemyHealth>(out var health)) health.Died -= HandleEnemyDied;
+        if (activeEnemies.TryGetValue(item, out uint owned) && owned == lease) activeEnemies.Remove(item);
+    }
+    private void HandlePickupReturned(PooledObject item, uint lease)
+    {
+        item.LeaseEnded -= HandlePickupReturned;
+        if (activePickups.TryGetValue(item, out uint owned) && owned == lease) activePickups.Remove(item);
     }
 
     public void ReturnEnemy(GameObject enemy)
     {
-        if (enemy == null || !activeEnemies.TryGetValue(enemy, out uint lease)) return;
-        activeEnemies.Remove(enemy);
-        // 공통 풀을 통해 이미 반납·재대여됐다면 이전 소유자는 현재 상태에도 손대지 않습니다.
-        if (!enemy.TryGetComponent<PooledObject>(out var item) ||
-            !item.IsRented || item.LeaseVersion != lease) return;
+        if (enemy == null || !enemy.TryGetComponent<PooledObject>(out var item) || !activeEnemies.TryGetValue(item, out uint lease)) return;
+        if (!item.IsRented || item.LeaseVersion != lease) { activeEnemies.Remove(item); return; }
         if (enemy.TryGetComponent<EnemyFollow>(out var follow)) follow.SetTarget(null);
         item.ReturnToPool(lease);
     }
 
-    private void OnApplicationQuit()
+    public bool TryDropExperience(GameObject prefab, Vector3 position, Transform target, float rawExperience)
     {
-        // Play 종료 중 씬 루트를 영속 풀로 옮기면 Unity의 계층 정리와 충돌합니다.
-        // 종료 때는 엔진과 풀 소유자의 파괴에 맡기고, 평소 OnDisable 반납은 유지합니다.
-        closing = true;
-        activeEnemies.Clear();
+        if (closing || !isActiveAndEnabled || prefab == null || !prefab.TryGetComponent<IPooledExperiencePickup>(out _)) return false;
+        if (pool == null) pool = Managers.Pool;
+        if (pool == null) return false;
+        try
+        {
+            pool.Pop(prefab, position, Quaternion.identity, initialize: pickup =>
+            {
+                pickup.transform.SetParent(null, true);
+                SceneManager.MoveGameObjectToScene(pickup, gameObject.scene);
+                var reward = pickup.GetComponent<IPooledExperiencePickup>();
+                reward.PrepareForSpawn(target, rawExperience, HandleCollected);
+                var item = pickup.GetComponent<PooledObject>();
+                activePickups.Add(item, item.LeaseVersion);
+                item.LeaseEnded += HandlePickupReturned;
+            });
+            if (director != null)
+            {
+                float amount = rawExperience >= 0 ? rawExperience : prefab.GetComponent<IPooledExperiencePickup>().RawExperience;
+                director.RecordDrop(amount);
+            }
+            return true;
+        }
+        catch (System.Exception exception) { Debug.LogException(exception, this); return false; }
     }
 
+    private void HandleCollected(float raw, float awarded) { if (director != null) director.RecordCollection(raw, awarded); }
+    private void OnApplicationQuit() { closing = true; activeEnemies.Clear(); activePickups.Clear(); }
     private void OnDisable() { ReturnAll(); }
-
-    private void OnDestroy()
+    private void OnDestroy() { closing = true; ReturnAll(); }
+    private void ReturnAll() { ReturnOwned(activeEnemies); ReturnOwned(activePickups); }
+    private static void ReturnOwned(Dictionary<PooledObject, uint> items)
     {
-        closing = true;
-        ReturnAll();
-    }
-
-    private void ReturnAll()
-    {
-        if (activeEnemies.Count == 0) return;
-        // Managers를 조회해 종료 중 새 전역 객체를 만들지 않습니다.
-        GameObject[] remaining = new GameObject[activeEnemies.Count];
-        activeEnemies.Keys.CopyTo(remaining, 0);
-        foreach (GameObject enemy in remaining) ReturnEnemy(enemy);
-        activeEnemies.Clear();
+        var remaining = new List<KeyValuePair<PooledObject, uint>>(items);
+        foreach (var pair in remaining) if (pair.Key != null) pair.Key.ReturnToPool(pair.Value);
+        items.Clear();
     }
 }

@@ -67,7 +67,6 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             hitCollider.radius = 0.28f;
         }
         gameObject.name = skill.Name;
-        if (!projectile) Strike(enemyTag);
     }
 
     private void Cache()
@@ -120,15 +119,16 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             return;
         }
 
-        if (hitsLeft > 1)
+        if (hitsLeft > 0)
         {
-            hitTimer += Time.deltaTime;
-            if (hitTimer >= skill.RepeatSpacing)
+            hitTimer -= Time.deltaTime;
+            if (hitTimer <= 0f)
             {
-                hitTimer = 0f;
+                hitTimer = skill.RepeatSpacing;
                 hitsLeft--;
                 hitIds.Clear();
-                Strike(enemyTag);
+                // 풀 대여 초기화가 끝난 뒤에 적 반납과 경험치 보석 대여가 가능합니다.
+                Strike();
             }
         }
         if (life <= 0f) Finish();
@@ -153,7 +153,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         Finish();
     }
 
-    private void Strike(string enemyTag)
+    private void Strike()
     {
         Vector2 origin = transform.position;
         switch (skill.Shape)

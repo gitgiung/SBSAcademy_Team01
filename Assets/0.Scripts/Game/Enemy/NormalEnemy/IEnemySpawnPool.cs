@@ -8,3 +8,11 @@ public interface IEnemySpawnPool
     bool TrySpawn(GameObject prefab, Vector3 position, Transform target, Scene scene, System.Action<GameObject> spawned);
     void ReturnEnemy(GameObject enemy);
 }
+
+public enum EnemySpawnFailure { None, Capacity, PoolUnavailable, InvalidConfiguration }
+
+public interface IEnemySpawnDiagnostics
+{
+    int ActiveEnemyCount { get; }
+    EnemySpawnFailure LastSpawnFailure { get; }
+}

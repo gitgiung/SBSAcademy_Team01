@@ -35,6 +35,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     private bool followEnabled;
     private bool initialized;
     private IEnemySpawnPool spawnPool;
+    private IEnemyExperienceDropper experienceDropper;
+    public float SpawnRawExperience { get; private set; } = -1f;
 
     private void Awake()
     {
@@ -80,8 +82,15 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     /// <summary>풀 initialize에서 호출합니다. 최초 Awake보다 먼저 호출돼도 안전합니다.</summary>
     public void PrepareForSpawn(IEnemySpawnPool owner)
     {
+        PrepareForSpawn(owner, -1f);
+    }
+
+    public void PrepareForSpawn(IEnemySpawnPool owner, float rawExperience)
+    {
         EnsureInitialized();
         spawnPool = owner;
+        experienceDropper = owner as IEnemyExperienceDropper;
+        SpawnRawExperience = rawExperience;
         SpawnGeneration++;
         CurrentHealth = Mathf.Max(1f, maxHealth);
         IsDead = false;
@@ -97,6 +106,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         if (follow != null) follow.enabled = followEnabled;
         UpdateHealthUI();
     }
+
+    public void SetExperienceDropper(IEnemyExperienceDropper dropper) { experienceDropper = dropper; }
 
     /// <summary>보스 전환 등 보상 없는 제거. 풀 소유 객체는 파괴하지 않습니다.</summary>
     public void Despawn()
@@ -183,6 +194,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     /// </summary>
     private void Die()
     {
+        int dyingGeneration = SpawnGeneration;
         IsDead = true;
 
         // 진행 중인 피격 코루틴 중단 및 색상 복원
@@ -207,12 +219,20 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
             SpawnExperiencePickup();
             Died?.Invoke();
         }
-        finally { Despawn(); }
+        // 사망 알림에서 반환/재대여했다면 새로운 생명은 이전 사망이 정리하지 않습니다.
+        finally { if (SpawnGeneration == dyingGeneration) Despawn(); }
     }
 
     private void SpawnExperiencePickup()
     {
         if (experiencePickupPrefab == null) return;
+
+        if (experienceDropper != null)
+        {
+            experienceDropper.TryDropExperience(experiencePickupPrefab, transform.position,
+                follow != null ? follow.Target : null, SpawnRawExperience);
+            return;
+        }
 
         GameObject pickupObject = Instantiate(experiencePickupPrefab, transform.position, Quaternion.identity);
         if (pickupObject.TryGetComponent<IExperiencePickup>(out var pickup))

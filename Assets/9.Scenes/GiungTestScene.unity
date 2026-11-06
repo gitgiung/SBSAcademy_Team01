@@ -1275,14 +1275,14 @@ MonoBehaviour:
   loadout:
     unlockedAttackSlots: 6
     attackSkills:
-    - DataId: 10001
-      Name: "\uBD88\uAF43 \uD0C4\uD658"
+    - DataId: 0
+      Name:
       ClassName: 
       Description: 
       ProjectileId: 0
       PrefabLabel: 
       IconLabel: 
-      AnimName: LightAttack
+      AnimName:
       CoolTime: 0
       DamageMultiplier: 0
       Duration: 0
@@ -1295,15 +1295,15 @@ MonoBehaviour:
       NextLevelId: 0
       AoEId: 0
       EffectSize: 0
-      ActiveConfigured: 1
-      MPCost: 10
-      BaseDamage: 10
-      PassiveConfigured: 1
-      PassivePrefabKey: FlameBullet
-      PassiveDamage: 6
-      PassiveInterval: 3
-      PassiveSpeed: 3
-      PassiveRange: 6
+      ActiveConfigured: 0
+      MPCost: 0
+      BaseDamage: 0
+      PassiveConfigured: 0
+      PassivePrefabKey:
+      PassiveDamage: 0
+      PassiveInterval: 0
+      PassiveSpeed: 0
+      PassiveRange: 0
     - DataId: 0
       Name: 
       ClassName: 
@@ -1655,7 +1655,7 @@ MonoBehaviour:
       PassiveRange: 0
     relics: []
     augments: []
-    lightSkillId: 10001
+    lightSkillId: 0
     heavySkillId: 0
     tacticalSkillId: 0
   speed: 5

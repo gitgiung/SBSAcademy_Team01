@@ -796,10 +796,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Encounter.Runtime::BossEncounterController
   boss: {fileID: 2094942134}
   hordeLord: {fileID: 0}
+  zombieSlime: {fileID: 0}
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 3
+  bossAppearTime: 180
+  bossSpawnAnchor: {fileID: 454019995}
   bossHealthSlider: {fileID: 5856254087394751847}
 --- !u!4 &344751653
 Transform:
@@ -902,6 +904,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: recycleCamera
+      value: 
+      objectReference: {fileID: 1388604590}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: player
       value: 
@@ -919,29 +925,61 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1152493169}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
-      propertyPath: minutes.Array.size
-      value: 1
+      propertyPath: waves.Array.data[0].enemies.Array.size
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
-      propertyPath: minutes.Array.data[1].spawnInterval
+      propertyPath: waves.Array.data[1].enemies.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[0].enemies.Array.data[0].weight
       value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
-      propertyPath: minutes.Array.data[1].batchSpawnCount
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
-      propertyPath: minutes.Array.data[1].totalSpawnCount
-      value: 12
-      objectReference: {fileID: 0}
-    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
-      propertyPath: minutes.Array.data[1].enemyPrefabs.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
-      propertyPath: 'minutes.Array.data[1].enemyPrefabs.Array.data[0]'
+      propertyPath: waves.Array.data[0].enemies.Array.data[1].prefab
       value: 
-      objectReference: {fileID: 5300548243203222094, guid: a74c86675a9f61543b9c183add0dec10, type: 3}
+      objectReference: {fileID: 5300548243203222094, guid: d6b4ca0105cbe174793c4928b2157a38, type: 3}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[0].enemies.Array.data[1].weight
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[0].enemies.Array.data[2].prefab
+      value: 
+      objectReference: {fileID: 5300548243203222094, guid: 43d77806225ff1548810157dcccfaddd, type: 3}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[0].enemies.Array.data[2].weight
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[0].weight
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[1].prefab
+      value: 
+      objectReference: {fileID: 1000001, guid: 7b13c8b1454a4b459b41b341dd99f16d, type: 3}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[1].weight
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[2].prefab
+      value: 
+      objectReference: {fileID: 5300548243203222094, guid: d6b4ca0105cbe174793c4928b2157a38, type: 3}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[2].weight
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[3].prefab
+      value: 
+      objectReference: {fileID: 5300548243203222094, guid: 43d77806225ff1548810157dcccfaddd, type: 3}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: waves.Array.data[1].enemies.Array.data[3].weight
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 4327628076001424401, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: m_LocalPosition.x
       value: 144.16869
@@ -1690,7 +1728,7 @@ MonoBehaviour:
     lightSkillId: 0
     heavySkillId: 0
     tacticalSkillId: 0
-  speed: 7
+  speed: 5
   maxHealth: 100
   currentHealth: 100
   attackRange: 8
@@ -1771,7 +1809,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 547c02de74954905803a70c3f6c19cd8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitFeedbackTest
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitFeedback
   targetRenderer: {fileID: 454019996}
   hitColor: {r: 1, g: 0, b: 0, a: 1}
   colorDuration: 0.12
@@ -3211,6 +3249,7 @@ GameObject:
   - component: {fileID: 1127740546}
   - component: {fileID: 1127740548}
   - component: {fileID: 1127740547}
+  - component: {fileID: 1127740549}
   m_Layer: 0
   m_Name: Tilemap
   m_TagString: Untagged
@@ -28249,6 +28288,19 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &1127740549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127740545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 614b34cb0a514edc9de8c3ce2a20e0fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RepeatingGround
+  worldCamera: {fileID: 1388604590}
 --- !u!1 &1152493168
 GameObject:
   m_ObjectHideFlags: 0

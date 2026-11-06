@@ -4,9 +4,18 @@ using UnityEngine.SceneManagement;
 
 /// <summary>일반 적/XP의 씬 소유권과 lease를 추적합니다. 저장은 기존 Managers.Pool을 사용합니다.</summary>
 [DisallowMultipleComponent]
+[DefaultExecutionOrder(1000)]
 public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawnDiagnostics, IEnemyExperienceDropper
 {
     public const int MaxActiveEnemies = 130;
+    private const float RecycleInterval = 0.25f;
+
+    [SerializeField] private Camera recycleCamera;
+    [SerializeField, Min(0.01f), Tooltip("카메라 화면 가장자리에서 이 거리보다 먼 일반 적을 반환합니다.")]
+    private float offscreenRecycleMargin = 20f;
+
+    private readonly List<KeyValuePair<PooledObject, uint>> recycleCandidates = new List<KeyValuePair<PooledObject, uint>>();
+    private float recycleTimer;
     private readonly Dictionary<PooledObject, uint> activeEnemies = new Dictionary<PooledObject, uint>();
     private readonly Dictionary<PooledObject, uint> activePickups = new Dictionary<PooledObject, uint>();
     private readonly SurvivalBalanceSettings fallbackSettings = new SurvivalBalanceSettings();
@@ -15,6 +24,34 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawn
     private bool closing;
     public int ActiveEnemyCount => activeEnemies.Count;
     public EnemySpawnFailure LastSpawnFailure { get; private set; }
+
+    private void LateUpdate()
+    {
+        if (closing || activeEnemies.Count == 0 || recycleCamera == null || !recycleCamera.isActiveAndEnabled ||
+            !recycleCamera.orthographic || Time.deltaTime <= 0f || (director != null && director.IsPaused)) return;
+
+        recycleTimer -= Time.deltaTime;
+        if (recycleTimer > 0f) return;
+        recycleTimer = RecycleInterval;
+
+        float viewHeight = 2f * recycleCamera.orthographicSize;
+        float verticalPadding = offscreenRecycleMargin / viewHeight;
+        float horizontalPadding = verticalPadding / recycleCamera.aspect;
+        foreach (var entry in activeEnemies)
+        {
+            if (entry.Key == null) continue;
+            Vector3 viewport = recycleCamera.WorldToViewportPoint(entry.Key.transform.position);
+            if (viewport.x < -horizontalPadding || viewport.x > 1f + horizontalPadding ||
+                viewport.y < -verticalPadding || viewport.y > 1f + verticalPadding)
+                recycleCandidates.Add(entry);
+        }
+
+        // LeaseEnded updates activeEnemies during return. Validate each lease after collecting candidates.
+        foreach (var entry in recycleCandidates)
+            if (entry.Key != null && activeEnemies.TryGetValue(entry.Key, out uint lease) && lease == entry.Value)
+                ReturnEnemy(entry.Key.gameObject);
+        recycleCandidates.Clear();
+    }
 
     private void ResolveDirector()
     {

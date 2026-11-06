@@ -53,6 +53,10 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private bool hasDied;
     public event System.Action Died;
     public event System.Action<float, GameObject> Damaged;
+    public static event System.Action<Player, float> DamageApplied;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetDamageObservers() => DamageApplied = null;
 
     private PlayerView view;
     private PlayerMovement movement;
@@ -393,6 +397,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         }
 
         if (!data.ApplyDamage(damage)) return;
+        DamageApplied?.Invoke(this, damage);
 
         Debug.Log($"[피격] 받은 데미지: {damage} / 남은 체력: {data.currentHealth}");
         if (data.IsDead)

@@ -19,14 +19,14 @@ public sealed partial class Player
         BeginReactionFeedback(null, source, parryHitStopDuration, parryRecoilDistance, parryRecoilDuration);
     }
 
-    internal void BeginTestHitFeedback(MonoBehaviour owner, GameObject source, float stop, float distance, float duration)
+    internal void BeginHitFeedback(MonoBehaviour owner, GameObject source, float stop, float distance, float duration)
     {
         if (Time.timeScale <= 0f || !isActiveAndEnabled || hasDied || data.IsDead) return;
         CancelParryFeedback();
         BeginReactionFeedback(owner, source, stop, distance, duration);
     }
 
-    internal void CancelTestHitFeedback(MonoBehaviour owner)
+    internal void CancelHitFeedback(MonoBehaviour owner)
     {
         if (feedbackOwner == owner) CancelParryFeedback();
     }

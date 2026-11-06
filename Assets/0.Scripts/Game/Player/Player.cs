@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -65,6 +66,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private InputAction parryInput;
     private InputAction attackInput;
     private GameObject lightFxPrototype;
+    private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
+    private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];
     private bool lastExternalMoving;
     private bool startingDash;
     private int lifecycleVersion;
@@ -148,6 +151,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             view.SetMovementAnimation(Vector2.zero, false, false, dashDuration);
             // 약공격 입력 잠금과 자동 패시브 발사 금지는 별개입니다.
             combat.Tick(Time.deltaTime);
+            TickOwnedPassives(Time.deltaTime);
             return;
         }
 
@@ -171,7 +175,11 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (parryInput.WasPressedThisFrame()) TryParry();
         if (attackInput != null && attackInput.WasPressedThisFrame() && !PointerOverUi())
             TryCastLightSkill(CurrentAim());
-        if (!defense.IsInDefenseMotion) combat.Tick(Time.deltaTime);
+        if (!defense.IsInDefenseMotion)
+        {
+            combat.Tick(Time.deltaTime);
+            TickOwnedPassives(Time.deltaTime);
+        }
     }
 
     public bool TryUseLightSkill()
@@ -214,13 +222,47 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         CompleteLightAttack(actionId);
     }
 
-    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction)
+    /// <summary>보유한 약·강 스킬을 표의 패시브 주기마다 같은 모양으로 발사합니다. MP와 입력 잠금은 쓰지 않습니다.</summary>
+    private void TickOwnedPassives(float deltaTime)
+    {
+        if (IsHeavyCharging || data == null || data.Loadout == null || combat == null) return;
+        for (int i = 0; i < ownedPassiveIds.Length; i++)
+        {
+            Data.SkillData owned = data.Loadout.GetAttackSkill(i);
+            int id = owned != null ? owned.DataId : 0;
+            if (ownedPassiveIds[i] != id) { ownedPassiveIds[i] = id; ownedPassiveTimers[i] = 0f; }
+            if (!CombatSkillTable.TryGet(id, out CombatSkillRecord record)
+                || !record.TryOwnedPassive(out float cooldown, out float scale)
+                || !LightSkillCast.TryFrom(record, out LightSkillCast skill)) continue;
+            ownedPassiveTimers[i] = Mathf.Max(0f, ownedPassiveTimers[i] - deltaTime);
+            if (ownedPassiveTimers[i] > 0f) continue;
+            if (!combat.TryGetClosestEnemyDirection(skill.Range, out Vector2 direction)) continue;
+            ownedPassiveTimers[i] = cooldown;
+            StartCoroutine(CastOwnedPassive(skill, direction, skill.Damage(data.attackDamage) * scale));
+        }
+    }
+
+    private IEnumerator CastOwnedPassive(LightSkillCast skill, Vector2 aim, float damage)
+    {
+        int shots = Mathf.Max(1, skill.Projectiles);
+        float spacing = skill.ShotSpacing;
+        for (int i = 0; i < shots; i++)
+        {
+            if (!isActiveAndEnabled || hasDied || data == null || data.IsDead || Time.timeScale <= 0f) yield break;
+            float spread = shots == 1 ? 0f : (i - (shots - 1) * 0.5f) * 8f;
+            Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
+            SpawnLightSkill(skill, direction, damage);
+            if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
+        }
+    }
+
+    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction, float? damageOverride = null)
     {
         EnsureLightFxPrototype();
         Vector3 position = transform.position;
         if (skill.Shape == LightSkillShape.Circle || skill.Shape == LightSkillShape.Cone || skill.Shape == LightSkillShape.Arc)
             position += (Vector3)(direction * skill.Range * 0.35f);
-        float damage = skill.Damage(data.attackDamage);
+        float damage = damageOverride ?? skill.Damage(data.attackDamage);
         void Arm(GameObject fx)
         {
             if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
@@ -386,6 +428,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         CancelParryFeedback();
         CancelParryCameraZoom();
         StopAllCoroutines();
+        Array.Clear(ownedPassiveIds, 0, ownedPassiveIds.Length);
+        Array.Clear(ownedPassiveTimers, 0, ownedPassiveTimers.Length);
         lightSkill?.Cancel();
         actions?.Reset();
         joystickController?.StopMovement();

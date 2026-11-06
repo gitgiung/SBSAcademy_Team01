@@ -28,7 +28,7 @@ internal static class Program
     }
     private static int Main(string[] args)
     {
-        table = CombatSkillWorkbook.Read("SkillDatatable.xlsx");
+        table = CombatSkillWorkbook.Read("Document/SkillDatatable.xlsx");
         Test("acquired skill is owned once and not automatically equipped", () =>
         {
             var loadout = new PlayerLoadout(); int changes = 0; loadout.Changed += () => changes++;
@@ -130,31 +130,41 @@ internal static class Program
             Equal(5f, s.CostAmount); Equal(7f, s.Range); Equal(.5f, s.Width);
             Equal(8f, s.BaseValue); Equal(1.2f, s.Factor); Equal("Projectile", s.AreaType);
         });
-        Test("regeneration preserves self target and duration", () =>
+        Test("utility workbook row keeps its name while effect cells stay blank", () =>
         {
             var s = Skill(30001);
-            Equal("HealOverTime", Field(s, "EffectType")); Equal("Self", Field(s, "TargetType"));
-            Equal(5f, Field(s, "EffectDuration")); Equal(5, s.Hits); Equal(1f, s.HitDelay);
-            Equal(.04f, s.Factor); Equal("HP", s.ScalingStat);
+            Equal("재생 치유", s.Name); Equal("", Field(s, "EffectType")); Equal("", s.TargetType);
         });
         Test("heavy armor and knockback", () =>
         {
             Equal(false, Field(Skill(20001), "SuperArmor"));
             Equal(true, Field(Skill(20015), "SuperArmor"));
-            Equal("Knockback", Field(Skill(20001), "CrowdControl"));
+            Equal("", Field(Skill(20001), "CrowdControl"));
             Equal("None", Field(Skill(10001), "StatusEffectId"));
             Equal(0f, Field(Skill(10001), "EffectDuration"));
         });
-        Test("empty resources remain empty", () =>
+        Test("light workbook keeps its icon path and blank cues", () =>
         {
-            foreach (string field in new[] { "Icon", "AnimationName", "EffectPrefab", "SoundCue" })
+            Equal("SkillIcons/SkillIcon_10001", Field(Skill(10001), "Icon"));
+            foreach (string field in new[] { "AnimationName", "EffectPrefab", "SoundCue" })
                 Equal("", Field(Skill(10001), field));
             Equal("Common", Field(Skill(10001), "Rarity"));
-            Equal("5초 동안 1초마다 최대 체력의 4%를 회복한다.", Field(Skill(30001), "Description"));
+        });
+        Test("owned passive columns stay blank and scale defaults to 20 percent", () =>
+        {
+            Equal(0f, Skill(10001).PassiveCooldown); Equal(0f, Skill(10001).PassiveScale);
+            Equal(0f, Skill(20001).PassiveCooldown); Equal(0f, Field(Skill(30001), "PassiveCooldown"));
+            Equal(false, Skill(10001).TryOwnedPassive(out _, out _));
+            var ready = new CombatSkillRecord { Id = 10014, PassiveCooldown = 3f };
+            Equal(true, ready.TryOwnedPassive(out float cooldown, out float scale));
+            Equal(3f, cooldown); Equal(CombatSkillRecord.DefaultPassiveScale, scale);
+            ready.PassiveScale = .5f; Equal(true, ready.TryOwnedPassive(out _, out scale)); Equal(.5f, scale);
+            ready.Id = 30001; Equal(false, ready.TryOwnedPassive(out _, out _));
+            ready.Id = 20001; ready.PassiveCooldown = 0f; Equal(false, ready.TryOwnedPassive(out _, out _));
         });
         Test("area radius and length remain independent", () =>
         {
-            Equal(2.2f, Field(Skill(20001), "Radius"));
+            Equal(0f, Field(Skill(20001), "Radius"));
             Equal(7f, Field(Skill(10001), "Length"));
             Equal(0f, Field(Skill(10001), "Radius"));
         });
@@ -162,7 +172,7 @@ internal static class Program
         {
             string path = Path.GetFullPath(".utmp/CombatSkillData/inline.xlsx");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            File.Copy("SkillDatatable.xlsx", path, true);
+            File.Copy("Document/SkillDatatable.xlsx", path, true);
             XNamespace main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             using (var zip = ZipFile.Open(path, ZipArchiveMode.Update))
             {
@@ -183,14 +193,20 @@ internal static class Program
             }
             Equal("inline skill", CombatSkillWorkbook.Read(path).skills.Single(s => s.Id == 10001).Name);
         });
-        Test("existing JSON fields remain unchanged for all skills", () =>
+        Test("shipped JSON keeps combat values and blank passive columns", () =>
         {
-            var previous = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
+            var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
                 File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
-            Equal(previous.skills.Count, table.skills.Count);
-            foreach (var s in previous.skills)
-                foreach (var field in typeof(CombatSkillRecord).GetFields())
-                    Equal(field.GetValue(s), field.GetValue(Skill(s.Id)));
+            CombatSkillRecord Find(int id) => shipped.skills.Single(s => s.Id == id);
+            Equal(46, shipped.skills.Count);
+            var flame = Find(10001);
+            Equal(8f, flame.BaseValue); Equal("", flame.Icon); Equal(0f, flame.PassiveCooldown); Equal(0f, flame.PassiveScale);
+            var hammer = Find(20001);
+            Equal("Knockback", hammer.CrowdControl); Equal(2.2f, hammer.Radius); Equal(0f, hammer.PassiveCooldown);
+            var heal = Find(30001);
+            Equal("HealOverTime", heal.EffectType); Equal("Self", heal.TargetType); Equal(5f, heal.EffectDuration);
+            Equal(5, heal.Hits); Equal(1f, heal.HitDelay); Equal(.04f, heal.Factor); Equal("HP", heal.ScalingStat);
+            Equal("5초 동안 1초마다 최대 체력의 4%를 회복한다.", heal.Description);
         });
         Console.WriteLine($"Result: {tests - failures}/{tests} passed");
         if (failures == 0 && args.Contains("--export")) CombatSkillTableExporter.Export();

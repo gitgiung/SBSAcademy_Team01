@@ -118,4 +118,15 @@ internal sealed class PlayerCombat
         return closest;
     }
 
+    internal bool TryGetClosestEnemyDirection(float range, out Vector2 direction)
+    {
+        direction = Vector2.right;
+        Transform target = FindClosestTarget(range, Camera.main);
+        if (target == null) return false;
+        Vector2 delta = (Vector2)target.position - (Vector2)owner.position;
+        if (delta.sqrMagnitude < 0.0001f) return false;
+        direction = delta.normalized;
+        return true;
+    }
+
 }

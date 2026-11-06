@@ -41,6 +41,22 @@ public sealed class CombatSkillRecord
     public string Description;
     public string SimpleDescription;
     public string Explanation;
+    // 보유 중 자동 시전. 0이면 주기가 아직 없어 발사하지 않고, 배율 0은 피해 0.2를 뜻합니다.
+    public float PassiveCooldown;
+    public float PassiveScale;
+
+    public const float DefaultPassiveScale = 0.2f;
+
+    public bool TryOwnedPassive(out float cooldown, out float scale)
+    {
+        cooldown = 0f;
+        scale = DefaultPassiveScale;
+        if (Id < 10000 || Id >= 30000) return false;
+        if (!(PassiveCooldown > 0f) || float.IsNaN(PassiveCooldown) || float.IsInfinity(PassiveCooldown)) return false;
+        if (PassiveScale > 0f && !float.IsNaN(PassiveScale) && !float.IsInfinity(PassiveScale)) scale = PassiveScale;
+        cooldown = PassiveCooldown;
+        return true;
+    }
 }
 
 [Serializable]

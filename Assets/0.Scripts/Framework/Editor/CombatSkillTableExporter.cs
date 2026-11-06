@@ -11,7 +11,7 @@ using UnityEngine;
 
 public static class CombatSkillTableExporter
 {
-    private const string WorkbookPath = "SkillDatatable.xlsx";
+    private const string WorkbookPath = "Document/SkillDatatable.xlsx";
 
     [MenuItem("Tools/Parse Combat Skill Table")]
     public static void Export()
@@ -119,7 +119,9 @@ public static class CombatSkillWorkbook
                 CrowdControl = Cell(cells, "AD", row),
                 Description = Cell(cells, "AE", row),
                 SimpleDescription = Cell(cells, "AF", row),
-                Explanation = Cell(cells, "AG", row)
+                Explanation = Cell(cells, "AG", row),
+                PassiveCooldown = Number(cells, "AH", row),
+                PassiveScale = Number(cells, "AI", row)
             };
         }
     }

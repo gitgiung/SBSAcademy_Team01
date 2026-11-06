@@ -1,5 +1,44 @@
 # 작업 인수인계
 
+## 2026-11-06 경험치 흡입 추적 가속도
+
+- 요청: Experience Pickup이 플레이어를 따라갈 때 Attraction Speed에 가속을 붙인다.
+- 완료: `ExperiencePickup.cs`에 Inspector 설정 `attractionAcceleration`(Attraction Acceleration)을 추가했다. 기존 Attraction Speed는 시작 속도이며 기존의 0=흡입 끔 규칙을 보존했다. 가속도 기본값 0은 기존 등속과 동일하며 양수로 지정하면 흡입 범위 안에서 추적한 시간에 비례해 빨라진다. 이동량은 v*dt + a*(누적시간*dt + 0.5*dt²)로 계산해 프레임 간격에 따른 차이를 줄였다. MoveTowards로 목표를 지나치지 않는다. 최대 속도 제한은 추가하지 않았다.
+- 수명: 범위 이탈/획득 거리 0/플레이어 없음·사망/시작 속도 0/비활성/Initialize/풀 반환·재대여에 누적 추적 시간을 초기화한다. 일시정지(Time.deltaTime 0)에는 이동·가속을 누적하지 않는다. 음수·NaN·무한 가속도는 0으로 처리한다. 경험치량·색·획득·풀 lease 계약은 유지했다.
+- 보존: 작업 시작 시 수정돼 있던 DNA(EXP).prefab, MainTestScene, 셰이더 2개, ShaderGraphSettings 및 앞선 코드/문서 변경을 보존했다. 이번 요청에서 프리팹/씬/meta/Project Settings는 수정하지 않았다. 따라서 사용자가 프리팹 Inspector에서 양수 가속도를 지정해야 가속이 보인다. 수치를 기획 확정하지 않았다.
+- 검증: `tools/ExperienceAttractionValidation`에서 실제 ExperiencePickup 소스 + Unity API 대역으로 10/10 통과(등속 호환, 가속, 프레임 간격 독립, 일시정지, 범위 이탈, 비활성, 풀 재대여, 시작 속도 0, 목표 초과 방지, 잘못된 가속도). dotnet run 직접 실행, Unity 직렬화 필드 미할당 CS0649 경고 2개는 대역 빌드에서 발생했다. Unity 6000.5.0f1 Roslyn 및 기존 격리 응답 파일로 Assembly-CSharp 컴파일 종료 코드 0, 오류 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. git diff --check 통과. Unity 테스트 0개. 실제 씬 플레이·물리 획득/풀·기기 미검증이다.
+- 직접 확인: Play 종료 → Unity 컴파일 완료 → Project > Assets/1.Prefabs/DNA(EXP).prefab → Experience Pickup → Attraction Speed를 양수로 유지하고 Attraction Acceleration에 양수 지정(예시 시작 속도 1, 가속도 5는 테스트용이며 확정 수치 아님) → MainTestScene Play → 경험치를 떨어뜨리고 흡입 범위로 접근. 처음보다 점점 빨리 따라와야 한다. 가속도 0은 이전 등속, 범위 밖으로 나갔다 돌아오면 다시 시작 속도로 추적해야 한다. 오류 시 Console 첫 오류, 실제 드롭 프리팹/씬 Overrides, Attraction Speed > 0, 플레이어 Experience Pickup Distance > 0, Time.timeScale 및 플레이어 생존 상태를 확인한다.
+- 다음: 실제 플레이에서 원하는 가속도를 사용자가 조절. 기존 예정 작업은 유지한다.
+
+## 2026-11-06 데미지 숫자를 결과 UI 뒤에 표시
+
+- 사용자가 게임오버 시 숫자 삭제 요청을 취소하고 UI 뒤로 배치하도록 변경했다. 삭제/게임 상태 구독 로직은 추가하지 않았다.
+- 원인: DamageNumberTest가 생성하는 Overlay Canvas의 sortingOrder는 100, MainTestScene/GiungTestScene의 기존 Overlay UI는 0이어서 데미지 숫자가 게임오버 패널 위에 남았다. 숫자 Canvas만 -1로 낮춰 기존 UI가 앞에 그려지게 했다. 씬·프리팹·기존 UI 설정은 수정하지 않았다. 게임오버 때 숫자의 수명은 기존처럼 멈추지만 결과 패널 뒤에 표시된다. 패널이 투명한 부분은 뒤 숫자가 비칠 수 있다.
+- 회귀 검증: `tools/ValidateDamageNumberSorting.ps1`에서 실제 소스의 Canvas 정렬값과 두 테스트 씬 Overlay Canvas 4개의 정렬값을 비교했다. 수정 전 숫자 100/UI 0에서 실패 재현, 수정 후 숫자 -1에서 통과. 이 검증은 정적 정렬 설정 검사이며 실제 화면·Unity Play 검증은 아니다. Unity 테스트 0개. git diff --check 통과.
+- 직접 확인: Unity 컴파일 완료 → MainTestScene에서 DamageNumberTest 활성 → Play → 공격/피격으로 숫자를 띄운 직후 게임오버. 결과 패널·버튼이 숫자 앞에 보여야 한다. 일시정지/승리 UI도 숫자 앞에 표시된다. 이상하면 Console 첫 오류, 런타임 DamageNumbers (Test)의 Canvas Sort Order -1, 결과 UI Canvas Order 0 이상 및 패널 배경 투명도를 확인한다. 기존 사용자 변경은 모두 보존했다.
+
+## 2026-11-06 삭제·비활성화 가능한 데미지 숫자 테스트
+
+- 요청: 게임 확정 UI가 아닌 테스트 보기용 데미지 폰트. 언제든 끄거나 삭제할 수 있게 한다.
+- 완료: `Assets/0.Scripts/Game/Player/Test/DamageNumberTest.cs`와 `Framework/Editor/DamageNumberTestMenu.cs` 및 meta 추가. Unity의 `Tools > 테스트 > 데미지 숫자 테스트 추가`에서 현재 씬에 DamageNumberTest 오브젝트를 만든다(같은 씬 중복 생성 방지, Undo 지원). 소스 변경만 했고 이번 요청으로 씬·프리팹을 자동 저장하거나 편집하지 않았다.
+- 표시: 적/보스 피해는 노랑, 플레이어 피해는 빨강. 기존 TMP 폰트를 사용하며 숫자가 피격 위치 위로 떠오르고 0.8초 동안 사라진다. 기본 36 크기, 최대 48개. 모두 테스트 표시 기본값이며 게임 기획값을 확정한 것이 아니다. Inspector에서 Font/Target Camera/색/크기/수명/상승 거리/위치 오프셋/최대 개수 조절. 같은 씬만 표시한다. Time.deltaTime 사용으로 일시정지/히트스톱 동안 숫자도 정지한다. 입력 Raycast를 받지 않는다.
+- 알림 연결: EnemyHealth와 Player에 DamageApplied 알림만 추가했다. 피해 적용 후·사망 처리 전 요청 피해량을 알리므로 치명타격도 표시하며 남은 HP보다 큰 피해는 전달된 피해량으로 표시한다. 막기/대시 무적/이미 사망한 대상의 거절된 피해는 알리지 않는다. 기존 피해 계산/피격/사망 코드는 유지한다. 별도 글로벌 매니저는 추가하지 않았다. 테스트 컴포넌트는 활성 시 구독하고 비활성 시 구독과 모든 숫자/Canvas/인스턴스 재질을 정리한다. 두 테스트 스크립트를 삭제해도 런타임은 테스트 클래스에 의존하지 않는다. 남은 알림은 구독자가 없으면 동작하지 않는다.
+- 검증: Unity 6000.5.0f1 설치 Roslyn + 기존 응답 파일로 Assembly-CSharp, Assembly-CSharp-Editor 각각 종료 코드 0. 런타임은 기존 Player.ParryCamera.cs:56 CS0252 경고 1개, Editor는 출력 경고 없음. `.utmp/PlayerHitFeedback/damage-compile.rsp`, `damage-editor-compile.rsp` 및 출력은 생성물이다. git diff --check 통과. Unity 테스트 0개, 새 자동 테스트는 추가하지 않았다. 실제 에디터 메뉴/화면/피격/해상도/기기는 미검증이다.
+- 직접 확인: Unity 컴파일 완료 → MainTestScene 열기 → `Tools > 테스트 > 데미지 숫자 테스트 추가` → Tools > Play From Title 끄기 → Play → 적/보스 공격 및 플레이어 피격. 머리 위 숫자가 떠오르며 사라지고, 막힌 공격에는 숫자가 없어야 한다. Hierarchy DamageNumberTest 선택 후 컴포넌트 체크를 끄거나 오브젝트를 비활성/삭제하면 현재 숫자와 이후 표시가 없어야 한다. 다시 켜면 이후 피해부터 표시한다. 컴포넌트 메뉴 `테스트/샘플 숫자 표시 (Play 중)`는 해당 오브젝트 위치에 123 샘플을 띄운다. 카메라 밖이면 오브젝트를 플레이어 근처로 옮겨 확인한다.
+- 오류 확인: Console 첫 오류, DamageNumberTest와 Target Camera 활성 상태, MainCamera 태그, Font에 TMP Font Asset(`Assets/UI/Fonts/NanumGothic Combat SDF.asset` 등) 지정 여부, 테스트 오브젝트와 전투 대상이 같은 씬인지 확인한다. 테스트 메뉴는 현재 씬에만 추가하므로 타이틀부터 시작하면 MainTestScene에 넣은 오브젝트는 이후 해당 씬이 로드될 때 동작한다. 영구 보존하려면 Play 전에 추가하고 사용자가 씬을 저장한다.
+- 기존 사용자 ProjectSettings/ShaderGraphSettings.asset 및 직전 Player Hit Feedback 변경은 보존. 다음은 실제 화면 확인이며 스킬 자세히 보기 MP·쿨다운 등 기존 예정 작업은 그대로다.
+
+## 2026-11-06 Player Hit Feedback 이름 정리·보스전 피격 밀림 제한
+
+- 요청: Player Hit Feedback Test에서 Test 제거. 보스전일 때만 Inspector의 피격 연출 값을 사용하고 일반 전투에서는 유효 값을 0으로 처리한다.
+- 완료: 클래스/파일을 `PlayerHitFeedback`으로 변경하고 meta GUID `547c02de74954905803a70c3f6c19cd8`를 보존했다. MainTestScene은 해당 컴포넌트의 m_EditorClassIdentifier 한 줄만 갱신했다. 직렬화 필드와 기존 값(해당 씬 hitStopDuration 0.12, recoilDistance 2, recoilDuration 0.12)은 보존했다. Player 내부 Begin/CancelHitFeedback의 Test 이름도 제거했다.
+- 동작: 매 피격 시 같은 씬의 활성 BossEncounterController.Phase가 BossFight인지 확인한다. 보스전이면 기존 설정을 사용하고 일반 전투/AfterBoss/Encounter 없음에서는 히트스톱·밀림 호출 자체를 생략한다. 따라서 0값 반응을 실행하며 이동 입력을 정지시키지도 않는다. 붉은 피격 표시는 모든 일반 피격에 유지한다. 패링 성공 연출은 그대로다. 사용자가 제안한 전투 단계 기준이며 공격자 종류를 별도로 판별하지 않으므로, 보스전 중 별도로 생성한 일반 몹에게 맞으면 보스전 설정이 적용된다. 현재 Encounter는 보스 등장 시 일반 몹을 정리한다.
+- 시작 상태: main / b26e7f0. 실제 작업 시작 시 미커밋 변경은 ProjectSettings/ShaderGraphSettings.asset였으며 보존했다. 앞선 읽기 시점의 ProjectSettings.asset 변경과 현재 상태는 다르다. 사용자 설정 파일을 복원하거나 수정하지 않았다.
+- 회귀 검증: `tools/PlayerHitFeedbackValidation`에서 실제 피격 컴포넌트를 Unity API 대역과 함께 실행. 변경 전 1/7 통과·6 실패로 일반 전투 등 무조건 반응 호출과 Test 이름을 재현했고 변경 후 7/7 통과했다. 일반/보스전/사망 후/Encounter 없음/다른 씬/비활성/이름을 검사하고 피격 색·설정값·비활성 시 구독 해제도 확인한다. Unity 검색·코루틴·물리는 대역이므로 실제 플레이 검증은 아니다. Windows PowerShell의 스크립트 실행 정책으로 Run.ps1 호출이 거절되어 환경 변수를 설정한 뒤 dotnet run을 직접 실행했다.
+- 컴파일: 설치 Unity 6000.5.0f1의 Roslyn과 기존 Assembly-CSharp 응답 파일을 사용해 변경 파일 경로 및 출력 경로만 검증 사본으로 치환했다. 종료 코드 0, 오류 0, 이번에 수정하지 않은 Player.ParryCamera.cs:56의 CS0252 경고 1개. 출력은 `.utmp/PlayerHitFeedback`로 격리했다. Unity 테스트 0개. 에디터 임포트/Play/Android·기기는 미확인이다.
+- 직접 확인: Play 종료 → 컴파일 완료 → MainTestScene의 Player 선택 → Player Hit Feedback 이름과 기존 값 확인 → Tools > Play From Title 해제 → Play. 일반 몹에게 맞으면 붉게 표시되지만 피격 히트스톱·밀림은 없어야 한다. 보스 등장 후 피격되면 설정된 히트스톱·밀림이 적용되고 보스 처치 후에는 다시 없어야 한다. 오류 시 Console 첫 오류, Player 컴포넌트와 Player Hit Feedback 활성 상태, 같은 씬 BossEncounterController의 활성 상태/Phase, 씬 Overrides를 확인한다. 보스전 없이 보스 프리팹만 배치하면 밀림은 적용되지 않는다.
+- 다음 작업: 위 실제 플레이 검증. 기존 다음 예정인 스킬 자세히 보기 MP·쿨다운 및 엑셀 변환기 경로 후속은 그대로다.
+
 ## 2026-11-06 BossRevise와 플레이어 성장 브랜치 병합
 
 - 로컬 main의 시작점은 b26e7f0이며 작업 트리는 깨끗했다. BossRevise(3a7fc60)에 이어 feature/player-growth-design(6f83583)을 병합했다. 두 브랜치의 인수인계 기록을 함께 보존했다.

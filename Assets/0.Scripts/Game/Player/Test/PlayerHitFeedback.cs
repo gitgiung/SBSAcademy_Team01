@@ -1,9 +1,9 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>Optional damage reaction prototype. Add to Player to test; remove to disable.</summary>
+/// <summary>피격 색 표시와 보스전 전용 히트스톱·밀림. 설정값은 보스전 종료 후에도 보존합니다.</summary>
 [DisallowMultipleComponent]
-public sealed class PlayerHitFeedbackTest : MonoBehaviour
+public sealed class PlayerHitFeedback : MonoBehaviour
 {
     [SerializeField] private SpriteRenderer targetRenderer;
     [SerializeField] private Color hitColor = Color.red;
@@ -22,7 +22,7 @@ public sealed class PlayerHitFeedbackTest : MonoBehaviour
         player = GetComponent<Player>();
         if (player == null)
         {
-            Debug.LogWarning("PlayerHitFeedbackTest must be attached to a Player.", this);
+            Debug.LogWarning("PlayerHitFeedback must be attached to a Player.", this);
             enabled = false;
             return;
         }
@@ -42,7 +42,19 @@ public sealed class PlayerHitFeedbackTest : MonoBehaviour
             flashing = true;
             flashRoutine = StartCoroutine(Flash());
         }
-        player.BeginTestHitFeedback(this, source, hitStopDuration, recoilDistance, recoilDuration);
+        // 일반 전투는 유효 값이 모두 0인 것과 같으며, 이동 정지/코루틴도 시작하지 않습니다.
+        // 매 피격 시 현재 단계를 조회하므로 보스 사망 후에는 즉시 일반 피격으로 돌아갑니다.
+        if (IsBossFight())
+            player.BeginHitFeedback(this, source, hitStopDuration, recoilDistance, recoilDuration);
+    }
+
+    private bool IsBossFight()
+    {
+        foreach (var encounter in FindObjectsByType<BossEncounterController>())
+            if (encounter.isActiveAndEnabled && encounter.gameObject.scene == gameObject.scene
+                && encounter.Phase == EncounterPhase.BossFight)
+                return true;
+        return false;
     }
 
     private IEnumerator Flash()
@@ -66,7 +78,7 @@ public sealed class PlayerHitFeedbackTest : MonoBehaviour
         if (player != null)
         {
             player.Damaged -= OnDamaged;
-            player.CancelTestHitFeedback(this);
+            player.CancelHitFeedback(this);
         }
         RestoreColor();
     }

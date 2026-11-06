@@ -21,6 +21,8 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     [SerializeField] private float experienceAmount; // 획득시 경험치량
     [Min(0f)]
     [SerializeField] private float attractionSpeed; // 플레이어에게 끌려가는 속도. 0이면 끌려가지 않음
+    [Tooltip("추적 중 초당 증가하는 속도입니다. 0이면 기존 등속 이동을 유지합니다.")]
+    [SerializeField, Min(0f)] private float attractionAcceleration;
 
     [Header("경험치별 색상 (임시값, 프리팹 Inspector에서 변경)")]
     [Tooltip("미지정 시 자신 또는 자식의 SpriteRenderer를 사용합니다. 공유 머티리얼은 변경하지 않습니다.")]
@@ -46,6 +48,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     private float defaultExperience;
     private bool defaultCaptured;
     private System.Action<float, float> collectedReport;
+    private float attractionElapsedTime;
 
     public void OnPoolRent()
     {
@@ -55,10 +58,12 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         collected = false;
         playerData = null;
         collectedReport = null;
+        attractionElapsedTime = 0f;
     }
 
     public void OnPoolReturn()
     {
+        attractionElapsedTime = 0f;
         collected = true;
         playerData = null;
         collectedReport = null;
@@ -80,6 +85,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
 
     public void Initialize(Transform target)
     {
+        attractionElapsedTime = 0f;
         ResolvePlayerData(target);
         RefreshExperienceColor();
     }
@@ -117,23 +123,44 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         pickupRenderer.color = selectedColor;
     }
 
-    private void Update()
+    private void OnDisable() => attractionElapsedTime = 0f;
+
+    private void Update() => UpdateAttraction(Time.deltaTime);
+
+    private void UpdateAttraction(float deltaTime)
     {
-        if (playerData == null || playerData.IsDead || attractionSpeed <= 0f)
+        if (collected || playerData == null || playerData.IsDead || attractionSpeed <= 0f
+            || float.IsNaN(attractionSpeed) || float.IsInfinity(attractionSpeed))
+        {
+            attractionElapsedTime = 0f;
             return;
+        }
 
         float pickupDistance = Mathf.Max(0f, playerData.experiencePickupDistance);
         if (pickupDistance <= 0f)
+        {
+            attractionElapsedTime = 0f;
             return;
+        }
 
         Vector2 offset = (Vector2)playerData.transform.position - (Vector2)transform.position;
         if (offset.sqrMagnitude > pickupDistance * pickupDistance)
+        {
+            attractionElapsedTime = 0f;
             return;
+        }
+
+        if (deltaTime <= 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime)) return;
+        float acceleration = float.IsNaN(attractionAcceleration) || float.IsInfinity(attractionAcceleration)
+            ? 0f : Mathf.Max(0f, attractionAcceleration);
+        // 구간 평균 속도로 이동해 프레임 간격이 달라도 같은 추적 시간에는 같은 거리를 이동합니다.
+        float distance = (attractionSpeed + acceleration * (attractionElapsedTime + deltaTime * .5f)) * deltaTime;
+        attractionElapsedTime += deltaTime;
 
         transform.position = Vector3.MoveTowards(
             transform.position,
             playerData.transform.position,
-            attractionSpeed * Time.deltaTime);
+            distance);
     }
 
     private void OnTriggerEnter2D(Collider2D other)

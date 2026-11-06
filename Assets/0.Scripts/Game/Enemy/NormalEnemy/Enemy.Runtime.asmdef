@@ -1,4 +1,4 @@
 {
-  "name": "EnemyMvp.Runtime",
+  "name": "Enemy.Runtime",
   "references": ["Combat.Runtime"]
 }

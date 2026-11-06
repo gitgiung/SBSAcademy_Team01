@@ -221,7 +221,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25917665923e68c45a9c1774c59d4b06, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyFollow
+  m_EditorClassIdentifier: Enemy.Runtime::EnemyFollow
   moveSpeed: 1.1
   stoppingDistance: 0.45
 --- !u!114 &491008
@@ -235,7 +235,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c342803638bd6544977d012e6f17267, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyHealth
+  m_EditorClassIdentifier: Enemy.Runtime::EnemyHealth
   maxHealth: 25
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 1, b: 1, a: 1}
@@ -252,7 +252,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6d44d0a6220b4a098ec7f390ed17f640, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyContactDamage
+  m_EditorClassIdentifier: Enemy.Runtime::EnemyContactDamage
   damage: 10
   damageInterval: 0.5
 --- !u!114 &491010
@@ -300,5 +300,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c4e1a9b2d6f4e0a8b3c5d7e9f102346, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyDirectionAnimator
+  m_EditorClassIdentifier: Enemy.Runtime::EnemyDirectionAnimator
   animator: {fileID: 491011}

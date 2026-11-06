@@ -1,5 +1,34 @@
 # 작업 인수인계
 
+## 2026-11-06 씬과 보스·적 에셋 이름 정리
+
+- 씬 파일 네 개는 `TitleScene`, `LoadScene`, `MainScene`, `GiungScene`으로 변경했다. 빌드 목록 경로, `Define.EScene`, 씬 전환 코드, Play From Title, PlayMode 테스트의 씬 참조를 맞췄다. 씬 meta GUID와 enum 값·빌드 목록 순서는 보존했다. 기존 Giung 씬의 빌드 목록 GUID만 씬 meta의 실제 GUID로 맞췄다. 이전 작업 기록에서 쓰인 당시 이름은 유지했다.
+- `BossMvp` → `Boss`, `EnemyMvp`와 이동 속도 변형 → `Enemy`와 해당 변형으로 변경했다. 프리팹의 루트 이름과 씬의 Boss 이름 오버라이드, 관련 폴더 이름, `Enemy.Runtime` 어셈블리명과 참조를 맞췄다. 프리팹·어셈블리·폴더 meta를 옮기고 기존 GUID를 보존했다. MainScene의 데미지 숫자 프리팹 및 기존 사용자 설정도 보존했다.
+- 검증: 기존 meta·빌드 GUID·빌드 순서·enum 값 확인, 활성 에셋·빌드 설정·도구에서 이전 이름 0건, Overlay Canvas 정렬 4개 통과. Unity 설치본 Roslyn으로 런타임/에디터/PlayMode 테스트 어셈블리 총 7개 컴파일 종료 0. 기존 Player.ParryCamera CS0252 경고 1개. 실제 Unity 테스트 0개, 에디터 Play·빌드 미실행.
+- 직접 확인: Unity 임포트 완료 → `Tools > Play From Title` 켜기 → Play → 타이틀의 시작 버튼 → `LoadScene` → `MainScene`. 승패 화면에서 재시작 또는 타이틀 버튼을 눌러 이동을 확인한다. Project의 `Assets/1.Prefabs`에서 Boss와 Enemy를 열어 이름과 스크립트가 정상인지 확인한다. 이상하면 Console 첫 오류, `File > Build Profiles`의 Scene List, 프리팹의 Missing Script 표시를 확인한다.
+
+## 2026-11-06 GameManager의 데미지 숫자 표시 생성
+
+- `MainTestScene`의 기존 독립 표시 오브젝트 설정을 `Assets/1.Prefabs/DamageNumberDisplay.prefab`으로 옮겼다. 기존 `GameManager.Awake`가 프리팹이 연결된 씬에서만 자식으로 한 번 생성한다. 씬이 내려가면 인스턴스와 숫자 풀이 정리된다. `GiungTestScene`은 프리팹 미연결 상태다.
+- 표시 스크립트는 `Assets/0.Scripts/Game/UI/DamageNumberDisplay.cs`로 옮기고 기존 meta GUID를 보존했다. 클래스, Canvas 및 메뉴 이름에서 Test를 제거했다. 수동 배치용 Tools 메뉴는 제거했고 런타임 컴포넌트의 `샘플 숫자 표시 (Play 중)`는 카메라 중앙에서 동작한다.
+- 프리팹은 기존 나눔고딕 폰트와 색상·크기·지속시간·최대 개수 설정을 사용한다. 카메라는 첫 표시 때 `MainCamera` 태그로 찾는다. 저장된 폰트 에셋과 스폰·회수 설정 변경은 보존했다.
+- 검증: Unity 설치본 Roslyn으로 Assembly-CSharp와 Assembly-CSharp-Editor 컴파일 종료 0, 기존 Player.ParryCamera CS0252 경고 1개. 임시 .NET 풀링 검증 3/3, Overlay 정렬 검증 4개, 씬→프리팹 컴포넌트 참조·원본 스크립트 GUID·설정·다른 씬 데이터 보존 확인. Unity 테스트 0개, 에디터 Play 및 Profiler 미실행.
+- 직접 확인: Unity 임포트 완료 → `Tools > Play From Title`이 켜져 있으면 해제 → `MainTestScene`에서 GameManager Inspector의 Damage Number Prefab 확인 → Play. GameManager 아래 `DamageNumberDisplay(Clone)`이 한 개 생기고 첫 타격 또는 컴포넌트의 `샘플 숫자 표시 (Play 중)`에서 숫자가 떠야 한다. 재시작 뒤에도 인스턴스는 한 개여야 한다. 문제가 있으면 Console 첫 오류, 프리팹 참조, 폰트, 활성 카메라의 `MainCamera` 태그를 확인한다.
+
+## 2026-11-06 데미지 숫자 풀링
+
+- `DamageNumberTest`가 자기 Canvas 안에서 숫자와 외곽선 머티리얼을 재사용한다. 처음 필요한 만큼 생성하고, 만료된 숫자는 숨겨서 반납한다. 동시 한도(씬 기본 48)에 도달하면 가장 오래된 표시를 새 타격에 재사용한다. 대여할 때 표시값·위치·색·경과 시간·그리기 순서를 갱신한다. 컴포넌트를 끄거나 씬에서 내리면 사용 중 및 대기 중 머티리얼과 Canvas를 정리한다.
+- 기존 씬의 폰트·카메라·색·0.8초 지속시간·Canvas 정렬을 그대로 사용한다. 사용자 변경인 `MainTestScene.unity`와 `NanumGothic Combat SDF.asset`은 수정하지 않았다.
+- 검증: 실제 컴포넌트 소스를 링크한 임시 .NET 검증에서 재사용 관련 2건의 수정 전 실패를 확인했고 수정 후 만료 재사용·초과 시 교체 순서·비활성화/재활성화 정리 3/3 통과. `tools/ValidateDamageNumberSorting.ps1` 통과(두 씬의 Overlay Canvas 4개). Unity 설치본 Roslyn으로 Assembly-CSharp 컴파일 종료 0, 기존 `Player.ParryCamera.cs` CS0252 경고 1개. Unity 테스트 0개. 실제 씬 재생과 Profiler 프레임 시간은 미확인.
+- 직접 확인: Unity 임포트 완료 → `MainTestScene` Play → `DamageNumberTest` Inspector의 컴포넌트 메뉴에서 `테스트/샘플 숫자 표시 (Play 중)`를 띄우고 숫자가 사라진 뒤 반복한다. Canvas 아래 기존 `DamageNumber` 자식이 비활성화됐다가 다시 켜지고, 같은 동시 표시 수에서 개수가 계속 늘지 않아야 한다. 광역 공격과 플레이어 피격 때 색과 외곽선도 확인한다. 이상하면 Console 첫 오류와 컴포넌트의 Font·Target Camera 연결을 확인한다.
+
+## 2026-11-06 플레이 렉 조사 — 데미지 숫자와 발밑 그림자
+
+- `main`의 `6a2cbec`에서 조사했다. 사용자가 저장한 `MainTestScene`의 `DamageNumberTest` 오브젝트와 컴포넌트는 활성 상태이며 `NanumGothic Combat SDF`와 `Main Camera`가 연결되어 있다. 씬과 폰트 에셋의 사용자 변경을 보존했다.
+- 다중 타격 때 끊긴다면 데미지 숫자를 먼저 비교한다. 타격마다 TMP 오브젝트와 외곽선용 머티리얼 인스턴스를 생성하고, 표시 중에는 매 프레임 좌표와 알파를 갱신하며 만료 시 파괴한다. 동시 48개 제한은 생성 빈도를 제한하지 않는다. 저장된 동적 폰트에는 숫자·마침표 글리프와 두 번째 아틀라스가 추가되어 있다. 첫 타격에서만 튀는 경우에는 Canvas 최초 생성과 반복 타격 비용을 분리해서 본다.
+- 적이 쌓일수록 계속 느려진다면 그림자를 분리한다. `GroundShadow`는 공유 스프라이트를 쓰며 발밑 크기·위치를 처음에만 계산한다. 활성 유닛마다 `LateUpdate`의 렌더러 속성 갱신과 반투명 스프라이트 렌더링이 남는다. 같은 씬 저장에서 스포너 수 5→10, 화면 밖 스폰 여유 10→5, 회수 여유 20→10이 바뀌었으므로 비교 중에는 이 값들과 활성 적 수를 통제한다.
+- 검증은 씬·코드·로컬 TMP 패키지 소스 확인까지 했다. Unity 테스트 0개, Play 재현 및 Profiler 캡처 미실행. 다음은 `MainTestScene` Play → `Window > Analysis > Profiler` → `CPU Usage > Timeline`과 `Rendering`에서 기준 프레임을 기록한다. Play 중 `DamageNumberTest` 컴포넌트만 꺼서 숫자와 타격 프레임 스파이크가 함께 사라지는지 본다. 그림자 비교는 숫자를 끈 상태에서 Play 중 `Ground Shadow` 오브젝트들만 꺼서 그림자가 사라지고 유닛은 계속 움직이는지 확인한 뒤 같은 밀도의 프레임을 비교한다. 새로 스폰된 그림자와 Console 반복 경고를 확인한다. 실제 원인은 프레임 비교 후 확정한다.
+
 ## 2026-11-06 보유 약·강 스킬의 패시브 칸
 
 - 완료: `Document/SkillDatatable.xlsx` 약공격·강공격 시트에 `Passive_Cooldown`(AH), `Passive_Scale`(AI)을 추가했다. 데이터 칸은 비었다. 변환기와 배포 JSON도 같은 두 칸을 읽는다. 쿨타임이 0이면 자동 발사하지 않고, 배율이 비어 있으면 피해만 기존 공식의 0.2다. 탄 수·범위·타격 횟수·모양은 그대로다. MP와 입력 잠금은 쓰지 않는다. 보유 중이면 장착 여부와 상관없이 동작하고, 버튼 시전은 기존 수치를 유지한다.

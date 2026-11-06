@@ -58,7 +58,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1c8cbae5b44e3fb42ad0cb2a055671ad, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: EnemyMvp.Runtime::EnemySpawnDirector
+  m_EditorClassIdentifier: Enemy.Runtime::EnemySpawnDirector
   poolProvider: {fileID: 1507086781546711270}
   player: {fileID: 0}
   playerCamera: {fileID: 0}

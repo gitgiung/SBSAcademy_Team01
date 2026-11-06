@@ -17,7 +17,7 @@ public class LoadScene : BaseScene
             return false;
         }
 
-        SceneType = Define.EScene.LoadTestScene;
+        SceneType = Define.EScene.LoadScene;
         
         return true;
     }
@@ -36,7 +36,7 @@ public class LoadScene : BaseScene
             yield break;
         }
 
-        string sceneName = Define.EScene.MainTestScene.ToString();
+        string sceneName = Define.EScene.MainScene.ToString();
         if (!Application.CanStreamedLevelBeLoaded(sceneName))
         {
             Debug.LogError($"로드할 수 없는 씬입니다: {sceneName}. Build Profiles의 Scene List를 확인하세요.", this);
@@ -44,7 +44,7 @@ public class LoadScene : BaseScene
         }
 
         // 2. 준비가 끝나면 게임 씬을 불러온다.
-        yield return Managers.Scene.LoadSceneAsync(Define.EScene.MainTestScene);
+        yield return Managers.Scene.LoadSceneAsync(Define.EScene.MainScene);
     }
 
     private IEnumerator PrepareGame()

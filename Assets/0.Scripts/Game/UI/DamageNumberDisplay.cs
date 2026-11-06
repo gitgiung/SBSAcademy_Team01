@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-/// <summary>조회 전용 테스트 숫자. 끄거나 삭제하면 숫자와 구독을 모두 정리합니다.</summary>
+/// <summary>전투 피해량을 표시하고 씬 안에서 숫자 오브젝트를 재사용합니다.</summary>
 [DisallowMultipleComponent]
-public sealed class DamageNumberTest : MonoBehaviour
+public sealed class DamageNumberDisplay : MonoBehaviour
 {
     [SerializeField] private TMP_FontAsset font;
     [SerializeField] private Camera targetCamera;
@@ -17,6 +17,7 @@ public sealed class DamageNumberTest : MonoBehaviour
     [SerializeField, Range(1, 100)] private int maxNumbers = 48;
 
     private readonly List<Number> numbers = new List<Number>();
+    private readonly Stack<Number> availableNumbers = new Stack<Number>();
     private Canvas canvas;
     private RectTransform canvasRect;
     private bool warnedMissingCamera;
@@ -24,6 +25,7 @@ public sealed class DamageNumberTest : MonoBehaviour
     private sealed class Number
     {
         internal TextMeshProUGUI text;
+        internal Material outlineMaterial;
         internal Vector3 worldPosition;
         internal Color color;
         internal float age;
@@ -53,39 +55,50 @@ public sealed class DamageNumberTest : MonoBehaviour
         if (targetCamera == null) targetCamera = Camera.main;
         if (targetCamera == null)
         {
-            if (!warnedMissingCamera) Debug.LogWarning("DamageNumberTest: Target Camera 또는 MainCamera 태그를 확인하세요.", this);
+            if (!warnedMissingCamera) Debug.LogWarning("DamageNumberDisplay: Target Camera 또는 MainCamera 태그를 확인하세요.", this);
             warnedMissingCamera = true;
             return;
         }
         if (canvas == null) BuildCanvas();
         if (font == null)
         {
-            Debug.LogWarning("DamageNumberTest: Font에 TMP Font Asset을 지정하세요.", this);
+            Debug.LogWarning("DamageNumberDisplay: Font에 TMP Font Asset을 지정하세요.", this);
             return;
         }
-        while (numbers.Count >= Mathf.Max(1, maxNumbers)) RemoveAt(0);
+        while (numbers.Count >= Mathf.Max(1, maxNumbers)) ReturnNumberAt(0);
+        Number number = availableNumbers.Count > 0 ? availableNumbers.Pop() : CreateNumber();
+        number.worldPosition = position + worldOffset;
+        number.color = color;
+        number.age = 0f;
+
+        TextMeshProUGUI label = number.text;
+        label.text = damage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+        label.fontSize = Mathf.Max(10f, fontSize);
+        label.transform.SetAsLastSibling();
+        Position(number);
+        label.gameObject.SetActive(true);
+        numbers.Add(number);
+    }
+
+    private Number CreateNumber()
+    {
         var label = new GameObject("DamageNumber", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
         label.transform.SetParent(canvasRect, false);
         label.font = font;
-        label.text = damage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
-        label.fontSize = Mathf.Max(10f, fontSize);
         label.fontStyle = FontStyles.Bold;
         label.alignment = TextAlignmentOptions.Center;
         label.raycastTarget = false;
-        label.color = color;
         label.outlineColor = Color.black;
         label.outlineWidth = .15f;
         label.rectTransform.sizeDelta = new Vector2(240f, 80f);
-        var number = new Number { text = label, worldPosition = position + worldOffset, color = color };
-        numbers.Add(number);
-        Position(number);
+        return new Number { text = label, outlineMaterial = label.fontMaterial };
     }
 
     private void BuildCanvas()
     {
         font = font != null ? font : TMP_Settings.defaultFontAsset;
         if (font == null) font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        var root = new GameObject("DamageNumbers (Test)", typeof(RectTransform), typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
+        var root = new GameObject("DamageNumbers", typeof(RectTransform), typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
         root.transform.SetParent(transform, false);
         canvas = root.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -101,12 +114,13 @@ public sealed class DamageNumberTest : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (numbers.Count == 0) return;
         if (targetCamera == null) targetCamera = Camera.main;
         for (int i = numbers.Count - 1; i >= 0; i--)
         {
             Number number = numbers[i];
             number.age += Time.deltaTime;
-            if (number.age >= Mathf.Max(.1f, lifetime)) { RemoveAt(i); continue; }
+            if (number.age >= Mathf.Max(.1f, lifetime)) { ReturnNumberAt(i); continue; }
             Position(number);
         }
     }
@@ -124,31 +138,33 @@ public sealed class DamageNumberTest : MonoBehaviour
         number.text.color = color;
     }
 
-    private void RemoveAt(int index)
+    private void ReturnNumberAt(int index)
     {
-        if (numbers[index].text != null)
-        {
-            GameObject label = numbers[index].text.gameObject;
-            Material material = numbers[index].text.fontMaterial;
-            label.SetActive(false);
-            Destroy(label);
-            // Outline 설정으로 생성된 인스턴스 재질도 정리합니다.
-            Destroy(material);
-        }
+        Number number = numbers[index];
         numbers.RemoveAt(index);
+        number.text.gameObject.SetActive(false);
+        availableNumbers.Push(number);
     }
 
-    [ContextMenu("테스트/샘플 숫자 표시 (Play 중)")]
+    [ContextMenu("샘플 숫자 표시 (Play 중)")]
     private void Preview()
     {
-        if (Application.isPlaying) Show(123f, transform.position, enemyColor);
+        if (!Application.isPlaying) return;
+        if (targetCamera == null) targetCamera = Camera.main;
+        Vector3 position = targetCamera != null
+            ? targetCamera.ViewportToWorldPoint(new Vector3(.5f, .5f, targetCamera.nearClipPlane + 1f)) - worldOffset
+            : transform.position;
+        Show(123f, position, enemyColor);
     }
 
     private void OnDisable()
     {
         EnemyHealth.DamageApplied -= OnEnemyDamage;
         Player.DamageApplied -= OnPlayerDamage;
-        while (numbers.Count > 0) RemoveAt(numbers.Count - 1);
+        foreach (Number number in numbers) Destroy(number.outlineMaterial);
+        foreach (Number number in availableNumbers) Destroy(number.outlineMaterial);
+        numbers.Clear();
+        availableNumbers.Clear();
         if (canvas != null) { canvas.gameObject.SetActive(false); Destroy(canvas.gameObject); }
         canvas = null;
         canvasRect = null;

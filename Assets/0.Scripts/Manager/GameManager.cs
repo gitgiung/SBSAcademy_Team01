@@ -21,11 +21,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private GameObject victoryPanel;
     [SerializeField] private Player player;
+    [SerializeField] private DamageNumberDisplay damageNumberPrefab;
 
-    // TODO(MainSceneIntegration): GiungTestScene의 Restart Scene은 현재 테스트를 위해 GiungTestScene입니다.
-    // 정식 게임 연결 시 해당 씬/프리팹의 값을 LoadTestScene으로 되돌려
-    // LoadTestScene -> MainTestScene 준비 흐름을 사용하세요. 기본값은 그 정상 경로를 유지합니다.
-    [SerializeField] private Define.EScene restartScene = Define.EScene.LoadTestScene;
+    // TODO(MainSceneIntegration): GiungScene의 Restart Scene은 현재 테스트를 위해 GiungScene입니다.
+    // 정식 게임 연결 시 해당 씬/프리팹의 값을 LoadScene으로 되돌려
+    // LoadScene -> MainScene 준비 흐름을 사용하세요. 기본값은 그 정상 경로를 유지합니다.
+    [SerializeField] private Define.EScene restartScene = Define.EScene.LoadScene;
 
     public GameState state { get; private set; } = GameState.Playing;
     public event Action<GameState> StateChanged;
@@ -38,6 +39,7 @@ public class GameManager : MonoBehaviour
     {
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
+        if (damageNumberPrefab != null) Instantiate(damageNumberPrefab, transform);
     }
 
     private void OnEnable()
@@ -95,7 +97,7 @@ public class GameManager : MonoBehaviour
     }
 
     public void RestartGame() { TransitionTo(restartScene); }
-    public void ReturnToTitle() { TransitionTo(Define.EScene.TitleTestScene); }
+    public void ReturnToTitle() { TransitionTo(Define.EScene.TitleScene); }
 
     private void TransitionTo(Define.EScene target)
     {

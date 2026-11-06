@@ -29,6 +29,6 @@ public class UI_TitleScene : UI_Scene
 
         isStarting = true;
 
-        Managers.Scene.LoadScene(EScene.LoadTestScene);
+        Managers.Scene.LoadScene(EScene.LoadScene);
     }
 }

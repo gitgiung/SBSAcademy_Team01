@@ -7,7 +7,7 @@ public static class PlayFromTitle
 {
     const string MenuPath = "Tools/Play From Title";
     const string PrefKey = "RSG.PlayFromTitle";
-    const string TitleScenePath = "Assets/9.Scenes/TitleTestScene.unity"; //테스트 씬이므로 이름 변경 필수
+    const string TitleScenePath = "Assets/9.Scenes/TitleScene.unity";
 
     static PlayFromTitle()
     {

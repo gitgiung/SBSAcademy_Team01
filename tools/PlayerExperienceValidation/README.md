@@ -4,7 +4,7 @@
 
 `./tools/PlayerExperienceValidation/RunUnity.ps1 -ResultName final`은 Unity 6000.5.0f1을 사용해 `.utmp/GrowthUnity` 별도 프로젝트에서 PlayMode 검사를 실행한다. 원본 프로젝트를 Unity로 열거나 씬·프리팹을 저장하지 않는다. Unity 설치 위치는 스크립트의 unityExe로 지정한다. 생성물은 Git 제외다.
 
-`./tools/PlayerExperienceValidation/RunCompile.ps1`은 기존 Unity 컴파일 응답 파일을 이용해 Combat.Runtime→EnemyMvp.Runtime→Boss.Runtime→Encounter.Runtime→Assembly-CSharp→Editor 순으로 설치본 Roslyn 컴파일을 실행한다. 새 소스와 이번 의존 ref DLL을 사용한다. 출력은 `.utmp/PlayerExperience/Compile`로 격리한다. 원본 에디터의 임포트/실행 검증을 대신하지 않는다.
+`./tools/PlayerExperienceValidation/RunCompile.ps1`은 기존 Unity 컴파일 응답 파일을 이용해 Combat.Runtime→Enemy.Runtime→Boss.Runtime→Encounter.Runtime→Assembly-CSharp→Editor 순으로 설치본 Roslyn 컴파일을 실행한다. 새 소스와 이번 의존 ref DLL을 사용한다. 출력은 `.utmp/PlayerExperience/Compile`로 격리한다. 원본 에디터의 임포트/실행 검증을 대신하지 않는다.
 
 Unity 사본에는 실제 PlayerData·PlayerView·카드 추첨/획득·상태 패널·카드 패널·CombatPopupController·UI_CombatPopup·UI_Popup·UIManager를 복사한다. 테스트 입력 표만 고정하며 Unity/ugui/TMP 이벤트·코루틴·팝업 수명은 실제 실행한다.
 

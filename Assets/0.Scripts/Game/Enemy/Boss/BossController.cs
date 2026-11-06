@@ -71,6 +71,12 @@ public sealed class BossController : MonoBehaviour
     private int phaseSpawnGeneration = -1;
     private Vector2 attackForward;
     private Vector2 facingDirection = Vector2.down;
+    private bool entranceQueued;
+    private bool entranceRunning;
+    private SpriteRenderer[] entranceVisuals;
+    private bool[] entranceRenderingStates;
+    private Collider2D[] entranceColliders;
+    private bool[] entranceColliderStates;
 
     // Stop just inside melee range, beyond the movement sweep's tiny-step cutoff.
     private float FollowStoppingDistance => Mathf.Max(0f, closeRange - 0.001f);
@@ -85,6 +91,10 @@ public sealed class BossController : MonoBehaviour
     public float PhaseTwoAreaRadius => phaseTwoAreaRadius;
     public BossPattern ActivePattern { get; private set; } = BossPattern.None;
     public int CurrentPhase { get; private set; } = 1;
+    public bool IsEntering => entranceRunning;
+
+    /// <summary>Encounter가 비활성 보스를 켜기 전에 호출합니다.</summary>
+    public void QueueEntrance() => entranceQueued = true;
 
 #if UNITY_EDITOR
     private Mesh slashRangeGizmoMesh;
@@ -127,7 +137,66 @@ public sealed class BossController : MonoBehaviour
         nextPatternTime = Time.time;
         locomotionMoving = false;
         UpdateAnimatorLocomotion();
-        patternRoutine = StartCoroutine(PatternLoop());
+        if (entranceQueued)
+        {
+            entranceQueued = false;
+            patternRoutine = StartCoroutine(EntranceThenPatternLoop());
+        }
+        else patternRoutine = StartCoroutine(PatternLoop());
+    }
+
+    private IEnumerator EntranceThenPatternLoop()
+    {
+        entranceRunning = true;
+        follow.enabled = false;
+        health.EnsureInitialized();
+        // 기존 VFX 자식은 유지하고 보스 모습과 몸체 판정만 숨깁니다.
+        entranceVisuals = GetComponentsInChildren<SpriteRenderer>(true);
+        entranceRenderingStates = new bool[entranceVisuals.Length];
+        for (int i = 0; i < entranceVisuals.Length; i++)
+        {
+            entranceRenderingStates[i] = entranceVisuals[i].forceRenderingOff;
+            if (entranceVisuals[i].GetComponent<HitFlashExcluded>() == null)
+                entranceVisuals[i].forceRenderingOff = true;
+        }
+        entranceColliders = GetComponentsInChildren<Collider2D>(true);
+        entranceColliderStates = new bool[entranceColliders.Length];
+        for (int i = 0; i < entranceColliders.Length; i++)
+        {
+            entranceColliderStates[i] = entranceColliders[i].enabled;
+            entranceColliders[i].enabled = false;
+        }
+        try
+        {
+            // VFX의 Awake가 끝난 뒤 기존 원형 예고를 실행합니다.
+            yield return null;
+            ActivePattern = BossPattern.PhaseTwoArea;
+            yield return PerformPhaseTwoAreaAttack();
+        }
+        finally
+        {
+            RevealEntrance();
+            ActivePattern = BossPattern.None;
+        }
+        if (!isActiveAndEnabled || health.IsDead) yield break;
+        follow.SetTarget(target, FollowStoppingDistance);
+        follow.enabled = true;
+        yield return PatternLoop();
+    }
+
+    private void RevealEntrance()
+    {
+        if (!entranceRunning) return;
+        entranceRunning = false;
+        if (entranceVisuals != null)
+            for (int i = 0; i < entranceVisuals.Length; i++)
+                if (entranceVisuals[i] != null) entranceVisuals[i].forceRenderingOff = entranceRenderingStates[i];
+        if (entranceColliders != null)
+            for (int i = 0; i < entranceColliders.Length; i++)
+                if (entranceColliders[i] != null && !health.IsDead)
+                    entranceColliders[i].enabled = entranceColliderStates[i];
+        entranceVisuals = null;
+        entranceColliders = null;
     }
 
     private void Update()
@@ -376,7 +445,13 @@ public sealed class BossController : MonoBehaviour
         if (!isActiveAndEnabled || !attackAnimationRunning || attackHitApplied ||
             ActivePattern != BossPattern.PhaseTwoArea || !CanAttackTarget()) return;
         attackHitApplied = true;
-        if (hitVfx != null) hitVfx.ShowAreaBurst(activeAreaRadius);
+        bool isEntranceImpact = entranceRunning;
+        RevealEntrance();
+        if (hitVfx != null)
+        {
+            if (isEntranceImpact) hitVfx.ShowEntranceBurst(activeAreaRadius);
+            else hitVfx.ShowAreaBurst(activeAreaRadius);
+        }
         ApplyCircleDamage(body.position, activeAreaRadius);
     }
 
@@ -566,6 +641,8 @@ public sealed class BossController : MonoBehaviour
 
     private void OnDisable()
     {
+        RevealEntrance();
+        entranceQueued = false;
         StopDashAnimation();
         ActivePattern = BossPattern.None;
         if (health != null) health.Died -= OnDied;

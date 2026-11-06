@@ -12,8 +12,12 @@ internal sealed class PlayerMovement
     private float dashDuration;
     private float dashSpeedMultiplier;
     private float nextDashTime;
+    private float lastDashCooldown;
 
     public bool IsDashing { get; private set; }
+    public float DashCooldownRemaining => Mathf.Max(0f, nextDashTime - Time.time);
+    public float DashCooldownProgress => lastDashCooldown > 0f
+        ? Mathf.Clamp01(1f - DashCooldownRemaining / lastDashCooldown) : 1f;
 
     public PlayerMovement(Transform transform, PlayerData data, System.Func<float> speedMultiplier)
     {
@@ -42,7 +46,8 @@ internal sealed class PlayerMovement
         dashDirection = direction.normalized;
         dashDuration = Mathf.Max(0.01f, duration);
         dashSpeedMultiplier = Mathf.Max(1f, speedMultiplier);
-        nextDashTime = Time.time + Mathf.Max(0f, cooldown);
+        lastDashCooldown = Mathf.Max(0f, cooldown);
+        nextDashTime = Time.time + lastDashCooldown;
         IsDashing = true;
         return true;
     }

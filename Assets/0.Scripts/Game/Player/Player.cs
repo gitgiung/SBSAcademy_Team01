@@ -77,6 +77,11 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private int lifecycleVersion;
 
     public bool IsDashing => movement != null && movement.IsDashing;
+    public float DashCooldownRemaining => movement != null ? movement.DashCooldownRemaining : 0f;
+    public float DashCooldownProgress => movement != null ? movement.DashCooldownProgress : 1f;
+
+    /// <summary>모바일 Sprint 버튼도 기존 입력과 같은 조준 방향·MP·대시 규칙을 사용합니다.</summary>
+    public bool TryUseDash() => TryDash(CurrentAim());
     public int ActiveLightAttackId => lightSkill != null ? lightSkill.ActionId : 0;
     public bool IsInputLocked => actions != null && actions.IsInputLocked;
     public bool CanAcceptGameplayInput => isActiveAndEnabled && !hasDied && data != null

@@ -48,6 +48,8 @@ ExportedObj/
 !/tools/PlayerLoadoutValidation/PlayerLoadoutValidation.csproj
 !/tools/PlayerHitFeedbackValidation/Validation.csproj
 !/tools/ExperienceAttractionValidation/Validation.csproj
+!/tools/DashCooldownValidation/Validation.csproj
+!/tools/BossEntranceValidation/Validation.csproj
 *.unityproj
 *.sln
 *.slnx

@@ -1,5 +1,54 @@
 # 작업 인수인계
 
+## 2026-11-06 보스 등장에 맞춰 HP바 페이드인
+
+- 요청: 보스 HP바도 천천히 나타나게 한다. BossEncounterController에 Boss Health Fade Duration(기본 1초, 0은 즉시 표시)을 추가했다. 기존 Boss Health Slider 오브젝트에 런타임 CanvasGroup을 확보하고 알파를 0→1로 올린다. 원형 등장 연출 동안은 투명하게 유지하고 BossController.IsEntering이 끝나는 공개 타격 시점부터 페이드한다. 별도 등장 패턴이 없는 다른 보스는 활성화 직후 페이드한다. 체력 수치/Slider value는 건드리지 않아 기존 EnemyHealth 표시와 충돌하지 않는다.
+- 보스 사망/Encounter 비활성 시 진행 중 페이드 코루틴을 정리하고 HP바를 숨긴다. 재활성 시 보스전이 진행 중이면 다시 표시 경로를 시작한다. Time.deltaTime을 써 일시정지 중 페이드도 멈춘다. 기존 CanvasGroup이 있으면 알파만 사용하며 상호작용/레이캐스트 설정은 변경하지 않는다. 씬·프리팹은 저장하지 않았다. 이전 미커밋 작업 및 사용자의 DNA(EXP)/ZombieHound 변경을 보존했다.
+- 검증: 설치 Unity 6000.5.0f1 Roslyn으로 관련 런타임/Editor 6개 컴파일 모두 종료 코드 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. git diff --check 통과. 이번 페이드 변경 Unity 테스트 0개, 실제 렌더링·시점·일시정지는 미검증이다.
+- 직접 확인: Unity 컴파일 완료 → MainTestScene의 Boss Encounter > Boss Health Fade Duration 지정 → Tools > Play From Title 해제 → Play → 보스 등장. 원형 예고 동안 HP바는 보이지 않고 보스 공개와 함께 약 1초에 걸쳐 선명해져야 한다. 보스 피격 시 기존 체력 값이 반영되고 처치 시 바로 숨겨져야 한다. 오류 시 Console 첫 오류, Boss Health Slider 참조, 해당 오브젝트의 상위 활성 상태/CanvasGroup 알파, Boss Health Fade Duration 및 씬 Overrides를 확인한다.
+
+## 2026-11-06 등장 폭발 지속 시간 별도 설정
+
+- BossAttackHitVfx에 `Entrance Area Burst Duration`(entranceAreaBurstDuration)을 추가했다. 양수면 등장 폭발만 해당 초 동안 확산·페이드하며, 0이면 기존 Area Burst Duration을 사용해 기존 설정을 보존한다. 일반 원형 공격은 기존 Area Burst Duration을 계속 사용한다. 등장 전 예고 시간/보스 공개 타격 시점/공격 범위는 바꾸지 않았다.
+- BeginBurst에서 선택한 시간을 activeBurstDuration으로 보관해 남은 시간뿐 아니라 확산·알파 진행률에도 동일하게 적용한다. 표시 중 Inspector 값을 바꿔도 현재 VFX의 진행률은 바뀌지 않고 다음 실행부터 적용한다. 씬·프리팹은 수정하지 않았다.
+- 검증: Unity 6000.5.0f1 설치 Roslyn으로 관련 런타임/Editor 6개 어셈블리 컴파일 모두 종료 코드 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. git diff --check 통과. 이번 설정 변경 Unity 테스트 0개, 실제 표시 시간/화면은 미검증이다.
+- 직접 확인: Play 종료 → Unity 컴파일 완료 → 보스 오브젝트 또는 BossMvp 프리팹의 Boss Attack Hit Vfx → 등장 연출 전용 VFX > Entrance Area Burst Duration에 원하는 초 지정 → MainTestScene Play → 보스 등장 폭발이 지정한 시간 동안 확산·사라지는지 확인. 예를 들어 2는 2초, 0은 기존 Area Burst Duration 사용이다. 이후 일반 원형 패턴은 기존 지속 시간이어야 한다. 이상 시 Console 첫 오류, 씬 인스턴스 Overrides와 실제 보스의 두 Duration 값, Time.timeScale 및 폭발 Sprite 참조를 확인한다. 기존 사용자 변경은 보존했다.
+
+## 2026-11-06 기존 원형 패턴으로 보스 등장·등장 폭발만 크게 표시
+
+- 사용자 확정: 별도 등장 리소스/배너/카메라 연출을 만들지 않고 기존 원형 패턴을 그대로 쓴다. 보스 모습을 숨기고 원형 타격 VFX가 터질 때 공개한다. 이 등장 연출의 폭발 VFX만 맵 어디에 있든 보이도록 크게 한다. 초기 아이디어의 별도 3초 대기/피해 없는 새 패턴은 추가하지 않았다.
+- 연결: BossEncounterController가 기존 보스를 켜기 직전 BossController.QueueEntrance를 호출한다. 현재 MainTestScene의 BossController 야수 보스에 적용한다. HordeLordBoss/ZombieSlimeBoss처럼 해당 원형 패턴이 없는 다른 보스는 기존 등장 경로를 유지한다. 씬·프리팹·애니메이션·meta는 이번 요청으로 수정하지 않았다.
+- BossController: 등장에서 추적을 끄고 보스 SpriteRenderer.forceRenderingOff와 Collider2D.enabled의 원래 상태를 보관해 숨긴다. HitFlashExcluded가 붙은 기존 VFX는 숨기지 않는다. EnemyHealth.EnsureInitialized를 공개해 원래 피격/몸체 캐시를 먼저 준비한 뒤 콜라이더를 임시 비활성화한다. 실제 기존 PerformPhaseTwoAreaAttack(예고→양손 공격 애니메이션→타격 이벤트)을 재사용한다. AnimationEvent_ApplyAreaDamage에서 보스 모습/콜라이더를 복원하고 등장용 큰 VFX를 실행한다. 원형 피해는 원래 activeAreaRadius로 처리한다. 애니메이션 종료 후 일반 패턴 루프로 이어진다. 중단/비활성/타격 이벤트 누락 시 finally와 OnDisable에서 숨김 상태를 복원한다.
+- VFX: BossAttackHitVfx.ShowEntranceBurst만 별도로 큰 표시 크기를 계산한다. Inspector의 Entrance Burst Minimum Size 기본 100(시각 연출용)을 하한으로 하며, Main Camera 뷰포트 네 모서리까지의 최대 거리×4까지 확장한다. 기존 폭발 스프라이트/색/확산 시간은 그대로 사용한다. 일반 전투 ShowAreaBurst, 예고 원 반경, 피해 반경은 확대하지 않는다. 커진 VFX는 원래 패턴 반경 밖까지 보이지만 그 밖에 피해를 추가하지 않는다. 카메라가 없으면 최소 표시 크기를 사용한다.
+- 검증: tools/BossEntranceValidation에서 실제 BossAttackHitVfxShape의 최소 크기/원거리 카메라/보스 위치 오프셋/가장 먼 모서리 유지/기존 공격 직경/부모 배율 보정 6/6 통과. Unity API 계산 경계는 대역이므로 화면 검증이 아니다. 기존 양손 클립의 타격/종료 이벤트와 BossMvp의 폭발 Sprite 참조를 정적 확인했다. 설치 Unity 6000.5.0f1 Roslyn으로 Combat.Runtime→EnemyMvp.Runtime→Boss.Runtime→Encounter.Runtime→Assembly-CSharp→Editor 6개 컴파일 모두 종료 코드 0. 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. 결과는 .utmp/BossEntrance/Compile 생성물. git diff --check 통과. Unity 테스트 0개. 실제 씬/애니메이션 진행/중단/렌더링/기기는 미검증이다.
+- 보존: 시작 시 직전 Sprint 코드/테스트/.gitignore/Handoff 미커밋 변경 및 사용자의 DNA(EXP).prefab·ZombieHound.prefab 변경을 보존했다. 사용자 변경과 별개로 씬이나 프리팹을 재저장하지 않았다.
+- 직접 확인: Unity 컴파일 완료 → Tools > Play From Title 해제 → MainTestScene Play → 기존 보스 등장 시각까지 진행. 보스는 보이지 않고 원형 예고만 나타난 뒤 타격 폭발과 함께 모습을 드러내야 한다. 이후 추적/공격으로 이어져야 한다. 멀리 떨어진 위치에서도 큰 폭발이 보이는지 확인한다. 이후 HP 절반 이하의 기존 원형 패턴 폭발은 원래 크기여야 한다. 큰 등장 VFX의 바깥 시각 영역만으로 추가 피해를 받으면 안 된다(원래 반경 안에서는 기존 피해가 있다). 등장 중 일시정지는 기존처럼 Time.deltaTime에 따라 멈춘다.
+- 오류 확인: Console 첫 오류, Boss Encounter의 Boss/Target 참조, Boss Animator의 Base Layer.BossSwipeBoth 및 AnimationEvent_ApplyAreaDamage, BossAttackHitVfx의 Range Material/Area Burst Sprite/MainCamera 태그를 확인한다. 과하게 크면 BossAttackHitVfx의 Entrance Burst Minimum Size를 조절할 수 있지만 카메라 거리 기반 하한도 적용된다. 실제 플레이 검증과 기존 스킬 자세히 보기 MP·쿨다운 후속은 남아 있다.
+
+## 2026-11-06 Sprint 쿨타임 남은 초 표시
+
+- 후속 요청: Cooldown 이미지와 같은 표시 수명으로 숫자도 표시한다. SprintCooldownUI에 TMP_Text cooldownText를 추가했다. Inspector에서 기존 TMP 텍스트를 연결할 수 있고, 미지정이면 Awake에서 Cooldown Image 아래 중앙 정렬의 Cooldown Seconds(TextMeshProUGUI, 36 크기, 흰색 Bold)를 생성한다. 별도 폰트 에셋은 만들지 않는다. 생성 텍스트는 컴포넌트 파괴 시 함께 제거한다.
+- 동작: 실제 DashCooldownRemaining을 올림 정수로 표시한다(3초라면 3→2→1). 0초와 미사용/플레이어 없음에는 텍스트를 비우고 표시 컴포넌트·별도 오브젝트를 끈다. 쿨타임 중에만 이미지와 함께 켠다. 스크립트 비활성 시에도 숨기며, TMP raycastTarget=false로 클릭을 가로채지 않는다. Sprint 버튼 자신이나 이를 포함한 상위 오브젝트는 끄지 않는다. 이미지의 0→1 시계방향 진행은 유지한다.
+- 검증: Unity 6000.5.0f1 설치 Roslyn + 격리 runtime.rsp로 Assembly-CSharp 컴파일 종료 코드 0, 오류 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. git diff --check 통과. Unity 테스트 0개, 실제 TMP 렌더링/모바일 조작은 미검증. 씬·프리팹은 수정하지 않았다.
+- 직접 확인: Unity 컴파일 완료 → Sprint의 SprintCooldownUI에서 기존 Player/Cooldown Image 연결 유지 → Cooldown Text는 비워 자동 생성하거나 직접 만든 TMP 텍스트 연결 → Play. 시작 때 숫자 숨김, 대시 성공 시 남은 초 표시, 쿨 종료 시 이미지와 숫자 모두 숨김, 재사용 시 다시 표시되어야 한다. 일시정지 중 숫자도 그대로여야 한다. 안 보이면 Console 첫 오류, TMP 기본 폰트/지정 폰트, 텍스트 RectTransform 크기·부모 활성 상태, Player/Cooldown Image 참조를 확인한다.
+
+## 2026-11-06 Sprint Cooldown 오브젝트 표시 수명
+
+- 후속 요청에 따라 SprintCooldownUI의 별도 Cooldown Image 오브젝트는 미사용/쿨타임 완료/플레이어 없음에는 비활성, 실제 남은 쿨타임이 양수일 때만 활성화한다. 쿨타임 중 Fill Amount 0→1과 시계방향 설정은 유지한다. 스크립트 비활성 시에도 별도 표시를 숨긴다.
+- 스크립트는 계속 켜져 있는 Sprint 버튼에 두고, Cooldown Image는 별도 자식(또는 버튼을 포함하지 않는 별도 오브젝트)의 Image를 연결한다. 버튼 자신이나 버튼을 포함한 상위 Image를 연결한 경우에는 버튼/갱신 루프를 끄지 않기 위해 오브젝트 비활성화를 생략한다. 기존 자신 Image 대체 경로는 호환용으로 남겼다. 씬·프리팹은 수정하지 않았다.
+- 검증: 설치 Unity Roslyn으로 변경 소스를 포함한 Assembly-CSharp 컴파일 종료 코드 0, 오류 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. git diff --check 통과. 이번 표시 변경 Unity 테스트 0개, 실제 클릭/화면 미검증.
+- 직접 확인: Sprint 버튼의 SprintCooldownUI > Cooldown Image에 자식 Cooldown Image 지정 → Play 시 Cooldown 꺼짐 → 대시 성공 시 켜지고 0→1 → 쿨타임 종료 시 꺼짐 → 재사용 시 다시 켜짐. MP 부족 등 실패 때는 켜지지 않아야 한다. Sprint 버튼은 계속 활성 상태여야 한다. 이상 시 Console 첫 오류, 스크립트가 Sprint 버튼에 있는지, Cooldown Image가 별도 오브젝트인지, Player 참조와 실제 대시 성공 여부를 확인한다.
+
+## 2026-11-06 Sprint 모바일 버튼 시계방향 쿨타임 Image 연결
+
+- 요청: 사용자가 만든 Sprint 모바일 UI의 회전 쿨타임 Image를 실제 대시와 연결하는 스크립트.
+- 완료: `Assets/0.Scripts/Mobile/SprintCooldownUI.cs`와 meta 추가. Sprint Button에 붙이고 Player/Cooldown Image를 Inspector에서 지정한다. Player 미지정 시 같은 씬 플레이어를 찾고, Image 미지정 시 버튼 자신의 Image를 사용한다. Image는 Filled/Radial360/Top/Clockwise로 설정하며 대시 성공 직후 0에서 재사용 가능 시 1까지 시계방향으로 채운다. 자식 표시 Image는 raycastTarget을 꺼 클릭을 가로채지 않게 한다. 버튼 자체 Image의 클릭 수신은 유지한다.
+- 연결: PlayerMovement의 실제 nextDashTime과 승인된 쿨타임 길이로 DashCooldownRemaining/Progress를 읽는다. Player는 이를 읽기 전용으로 공개하고 TryUseDash()로 현재 조준 방향의 기존 TryDash를 호출한다. SprintCooldownUI는 Button.onClick에 활성/비활성 수명에 맞춰 리스너를 연결/해제한다. 별도 UI 타이머가 없으므로 키보드 대시도 반영하고, Time.time 정지 중 UI도 진행하지 않는다. MP 부족/행동 잠금/재사용 대기 등 기존 대시 실패는 타이머를 시작하지 않는다. UI만을 이유로 Button.interactable은 변경하지 않는다.
+- 보존: 시작 시 main / b98949a, git status 깨끗함. 셰이더와 Project Settings는 수정하지 않았다. 씬/프리팹은 수정하지 않았다. 현재 저장된 MainTestScene/GiungTestScene의 Sprint는 Image/Button만 있고 이벤트가 비어 있어서 사용자가 새 컴포넌트를 붙이는 단계가 필요하다. 별도 Button On Click 등록은 하지 않는다(스크립트가 자동 등록).
+- 검증: `tools/DashCooldownValidation`에서 실제 PlayerMovement와 Unity 시간/이동 대역으로 8/8 통과(초기/성공/절반·완료/재입력 실패/방향 없음/0쿨/시간 정지/재사용). UI 클릭·렌더링은 대역 검증 범위 밖이다. Unity 6000.5.0f1 Roslyn + 현재 Bee 응답 파일에 새 UI 소스를 포함해 Assembly-CSharp 종료 코드 0, 오류 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. 출력은 `.utmp/DashCooldown`로 격리. git diff --check 통과. Unity 테스트 0개, 실제 화면·모바일 기기는 미검증이다.
+- 직접 확인: Play 종료 → Unity 컴파일 완료 → Hierarchy MobileUI 아래 Sprint 선택 → Add Component > Sprint Cooldown UI → Player 칸에 씬 Player 드래그 → Cooldown Image에 사용자가 만든 회전용 Image 드래그(비우면 Sprint 자신의 아이콘이 채워짐) → Play. 방향 입력 후 Sprint 클릭 시 실제 대시와 함께 Image가 0→1로 시계방향 채워져야 한다. 키보드 대시도 같은 표시, 쿨 중 연타는 표시를 초기화하지 않음, 일시정지 중 진행 정지를 확인한다. 기존 Button On Click에 TryUseDash를 중복 등록하지 않는다.
+- 오류 확인: Console 첫 오류, SprintCooldownUI 활성 상태/Player와 Image 참조, 대시용 MP와 방향 입력, Player Dash Cooldown, Image Source Image와 색상 알파, 상위 UI의 raycast 차단 여부를 본다. 이번 표시는 쿨타임 준비만 나타내므로 가득 차 있어도 MP 부족이나 다른 행동 중에는 대시가 거절될 수 있다.
+
 ## 2026-11-06 보유 약·강 스킬의 패시브 칸
 
 - 완료: `Document/SkillDatatable.xlsx` 약공격·강공격 시트에 `Passive_Cooldown`(AH), `Passive_Scale`(AI)을 추가했다. 데이터 칸은 비었다. 변환기와 배포 JSON도 같은 두 칸을 읽는다. 쿨타임이 0이면 자동 발사하지 않고, 배율이 비어 있으면 피해만 기존 공식의 0.2다. 탄 수·범위·타격 횟수·모양은 그대로다. MP와 입력 잠금은 쓰지 않는다. 보유 중이면 장착 여부와 상관없이 동작하고, 버튼 시전은 기존 수치를 유지한다.

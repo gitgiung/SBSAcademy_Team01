@@ -19,6 +19,10 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     [SerializeField] private Sprite areaBurstSprite;
     [SerializeField] private Color areaBurstColor = Color.red;
     [SerializeField, Min(0.01f)] private float areaBurstDuration = 0.2f;
+    [Header("등장 연출 전용 VFX (피해 범위와 무관)")]
+    [SerializeField, Min(1f)] private float entranceBurstMinimumSize = 100f;
+    [Tooltip("등장 폭발의 확산·페이드 시간(초). 0이면 기존 Area Burst Duration을 사용합니다.")]
+    [SerializeField, Min(0f)] private float entranceAreaBurstDuration;
 
     private SpriteRenderer bossRenderer;
     private SpriteRenderer slashRenderer;
@@ -27,6 +31,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     private SpriteRenderer burstRenderer;
     private Material burstMaterial;
     private float burstTimeRemaining;
+    private float activeBurstDuration;
     private float burstRadius;
     private MaterialPropertyBlock propertyBlock;
     private Texture2D circleTexture;
@@ -93,11 +98,36 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     public void ShowAreaBurst(float radius)
     {
+        BeginBurst(radius, areaBurstDuration);
+    }
+
+    private void BeginBurst(float radius, float duration)
+    {
         if (!isActiveAndEnabled || burstRenderer == null || areaBurstSprite == null || burstMaterial == null) return;
         burstRadius = Mathf.Max(0f, radius);
-        burstTimeRemaining = Mathf.Max(0.01f, areaBurstDuration);
+        activeBurstDuration = Mathf.Max(0.01f, duration);
+        burstTimeRemaining = activeBurstDuration;
         burstRenderer.enabled = true;
         UpdateBurst();
+    }
+
+    public void ShowEntranceBurst(float attackRadius)
+    {
+        float size = Mathf.Max(attackRadius, entranceBurstMinimumSize);
+        Camera camera = Camera.main;
+        if (camera != null)
+        {
+            float depth = Vector3.Dot(transform.position - camera.transform.position, camera.transform.forward);
+            if (depth > 0f)
+                for (int x = 0; x <= 1; x++)
+                    for (int y = 0; y <= 1; y++)
+                    {
+                        Vector3 corner = camera.ViewportToWorldPoint(new Vector3(x, y, depth));
+                        // 멀리 있는 플레이어 화면에도 확산 중인 원이 닿도록 충분한 여유를 줍니다.
+                        size = BossAttackHitVfxShape.EntranceBurstRadius(size, transform.position, corner);
+                    }
+        }
+        BeginBurst(size, entranceAreaBurstDuration > 0f ? entranceAreaBurstDuration : areaBurstDuration);
     }
 
     private void UpdateBurst()
@@ -108,7 +138,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
             HideBurst();
             return;
         }
-        float t = 1f - Mathf.Clamp01(burstTimeRemaining / Mathf.Max(0.01f, areaBurstDuration));
+        float t = 1f - Mathf.Clamp01(burstTimeRemaining / activeBurstDuration);
         float expansion = Mathf.Lerp(0.1f, 1f, 1f - Mathf.Pow(1f - t, 3f));
         float spriteDiameter = Mathf.Max(areaBurstSprite.bounds.size.x, areaBurstSprite.bounds.size.y);
         burstRenderer.transform.localPosition = Vector3.zero;
@@ -172,6 +202,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         dashDisplayDuration = Mathf.Max(0f, dashDisplayDuration);
         rangeColor.a = Mathf.Clamp01(rangeColor.a);
         areaBurstDuration = Mathf.Max(0.01f, areaBurstDuration);
+        entranceAreaBurstDuration = Mathf.Max(0f, entranceAreaBurstDuration);
     }
 
     private SpriteRenderer CreateRenderer(string objectName, Sprite sprite)

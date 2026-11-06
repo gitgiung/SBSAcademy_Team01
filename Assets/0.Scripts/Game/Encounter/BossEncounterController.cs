@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI; // Slider ����� ���� �߰�
 
@@ -21,6 +22,8 @@ public sealed class BossEncounterController : MonoBehaviour
 
     // [�߰�] �ν����Ϳ��� ���� ü�¹� UI (�Ǵ� Slider) �Ҵ�
     [SerializeField] private GameObject bossHealthSlider;
+    [Tooltip("보스가 모습을 드러낸 뒤 HP바가 서서히 나타나는 시간(초). 0이면 즉시 표시합니다.")]
+    [SerializeField, Min(0f)] private float bossHealthFadeDuration = 1f;
 
     private float standaloneElapsedTime;
     public float ElapsedTime => spawnDirector != null ? spawnDirector.ElapsedTime : standaloneElapsedTime;
@@ -32,6 +35,8 @@ public sealed class BossEncounterController : MonoBehaviour
     private Vector3 bossSpawnOffset;
     private int displayedSecond = -1;
     private EncounterPhase displayedPhase;
+    private CanvasGroup bossHealthCanvasGroup;
+    private Coroutine bossHealthFadeRoutine;
 
     private void Awake()
     {
@@ -78,6 +83,8 @@ public sealed class BossEncounterController : MonoBehaviour
         if (bossHealth != null) bossHealth.Died += OnBossDied;
         if (Phase == EncounterPhase.BossFight && (bossHealth == null || bossHealth.IsDead))
             OnBossDied();
+        if (Phase == EncounterPhase.BossFight && encounterBoss != null)
+            ShowBossHealthBar(encounterBoss.GetComponent<BossController>());
         if (spawnDirector != null)
         {
             spawnDirector.TimeAdvanced += HandleTimeAdvanced;
@@ -140,11 +147,12 @@ public sealed class BossEncounterController : MonoBehaviour
         if (bossSpawnAnchor != null)
             encounterBoss.position = bossSpawnAnchor.position + bossSpawnOffset;
 
+        // 기존 원형 공격의 타격 순간에 모습을 드러내며 전투를 시작합니다.
+        if (encounterBoss.TryGetComponent<BossController>(out var entranceBoss))
+            entranceBoss.QueueEntrance();
         encounterBoss.gameObject.SetActive(true);
 
-        // [�߰�] ���� ���� �� �����̴� Ȱ��ȭ
-        if (bossHealthSlider != null)
-            bossHealthSlider.SetActive(true);
+        ShowBossHealthBar(entranceBoss);
 
         RefreshDisplay(true);
     }
@@ -153,7 +161,7 @@ public sealed class BossEncounterController : MonoBehaviour
     {
         if (Phase != EncounterPhase.BossFight) return;
         Phase = EncounterPhase.AfterBoss;
-        if (bossHealthSlider != null) bossHealthSlider.SetActive(false);
+        HideBossHealthBar();
         if (spawnDirector != null) { spawnDirector.ClearPauseBoundary(); spawnDirector.SetPaused(false); }
         else foreach (var spawner in spawners)
             if (spawner != null) spawner.RestartSpawning();
@@ -169,8 +177,50 @@ public sealed class BossEncounterController : MonoBehaviour
         DisplayChanged?.Invoke();
     }
 
+    private void ShowBossHealthBar(BossController entranceBoss)
+    {
+        if (bossHealthSlider == null) return;
+        HideBossHealthBar();
+        if (bossHealthCanvasGroup == null)
+        {
+            bossHealthCanvasGroup = bossHealthSlider.GetComponent<CanvasGroup>();
+            if (bossHealthCanvasGroup == null)
+                bossHealthCanvasGroup = bossHealthSlider.AddComponent<CanvasGroup>();
+        }
+        bossHealthCanvasGroup.alpha = 0f;
+        bossHealthSlider.SetActive(true);
+        bossHealthFadeRoutine = StartCoroutine(FadeBossHealthBar(entranceBoss));
+    }
+
+    private IEnumerator FadeBossHealthBar(BossController entranceBoss)
+    {
+        // 원형 패턴이 터져 보스가 모습을 드러낼 때까지 HP바도 숨깁니다.
+        while (entranceBoss != null && entranceBoss.IsEntering && Phase == EncounterPhase.BossFight)
+            yield return null;
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0f, bossHealthFadeDuration);
+        while (Phase == EncounterPhase.BossFight && bossHealthCanvasGroup != null)
+        {
+            elapsed += Time.deltaTime;
+            bossHealthCanvasGroup.alpha = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
+            if (bossHealthCanvasGroup.alpha >= 1f) break;
+            yield return null;
+        }
+        bossHealthFadeRoutine = null;
+    }
+
+    private void HideBossHealthBar()
+    {
+        if (bossHealthFadeRoutine != null) StopCoroutine(bossHealthFadeRoutine);
+        bossHealthFadeRoutine = null;
+        if (bossHealthCanvasGroup != null) bossHealthCanvasGroup.alpha = 0f;
+        if (bossHealthSlider != null) bossHealthSlider.SetActive(false);
+    }
+
     private void OnDisable()
     {
+        HideBossHealthBar();
         if (bossHealth != null) bossHealth.Died -= OnBossDied;
         if (spawnDirector != null)
         {

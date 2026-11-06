@@ -170,7 +170,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d44d0a6220b4a098ec7f390ed17f640, type: 3}
   m_Name: 
   m_EditorClassIdentifier: EnemyMvp.Runtime::EnemyContactDamage
-  damage: 10
+  damage: 5
   damageInterval: 0.5
 --- !u!58 &1000008
 CircleCollider2D:

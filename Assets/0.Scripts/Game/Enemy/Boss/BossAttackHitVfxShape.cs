@@ -5,6 +5,11 @@ public static class BossAttackHitVfxShape
 {
     public const float RadialStartAngle = 180f;
 
+    public static float EntranceBurstRadius(float minimumRadius, Vector2 origin, Vector2 cameraCorner)
+    {
+        return Mathf.Max(minimumRadius, Vector2.Distance(origin, cameraCorner) * 4f);
+    }
+
     public static float Diameter(float radius)
     {
         return Mathf.Max(0f, radius) * 2f;

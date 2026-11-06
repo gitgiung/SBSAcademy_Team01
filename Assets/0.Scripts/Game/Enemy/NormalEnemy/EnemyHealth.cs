@@ -47,7 +47,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         EnsureInitialized();
     }
 
-    private void EnsureInitialized()
+    /// <summary>다른 초기화 경로가 콜라이더를 일시 변경하기 전에 원래 상태를 캐시합니다.</summary>
+    public void EnsureInitialized()
     {
         if (initialized) return;
         initialized = true;

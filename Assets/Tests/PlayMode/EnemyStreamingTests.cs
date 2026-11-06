@@ -113,9 +113,9 @@ public sealed class EnemyStreamingTests
 
     private static GameObject GetPrefab(EnemySpawnDirector director)
     {
-        var minutes = (EnemySpawnMinute[])typeof(EnemySpawnDirector)
-            .GetField("minutes", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(director);
-        return minutes[0].EnemyPrefabs[0];
+        var waves = (EnemySpawnWave[])typeof(EnemySpawnDirector)
+            .GetField("waves", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(director);
+        return waves[0].Enemies[0].Prefab;
     }
 
     private sealed class RecordingPool : IEnemySpawnPool

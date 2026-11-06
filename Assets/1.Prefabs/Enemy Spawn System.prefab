@@ -65,12 +65,13 @@ MonoBehaviour:
   spawnerTemplate: {fileID: 0}
   spawnerCount: 5
   offscreenMargin: 10
-  minutes:
-  - enemyPrefabs:
-    - {fileID: 5300548243203222094, guid: a74c86675a9f61543b9c183add0dec10, type: 3}
-    spawnInterval: 5
-    totalSpawnCount: 12
-    batchSpawnCount: 1
+  waves:
+  - enemies:
+    - prefab: {fileID: 5300548243203222094, guid: a74c86675a9f61543b9c183add0dec10, type: 3}
+      weight: 1
+  - enemies:
+    - prefab: {fileID: 5300548243203222094, guid: a74c86675a9f61543b9c183add0dec10, type: 3}
+      weight: 1
   settings:
     waveSeconds: 30
     waveCount: 36

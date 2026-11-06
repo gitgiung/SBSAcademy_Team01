@@ -1,5 +1,15 @@
 # 작업 인수인계
 
+## 2026-11-06 30초 웨이브별 일반 적 구성과 비율
+
+- 시작 브랜치는 feat/infinity-map, 기준 커밋은 b1ab2b2이며 작업 트리는 깨끗했다.
+- Enemy Spawn Director의 Waves에서 구간별 Enemies의 Prefab과 Weight를 지정한다. Wave Seconds의 기존 30초 기준으로 Element 0은 0:00~0:29, Element 1은 0:30~0:59에 해당한다. 목록 이후는 마지막 구성을 계속 쓰며, 기존 적은 다음 웨이브 시작 시 강제로 회수하지 않는다.
+- Weight는 상대 비율이며 7과 3은 70:30, 0인 항목은 제외한다. 생성 순서에서 가중치를 고르게 섞고, 정원 초과는 선택 순서를 소비하지 않는다. 개별 프리팹의 생성 오류는 순서를 넘겨 다른 적의 생성을 막지 않게 했다.
+- Enemy Spawn System 프리팹의 기존 EnemyMvp를 첫 두 웨이브에 Weight 1로 옮겼다. MainTestScene에서 예전 Minutes 오버라이드를 제거했다. Minutes의 사용되지 않던 Spawn Interval, Total Spawn Count, Batch Spawn Count 필드를 제거했고, 새 Waves가 없는 과거 직렬화 데이터의 적 목록 읽기 경로만 숨겨서 유지했다. 단독 EnemySpawner의 실제 사용 설정, 웨이브 시도 예산, 130 상한, 보스·회수 동작은 기존 경로를 사용한다.
+- Unity 6000.5.0f1 분리 복사본의 최종 PlayMode 21/21 통과, 실패·생략 0, 종료 0. 새 EnemyWaveTests 2개로 30초 경계, 7:3 비율과 0 제외, 정원 초과 시 순서 유지, 마지막 구성 반복, 개별 프리팹 실패 시 다른 적 스폰을 확인했다. 변경 전 웨이브 항목 부재와 중간 버전의 개별 실패 문제를 각각 재현했다. 기존 스폰·무한 맵 검증도 통과했다.
+- 직접 확인은 Unity 임포트 완료 → Tools > Play From Title 해제 → MainTestScene → Enemy Spawn System > Enemy Spawn Director > Waves 순서다. Element 0의 Enemies에 프리팹 두 개를 넣고 Weight 7/3, Element 1은 다른 적을 지정한 뒤 Play한다. 보스가 먼저 나오므로 계속 검증하려면 Play 전에 Boss Encounter > Boss Appear Time을 임시로 90으로 바꿨다가 마친 후 3으로 복원한다. 30초부터 새로 나오는 적이 Element 1을 따라야 한다.
+- 오류 시 Console 첫 오류와 각 웨이브의 Prefab 참조 및 양수 Weight가 한 개 이상 있는지 확인한다. Test Runner > PlayMode의 EnemyWaveTests로 비율·웨이브 전환을 재검증할 수 있다. 실제 게임 화면의 체감 구성과 Android 빌드·기기는 추가 확인 대상이다.
+
 ## 2026-11-06 무한 맵 일반 적 스폰 위치와 회수
 
 - 시작 브랜치는 feat/infinity-map, 기준 커밋은 737920d이며 작업 트리는 깨끗했다.

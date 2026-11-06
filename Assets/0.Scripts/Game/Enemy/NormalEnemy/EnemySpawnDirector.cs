@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>씬의 단일 진행 시간과 전체 일반 스폰 시도 예산을 소유합니다.</summary>
 [DisallowMultipleComponent]
@@ -10,11 +11,14 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private Camera playerCamera;
     [SerializeField] private EnemySpawner spawnerTemplate;
-    [Header("스폰 위치와 종류")]
+    [Header("스폰 위치")]
     [SerializeField, Min(0)] private int spawnerCount = 1;
     [SerializeField, Min(.01f)] private float offscreenMargin = 1f;
-    [Tooltip("분별 적 종류를 유지합니다. 수량/간격은 아래 30초 생존 설정이 결정합니다.")]
-    [SerializeField] private EnemySpawnMinute[] minutes = new EnemySpawnMinute[0];
+    [Header("웨이브별 적 구성")]
+    [Tooltip("Element 0부터 Wave Seconds 간격으로 적용합니다. 목록이 끝나면 마지막 구성을 반복합니다.")]
+    [SerializeField] private EnemySpawnWave[] waves = Array.Empty<EnemySpawnWave>();
+    [SerializeField, HideInInspector, FormerlySerializedAs("minutes")]
+    private EnemySpawnMinute[] legacyMinutes = Array.Empty<EnemySpawnMinute>();
     [Header("18분 생존 설정 (1차 플레이테스트용)")]
     [SerializeField] private SurvivalBalanceSettings settings = new SurvivalBalanceSettings();
     [SerializeField] private bool logWaveMetrics;
@@ -37,7 +41,11 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     private bool initialized, paused;
     private double elapsed;
     private double pauseBoundary = double.PositiveInfinity;
-    private int configuredMinute = -1, nextSpawner;
+    private int configuredRosterIndex = -1, nextSpawner;
+    private int[] spawnWeights;
+    private long[] spawnCredits;
+    private long totalWeight;
+    private bool UsesWaves => waves != null && waves.Length > 0;
     private SurvivalWaveMetrics window;
     private int playerLevel = 1;
     private bool catchupActive;
@@ -49,14 +57,8 @@ public sealed class EnemySpawnDirector : MonoBehaviour
         if (initialized) return;
         spawnPool = poolProvider as IEnemySpawnPool;
         if (spawnPool == null || player == null || playerCamera == null || spawnerTemplate == null
-            || minutes == null || minutes.Length == 0 || spawnerCount < 0 || !Settings.IsValid)
+            || spawnerCount < 0 || !Settings.IsValid || !HasValidRosters())
         { FailConfiguration(); return; }
-        foreach (EnemySpawnMinute minute in minutes)
-        {
-            if (minute == null || minute.EnemyPrefabs == null || minute.EnemyPrefabs.Length == 0) { FailConfiguration(); return; }
-            foreach (GameObject prefab in minute.EnemyPrefabs)
-                if (prefab == null || !prefab.TryGetComponent<EnemyHealth>(out _) || !prefab.TryGetComponent<EnemyFollow>(out _)) { FailConfiguration(); return; }
-        }
         spawnerTemplate.gameObject.SetActive(false);
         spawners = new EnemySpawner[spawnerCount];
         for (int i = 0; i < spawners.Length; i++)
@@ -92,8 +94,16 @@ public sealed class EnemySpawnDirector : MonoBehaviour
             {
                 var spawner = spawners[nextSpawner++ % spawners.Length];
                 AttemptedSpawns++; window.attempted++;
-                if (spawner.TrySpawnScheduled(AttemptedSpawns - 1, out EnemySpawnFailure failure))
-                { SuccessfulSpawns++; window.successful++; }
+                int enemyIndex = spawnWeights != null ? SelectWeightedEnemy() : AttemptedSpawns - 1;
+                bool spawned = spawner.TrySpawnScheduled(enemyIndex, out EnemySpawnFailure failure);
+                // A full pool blocks all types. Other failures must let the next type take a turn.
+                if (spawnWeights != null && failure != EnemySpawnFailure.Capacity)
+                    AdvanceSpawnCredits(enemyIndex);
+                if (spawned)
+                {
+                    SuccessfulSpawns++;
+                    window.successful++;
+                }
                 else if (failure == EnemySpawnFailure.Capacity) { CapSkippedAttempts++; window.capSkipped++; }
                 else { PoolFailedAttempts++; window.poolFailed++; }
             }
@@ -113,8 +123,27 @@ public sealed class EnemySpawnDirector : MonoBehaviour
 
     private void ConfigureSpawners()
     {
-        if (configuredMinute == CurrentMinute) return;
-        var types = minutes[Math.Min(CurrentMinute, minutes.Length - 1)].EnemyPrefabs;
+        int index = UsesWaves
+            ? Math.Min(Settings.WaveIndex(elapsed), waves.Length - 1)
+            : Math.Min(CurrentMinute, legacyMinutes.Length - 1);
+        if (configuredRosterIndex == index) return;
+
+        GameObject[] types;
+        if (UsesWaves)
+        {
+            EnemySpawnWave.Entry[] entries = waves[index].Enemies;
+            spawnWeights = new int[entries.Length];
+            spawnCredits = new long[entries.Length];
+            totalWeight = 0;
+            types = new GameObject[entries.Length];
+            for (int i = 0; i < spawnWeights.Length; i++)
+            {
+                types[i] = entries[i].Prefab;
+                spawnWeights[i] = entries[i].Weight;
+                totalWeight += spawnWeights[i];
+            }
+        }
+        else types = legacyMinutes[index].EnemyPrefabs;
         foreach (EnemySpawner spawner in spawners)
         {
             spawner.gameObject.SetActive(false);
@@ -122,7 +151,49 @@ public sealed class EnemySpawnDirector : MonoBehaviour
             spawner.gameObject.SetActive(true);
             if (paused) spawner.StopSpawning();
         }
-        configuredMinute = CurrentMinute;
+        configuredRosterIndex = index;
+    }
+
+    private int SelectWeightedEnemy()
+    {
+        int selected = -1;
+        long bestCredit = long.MinValue;
+        for (int i = 0; i < spawnWeights.Length; i++)
+        {
+            if (spawnWeights[i] == 0) continue;
+            long credit = spawnCredits[i] + spawnWeights[i];
+            if (credit <= bestCredit) continue;
+            bestCredit = credit;
+            selected = i;
+        }
+        return selected;
+    }
+
+    private void AdvanceSpawnCredits(int selected)
+    {
+        for (int i = 0; i < spawnWeights.Length; i++)
+            spawnCredits[i] += spawnWeights[i];
+        spawnCredits[selected] -= totalWeight;
+    }
+
+    private bool HasValidRosters()
+    {
+        if (UsesWaves)
+        {
+            foreach (EnemySpawnWave wave in waves)
+                if (wave == null || !wave.IsValid) return false;
+            return true;
+        }
+
+        if (legacyMinutes == null || legacyMinutes.Length == 0) return false;
+        foreach (EnemySpawnMinute minute in legacyMinutes)
+        {
+            if (minute == null || minute.EnemyPrefabs == null || minute.EnemyPrefabs.Length == 0) return false;
+            foreach (GameObject prefab in minute.EnemyPrefabs)
+                if (prefab == null || !prefab.TryGetComponent<EnemyHealth>(out _) ||
+                    !prefab.TryGetComponent<EnemyFollow>(out _)) return false;
+        }
+        return true;
     }
 
     public void RecordActiveCount(int count) { window.peakActive = Math.Max(window.peakActive, count); }
@@ -145,7 +216,7 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     private void FailConfiguration()
     {
         if (spawnerTemplate != null) spawnerTemplate.gameObject.SetActive(false);
-        Debug.LogError("EnemySpawnDirector: 풀/플레이어/카메라/스포너/적 종류 및 생존 설정을 확인하세요.", this);
+        Debug.LogError("EnemySpawnDirector: 풀, 플레이어, 카메라, 스포너, 웨이브 프리팹과 가중치, 생존 설정을 확인하세요.", this);
         enabled = false;
     }
     private void OnDestroy()

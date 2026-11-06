@@ -5,7 +5,7 @@ using UnityEngine;
 // The authored body collider may be a circle, box, or capsule; do not add a second shape.
 public sealed class EnemyFollow : MonoBehaviour
 {
-    [SerializeField, Min(0f)] private float moveSpeed = 2f;
+    [SerializeField, Min(0f)] public float moveSpeed = 2f;
     [SerializeField, Min(0f)] private float stoppingDistance = 0.5f;
 
     private Rigidbody2D body;

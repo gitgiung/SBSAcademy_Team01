@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>몸 스프라이트 발밑에 붙는 타원 그림자입니다.</summary>
+/// <summary>처음 배치한 크기와 발밑 위치를 유지하는 타원 그림자입니다.</summary>
 [DisallowMultipleComponent]
 public sealed class GroundShadow : MonoBehaviour
 {
@@ -17,6 +17,7 @@ public sealed class GroundShadow : MonoBehaviour
 
     [SerializeField] private SpriteRenderer body;
     private SpriteRenderer shadowRenderer;
+    private bool placementInitialized;
 
     public static bool IsShadow(SpriteRenderer renderer)
     {
@@ -36,6 +37,7 @@ public sealed class GroundShadow : MonoBehaviour
             shadow = child.AddComponent<GroundShadow>();
         }
 
+        if (shadow.body != bodyRenderer) shadow.placementInitialized = false;
         shadow.body = bodyRenderer;
         shadow.EnsureRenderer();
         shadow.Place();
@@ -78,24 +80,28 @@ public sealed class GroundShadow : MonoBehaviour
             return;
         }
 
-        Bounds bounds = body.bounds;
-        if (bounds.size.x <= 0.0001f || bounds.size.y <= 0.0001f)
+        if (!placementInitialized)
         {
-            shadowRenderer.enabled = false;
-            return;
-        }
+            Bounds bounds = body.bounds;
+            if (bounds.size.x <= 0.0001f || bounds.size.y <= 0.0001f)
+            {
+                shadowRenderer.enabled = false;
+                return;
+            }
 
-        GetFootShadow(bounds, out Vector2 size, out Vector3 foot);
-        foot.z = body.transform.position.z;
-        Vector3 parentScale = transform.parent != null ? transform.parent.lossyScale : Vector3.one;
-        float scaleX = Mathf.Abs(parentScale.x) > 0.0001f ? Mathf.Abs(parentScale.x) : 1f;
-        float scaleY = Mathf.Abs(parentScale.y) > 0.0001f ? Mathf.Abs(parentScale.y) : 1f;
-        Vector2 spriteSize = sharedSprite.bounds.size;
-        transform.localScale = new Vector3(
-            size.x / (Mathf.Max(0.0001f, spriteSize.x) * scaleX),
-            size.y / (Mathf.Max(0.0001f, spriteSize.y) * scaleY),
-            1f);
-        transform.position = foot;
+            GetFootShadow(bounds, out Vector2 size, out Vector3 foot);
+            foot.z = body.transform.position.z;
+            Vector3 parentScale = transform.parent != null ? transform.parent.lossyScale : Vector3.one;
+            float scaleX = Mathf.Abs(parentScale.x) > 0.0001f ? Mathf.Abs(parentScale.x) : 1f;
+            float scaleY = Mathf.Abs(parentScale.y) > 0.0001f ? Mathf.Abs(parentScale.y) : 1f;
+            Vector2 spriteSize = sharedSprite.bounds.size;
+            transform.localScale = new Vector3(
+                size.x / (Mathf.Max(0.0001f, spriteSize.x) * scaleX),
+                size.y / (Mathf.Max(0.0001f, spriteSize.y) * scaleY),
+                1f);
+            transform.position = foot;
+            placementInitialized = true;
+        }
 
         shadowRenderer.sortingLayerID = body.sortingLayerID;
         // 플레이어는 순서 1, 몬스터는 0입니다. 그림자는 그 아래인 -2에 두어 몸보다 뒤에 깔리게 합니다.

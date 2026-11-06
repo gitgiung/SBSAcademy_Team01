@@ -20,16 +20,27 @@ public sealed class BossController : MonoBehaviour
     [SerializeField] private Animator animator;
 
     [Header("패턴 선택 거리")]
-    [SerializeField, Min(0.01f)] private float closeRange = 2f;
-    [SerializeField, Min(0.01f)] private float specialPatternDistance = 10f;
+    [SerializeField, Min(0.01f)] private float closeRange = 4f;
+    [SerializeField, Min(0.01f)] private float specialPatternDistance = 12f;
 
     [Header("일반 패턴 간격")]
-    [SerializeField, Min(0f)] private float pattern1ToPattern2Delay = 3f;
-    [SerializeField, Min(0f)] private float pattern2ToPattern1Delay = 5f;
+    [SerializeField, Min(0f)] private float pattern1ToPattern2Delay = 1f;
+    [SerializeField, Min(0f)] private float pattern2ToPattern1Delay = 3f;
     [SerializeField, Min(0f)] private float doubleSlashInterval = 0.5f;
 
     [Header("패턴 데미지 설정")]
     [SerializeField, Min(0f)] private float damage = 10f;
+    [Header("2페이지 스텟 배수")]
+    [SerializeField, Min(0f)] private float Multiple2 = 1.5f;
+
+    [Header("2페이즈 원형 특수패턴")]
+    [Tooltip("일반 패턴 순서와 관계없이 원형 특수패턴을 선택하는 거리입니다. 최솟값 초과, 최댓값 이하이며 돌진 조건이 겹치면 돌진이 우선입니다.")]
+    [SerializeField] private Vector2 phaseTwoAreaDistance = new Vector2(4f, 14f);
+    [SerializeField, Min(0.01f)] private float phaseTwoAreaRadius = 8f;
+    [SerializeField, Min(0f)] private float phaseTwoAreaDelay = 0.8f;
+    [Tooltip("원형 공격 종료 후 재사용까지의 시간입니다. 일반 패턴 1·2 완료 조건도 함께 적용됩니다.")]
+    [SerializeField, Min(0f)] private float phaseTwoAreaCooldown = 3f;
+
 
     [Header("전방 할퀴기")]
     [SerializeField, Min(0.01f)] private float slashRange = 2f;
@@ -37,7 +48,7 @@ public sealed class BossController : MonoBehaviour
 
     [Header("특수 돌진 패턴")]
     [Tooltip("플레이어를 향해 이동하는 기본 진행 시간입니다. 돌진은 이 시간이 지나도 근거리까지 계속 추적합니다.")]
-    [SerializeField, Min(0.01f)] private float dashDuration = 3f;
+    [SerializeField, Min(0.01f)] private float dashDuration = 1.5f;
     [SerializeField, Min(0.01f)] private float dashEndDamageRadius = 2f;
 
     private EnemyFollow follow;
@@ -47,11 +58,17 @@ public sealed class BossController : MonoBehaviour
     private Coroutine patternRoutine;
     private BossPattern nextNormalPattern = BossPattern.Pattern1;
     private float nextPatternTime;
+    private float nextAreaPatternTime;
+    private bool areaFollowupPending;
+    private bool phaseEntryAreaPending;
     private bool attackAnimationRunning;
     private bool attackAnimationFinished;
     private bool attackHitApplied;
+    private float activeSlashRange;
+    private float activeAreaRadius;
     private bool locomotionMoving;
     private bool dashAnimationRunning;
+    private int phaseSpawnGeneration = -1;
     private Vector2 attackForward;
     private Vector2 facingDirection = Vector2.down;
 
@@ -64,7 +81,10 @@ public sealed class BossController : MonoBehaviour
     public float SlashRange => slashRange;
     public float SlashAngle => slashAngle;
     public float DashEndDamageRadius => dashEndDamageRadius;
+    public Vector2 PhaseTwoAreaDistance => phaseTwoAreaDistance;
+    public float PhaseTwoAreaRadius => phaseTwoAreaRadius;
     public BossPattern ActivePattern { get; private set; } = BossPattern.None;
+    public int CurrentPhase { get; private set; } = 1;
 
 #if UNITY_EDITOR
     private Mesh slashRangeGizmoMesh;
@@ -103,6 +123,7 @@ public sealed class BossController : MonoBehaviour
         follow.SetTarget(target, FollowStoppingDistance);
         follow.enabled = true;
         nextNormalPattern = BossPattern.Pattern1;
+        areaFollowupPending = false;
         nextPatternTime = Time.time;
         locomotionMoving = false;
         UpdateAnimatorLocomotion();
@@ -111,7 +132,50 @@ public sealed class BossController : MonoBehaviour
 
     private void Update()
     {
+        UpdatePhase();
         UpdateAnimatorLocomotion();
+    }
+
+    private void UpdatePhase()
+    {
+        if (health == null) return;
+
+        if (phaseSpawnGeneration != health.SpawnGeneration)
+        {
+            phaseSpawnGeneration = health.SpawnGeneration;
+            CurrentPhase = 1;
+            nextAreaPatternTime = 0f;
+            areaFollowupPending = false;
+            phaseEntryAreaPending = false;
+        }
+
+        if (health.IsDead || CurrentPhase >= 2 || health.CurrentHealth > health.MaxHealth * 0.5f)
+            return;
+
+        CurrentPhase = 2;
+        damage = damage * Multiple2;
+        follow.moveSpeed = follow.moveSpeed * Multiple2;
+        pattern2ToPattern1Delay = 1.5f;
+        Debug.Log("2페이지 돌입!", this);
+        phaseEntryAreaPending = true;
+        if (patternRoutine != null)
+        {
+            StopCoroutine(patternRoutine);
+            patternRoutine = null;
+        }
+        StopDashAnimation();
+        attackAnimationRunning = false;
+        attackAnimationFinished = false;
+        ActivePattern = BossPattern.None;
+        if (hitVfx != null) hitVfx.Hide();
+        if (animator != null && animator.isActiveAndEnabled && animator.runtimeAnimatorController != null)
+        {
+            int idleHash = Animator.StringToHash("Base Layer.BossIdle");
+            if (animator.HasState(0, idleHash)) animator.Play(idleHash, 0, 0f);
+        }
+        follow.SetTarget(target, FollowStoppingDistance);
+        follow.enabled = true;
+        patternRoutine = StartCoroutine(PatternLoop());
     }
 
     public void SetTarget(Transform newTarget)
@@ -125,7 +189,7 @@ public sealed class BossController : MonoBehaviour
         while (isActiveAndEnabled && !health.IsDead)
         {
             if (target == null || !target.gameObject.activeInHierarchy || Time.timeScale <= 0f ||
-                !patternSelector.isActiveAndEnabled || Time.time < nextPatternTime)
+                (!phaseEntryAreaPending && (!patternSelector.isActiveAndEnabled || Time.time < nextPatternTime)))
             {
                 yield return null;
                 continue;
@@ -153,12 +217,24 @@ public sealed class BossController : MonoBehaviour
                 case BossPattern.Pattern2:
                     ActivePattern = BossPattern.Pattern2;
                     yield return PlaySlashAnimation(false);
-                    if (doubleSlashInterval > 0f)
+                    if (CurrentPhase < 2 && doubleSlashInterval > 0f)
                         yield return new WaitForSeconds(doubleSlashInterval);
                     if (CanAttackTarget()) yield return PlaySlashAnimation(true);
                     ActivePattern = BossPattern.None;
                     nextNormalPattern = BossPattern.Pattern1;
+                    areaFollowupPending = false;
                     nextPatternTime = Time.time + pattern2ToPattern1Delay;
+                    break;
+
+                case BossPattern.PhaseTwoArea:
+                    ActivePattern = BossPattern.PhaseTwoArea;
+                    yield return PerformPhaseTwoAreaAttack();
+                    ActivePattern = BossPattern.None;
+                    nextAreaPatternTime = Time.time + phaseTwoAreaCooldown;
+                    nextNormalPattern = BossPattern.Pattern1;
+                    areaFollowupPending = true;
+                    // 원형 공격 뒤에는 근거리에서 일반 패턴 1과 2를 먼저 완료한다.
+                    nextPatternTime = Time.time;
                     break;
 
                 case BossPattern.Pattern3:
@@ -175,8 +251,21 @@ public sealed class BossController : MonoBehaviour
 
     private BossPattern SelectAvailablePattern(float distance)
     {
+        if (phaseEntryAreaPending)
+        {
+            phaseEntryAreaPending = false;
+            return BossPattern.PhaseTwoArea;
+        }
+
         if (distance >= specialPatternDistance)
             return BossPattern.Pattern3;
+
+        if (areaFollowupPending)
+            return distance <= closeRange ? nextNormalPattern : BossPattern.None;
+
+        if (CurrentPhase >= 2 && Time.time >= nextAreaPatternTime &&
+            distance > phaseTwoAreaDistance.x && distance <= phaseTwoAreaDistance.y)
+            return BossPattern.PhaseTwoArea;
 
         if (distance > closeRange)
             return BossPattern.None;
@@ -184,7 +273,34 @@ public sealed class BossController : MonoBehaviour
         return patternSelector.SelectPattern(distance, (int)health.CurrentHealth, nextNormalPattern);
     }
 
-    private IEnumerator PlaySlashAnimation(bool useLeftHand)
+    private IEnumerator PerformPhaseTwoAreaAttack()
+    {
+        if (!CanAttackTarget()) yield break;
+        bool wasFollowing = follow.enabled;
+        follow.enabled = false;
+        UpdateAnimatorLocomotion();
+        float radius = phaseTwoAreaRadius;
+        try
+        {
+            if (hitVfx != null) hitVfx.ShowArea(radius);
+            if (phaseTwoAreaDelay > 0f)
+                yield return new WaitForSeconds(phaseTwoAreaDelay);
+            if (!CanAttackTarget()) yield break;
+            activeAreaRadius = radius;
+            yield return PlaySlashAnimation(false, true);
+        }
+        finally
+        {
+            if (hitVfx != null) hitVfx.HideArea();
+            if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
+            {
+                follow.SetTarget(target, FollowStoppingDistance);
+                follow.enabled = true;
+            }
+        }
+    }
+
+    private IEnumerator PlaySlashAnimation(bool useLeftHand, bool useArea = false)
     {
         if (!CanAttackTarget()) yield break;
 
@@ -195,12 +311,13 @@ public sealed class BossController : MonoBehaviour
         }
 
         Vector2 targetOffset = (Vector2)target.position - body.position;
-        if (targetOffset.sqrMagnitude <= Mathf.Epsilon) yield break;
+        if (targetOffset.sqrMagnitude <= Mathf.Epsilon && !useArea) yield break;
 
         // Lock facing at the start so the visible attack and hit arc stay aligned during windup.
-        attackForward = targetOffset.normalized;
+        attackForward = targetOffset.sqrMagnitude > Mathf.Epsilon ? targetOffset.normalized : Vector2.right;
         string direction = GetAttackDirection(attackForward);
-        string stateName = useLeftHand ? $"Base Layer.Boss_SwipeLeft_{direction}" : $"Base Layer.Boss_Swipe_{direction}";
+        string stateName = useArea ? "Base Layer.BossSwipeBoth" :
+            useLeftHand ? $"Base Layer.Boss_SwipeLeft_{direction}" : $"Base Layer.Boss_Swipe_{direction}";
         int stateHash = Animator.StringToHash(stateName);
         if (!animator.HasState(0, stateHash))
         {
@@ -213,7 +330,10 @@ public sealed class BossController : MonoBehaviour
         attackAnimationRunning = true;
         attackAnimationFinished = false;
         attackHitApplied = false;
-        if (hitVfx != null) hitVfx.ShowSlash(attackForward, slashRange, slashAngle);
+        activeSlashRange = slashRange;
+        if (!useArea && useLeftHand && CurrentPhase >= 2 && ActivePattern == BossPattern.Pattern2)
+            activeSlashRange *= 1.5f;
+        if (!useArea && hitVfx != null) hitVfx.ShowSlash(attackForward, activeSlashRange, slashAngle);
         try
         {
             animator.Play(stateHash, 0, 0f);
@@ -234,7 +354,7 @@ public sealed class BossController : MonoBehaviour
         finally
         {
             attackAnimationRunning = false;
-            if (hitVfx != null) hitVfx.HideSlash();
+            if (!useArea && hitVfx != null) hitVfx.HideSlash();
             if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
             {
                 follow.SetTarget(target, FollowStoppingDistance);
@@ -245,9 +365,19 @@ public sealed class BossController : MonoBehaviour
     /// <summary>Animation Event at the impact frame of each swipe clip.</summary>
     public void AnimationEvent_ApplySlashDamage()
     {
-        if (!attackAnimationRunning || attackHitApplied || !CanAttackTarget()) return;
+        if (!attackAnimationRunning || attackHitApplied || ActivePattern == BossPattern.PhaseTwoArea ||
+            !CanAttackTarget()) return;
         attackHitApplied = true;
-        PerformForwardSlash(attackForward);
+        PerformForwardSlash(attackForward, activeSlashRange);
+    }
+
+    public void AnimationEvent_ApplyAreaDamage()
+    {
+        if (!isActiveAndEnabled || !attackAnimationRunning || attackHitApplied ||
+            ActivePattern != BossPattern.PhaseTwoArea || !CanAttackTarget()) return;
+        attackHitApplied = true;
+        if (hitVfx != null) hitVfx.ShowAreaBurst(activeAreaRadius);
+        ApplyCircleDamage(body.position, activeAreaRadius);
     }
 
     /// <summary>Animation Event at the end of each swipe clip.</summary>
@@ -256,7 +386,7 @@ public sealed class BossController : MonoBehaviour
         if (attackAnimationRunning) attackAnimationFinished = true;
     }
 
-    private void PerformForwardSlash(Vector2 forward)
+    private void PerformForwardSlash(Vector2 forward, float radius)
     {
         if (!CanAttackTarget()) return;
 
@@ -264,14 +394,14 @@ public sealed class BossController : MonoBehaviour
         float minimumDot = Mathf.Cos(Mathf.Clamp(slashAngle, 1f, 360f) * 0.5f * Mathf.Deg2Rad);
         var damagedReceivers = new HashSet<IContactDamageReceiver>();
 
-        foreach (Collider2D hitCollider in Physics2D.OverlapCircleAll(origin, slashRange))
+        foreach (Collider2D hitCollider in Physics2D.OverlapCircleAll(origin, radius))
         {
             if (hitCollider == null) continue;
             var receiver = hitCollider.GetComponentInParent(typeof(IContactDamageReceiver)) as IContactDamageReceiver;
             if (receiver == null || !damagedReceivers.Add(receiver)) continue;
 
             Vector2 offset = (Vector2)hitCollider.bounds.center - origin;
-            if (offset.sqrMagnitude > slashRange * slashRange) continue;
+            if (offset.sqrMagnitude > radius * radius) continue;
             if (offset.sqrMagnitude > Mathf.Epsilon && Vector2.Dot(forward, offset.normalized) < minimumDot) continue;
             receiver.TakeContactDamage(damage, gameObject);
         }
@@ -301,7 +431,7 @@ public sealed class BossController : MonoBehaviour
 
         bool hasTarget = target != null && target.gameObject.activeInHierarchy;
         float distance = hasTarget ? Vector2.Distance(body.position, target.position) : 0f;
-        if (hasTarget)
+        if (hasTarget && !(attackAnimationRunning && ActivePattern == BossPattern.PhaseTwoArea))
         {
             Vector2 offset = (Vector2)target.position - body.position;
             if (offset.sqrMagnitude > Mathf.Epsilon)
@@ -399,8 +529,13 @@ public sealed class BossController : MonoBehaviour
     private void ApplyDashEndDamage(Vector2 dashEndCenter)
     {
         if (hitVfx != null) hitVfx.ShowDashImpact(dashEndCenter, dashEndDamageRadius);
+        ApplyCircleDamage(dashEndCenter, dashEndDamageRadius);
+    }
+
+    private void ApplyCircleDamage(Vector2 center, float radius)
+    {
         var damagedReceivers = new HashSet<IContactDamageReceiver>();
-        foreach (Collider2D hitCollider in Physics2D.OverlapCircleAll(dashEndCenter, dashEndDamageRadius))
+        foreach (Collider2D hitCollider in Physics2D.OverlapCircleAll(center, radius))
         {
             if (hitCollider == null) continue;
             var receiver = hitCollider.GetComponentInParent(typeof(IContactDamageReceiver)) as IContactDamageReceiver;
@@ -455,6 +590,11 @@ public sealed class BossController : MonoBehaviour
         pattern1ToPattern2Delay = Mathf.Max(0f, pattern1ToPattern2Delay);
         pattern2ToPattern1Delay = Mathf.Max(0f, pattern2ToPattern1Delay);
         doubleSlashInterval = Mathf.Max(0f, doubleSlashInterval);
+        phaseTwoAreaDistance.x = Mathf.Max(0f, phaseTwoAreaDistance.x);
+        phaseTwoAreaDistance.y = Mathf.Max(phaseTwoAreaDistance.x, phaseTwoAreaDistance.y);
+        phaseTwoAreaRadius = Mathf.Max(0.01f, phaseTwoAreaRadius);
+        phaseTwoAreaDelay = Mathf.Max(0f, phaseTwoAreaDelay);
+        phaseTwoAreaCooldown = Mathf.Max(0f, phaseTwoAreaCooldown);
         slashRange = Mathf.Max(0.01f, slashRange);
         slashAngle = Mathf.Clamp(slashAngle, 1f, 360f);
         damage = Mathf.Max(0f, damage);

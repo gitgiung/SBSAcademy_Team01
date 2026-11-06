@@ -46,6 +46,8 @@ ExportedObj/
 *.csproj
 !/tools/CombatSkillTableValidation/CombatSkillTableValidation.csproj
 !/tools/PlayerLoadoutValidation/PlayerLoadoutValidation.csproj
+!/tools/PlayerHitFeedbackValidation/Validation.csproj
+!/tools/ExperienceAttractionValidation/Validation.csproj
 *.unityproj
 *.sln
 *.slnx

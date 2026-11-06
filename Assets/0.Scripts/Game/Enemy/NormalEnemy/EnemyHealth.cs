@@ -23,6 +23,10 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     public bool IsDead { get; private set; }
     public int SpawnGeneration { get; private set; }
     public event System.Action Died;
+    public static event System.Action<EnemyHealth, float> DamageApplied;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetDamageObservers() => DamageApplied = null;
 
     private SpriteRenderer[] visuals;
     private Color[] originalColors;
@@ -137,6 +141,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
         UpdateHealthUI();
+        DamageApplied?.Invoke(this, damage);
 
         if (CurrentHealth <= 0f)
         {

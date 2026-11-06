@@ -903,6 +903,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: recycleCamera
+      value:
+      objectReference: {fileID: 1388604590}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: player
       value: 

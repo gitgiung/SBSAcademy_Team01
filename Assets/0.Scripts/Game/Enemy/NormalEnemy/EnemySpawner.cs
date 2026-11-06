@@ -47,7 +47,7 @@ public sealed class EnemySpawner : MonoBehaviour
         spawnTimer = 0f;
         spawningStopped = false;
         externallyDriven = true;
-        TryPlaceOutsideCamera(true);
+        TryPlaceOutsideCamera();
     }
 
     private void OnEnable()
@@ -125,16 +125,10 @@ public sealed class EnemySpawner : MonoBehaviour
         return true;
     }
 
-    private bool TryPlaceOutsideCamera(bool force = false)
+    private bool TryPlaceOutsideCamera()
     {
         if (playerCamera == null) return false;
         float z = player.position.z;
-        Vector3 current = transform.position;
-        Vector3 viewport = playerCamera.WorldToViewportPoint(current);
-        if (!force && Mathf.Approximately(current.z, z) && viewport.z > 0f &&
-            (viewport.x < 0f || viewport.x > 1f || viewport.y < 0f || viewport.y > 1f))
-            return true;
-
         // XY 평면에 카메라 모서리를 투영합니다. 화면비와 카메라 회전도 반영합니다.
         Plane plane = new Plane(Vector3.forward, new Vector3(0f, 0f, z));
         Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);

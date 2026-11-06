@@ -1,5 +1,15 @@
 # 작업 인수인계
 
+## 2026-11-06 무한 맵 일반 적 스폰 위치와 회수
+
+- 시작 브랜치는 feat/infinity-map, 기준 커밋은 737920d이며 작업 트리는 깨끗했다.
+- EnemySpawner가 카메라 가장자리 사방 중 한 곳을 스폰 시도마다 다시 고른다. 카메라를 사용하는 배치 스폰 경로도 배치 시작 때 다시 고르며, 고정 스폰 포인트를 사용하는 단독 경로는 그대로다. MainTestScene의 기존 스폰 여백 10유닛을 사용한다.
+- MainTestScene의 Enemy Spawn System에서 SceneEnemyPool > Recycle Camera에 Main Camera를 연결했다. 직교 카메라가 갱신된 뒤 0.25초 간격으로 화면 가장자리에서 20유닛보다 먼 일반 적의 대여를 확인해 반환한다. 20유닛은 스폰 여백보다 넓게 잡은 초기 조정값이다. 다른 씬은 카메라를 연결하지 않아 거리 회수가 꺼져 있다.
+- 반환은 기존 SceneEnemyPool 경로를 사용하므로 처치와 경험치 드롭을 발생시키지 않고 이미 떨어진 경험치도 건드리지 않는다. 30초 웨이브와 활성 상한 130을 그대로 사용한다. 보스전 또는 팝업 일시정지 중에는 거리 회수도 쉬며, 웨이브별 최소 밀도는 실제 플레이 계측 후 판단한다.
+- 별도 복사본의 Unity 6000.5.0f1에서 변경 전 스폰 회귀 검사 2/2 실패를 재현했다. 최종 PlayMode 19/19 통과, 실패·생략 0, 종료 0. 새 EnemyStreamingTests 2개는 화면 밖 64회 스폰에서 사방 선택, 130마리 포화 후 슬롯 복구, 보스 정지 중 회수 중단, 가까운 적 유지 및 처치·경험치 미발생을 검증한다. 기존 적 물리·보스 규칙 15개와 무한 맵 확인 2개도 통과했다. 테스트 복사본과 변경 파일 해시 비교 및 git diff --check 통과.
+- 직접 확인은 Unity 임포트 완료 → Tools > Play From Title 해제 → MainTestScene → Play 순서다. 일반 스폰을 오래 관찰하려면 Play 전에 Boss Encounter의 Boss Appear Time을 임시로 120으로 올린 뒤 확인을 마치면 원래 값 3으로 돌린다. 한 방향으로 여러 화면 이동했다 방향을 틀면, 적이 여러 방향에서 들어오고 가까운 적은 남으며 먼 적은 경험치 없이 반환되어야 한다. 기존 타이머 동작을 확인하려면 원래 설정에서 보스 등장과 전투 재개를 확인한다.
+- 이상 시 Console 첫 오류, Enemy Spawn System의 Recycle Camera와 Offscreen Recycle Margin, EnemySpawnDirector의 Log Wave Metrics를 확인한다. Test Runner의 PlayMode에서 EnemyStreamingTests를 다시 실행할 수 있다. 실제 화면에서의 밀도·프레임 시간과 Android 기기는 추가 확인 대상이다.
+
 ## 2026-11-06 MainTestScene 반복 바닥과 이동 중 보스전
 
 - 시작 브랜치는 feat/infinity-map, 기준 커밋은 eb47661이며 작업 트리는 깨끗했다.

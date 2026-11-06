@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-06 보유 패시브 쿨타임 등급별 값
+
+- 사용자 요청으로 약·강 스킬 35개의 `PassiveCooldown`을 등급별로 넣었다. 약공격 기준: Common 3 / Uncommon 3.5 / Rare 4 / Epic 5 / Legendary 6 / Mythic 7초. 강공격은 같은 등급에서 +1초. 탄 수×타격 수가 3 이상이면 +1초, 2면 +0.5초(10002·10010 4.5, 10012 5, 10013 6, 10016 7, 20004 7, 20009 6, 20015 8.5). 피해가 이미 20%라 등급이 오를수록 쿨타임만 조금 늘렸다. 확정 수치가 아니라 테스트 후 조정할 초기 균형값이다. `PassiveScale`은 그대로 비워 0.2를 쓴다.
+- 비워 둠: Fusion 등급 태양 검(10007)은 획득 확률 0이고 규칙이 없어 쿨타임 0(자동 발사 없음). 전략 스킬 제외.
+- 알려진 한계: 화염 십자(20012)의 범위 모양이 `Cross`인데 현재 약공격 도형에 없어 버튼·패시브 모두 발사되지 않는다.
+- 상태: `Assets/Resources/Data/CombatSkillTable.json`과 `Document/SkillDatatable.xlsx`(AH열) 모두 반영됐다. 엑셀이 열려 있어 사용자가 닫은 뒤 사본으로 원본을 교체했다. 엑셀과 JSON의 쿨타임이 다르면 검증 도구가 실패한다(의도한 감지). 앞으로 엑셀을 고치면 JSON도 같은 값으로 맞춘다.
+- 검증: `tools/CombatSkillTableValidation/Run.ps1` 18/18 통과(교체 후 원본 엑셀 기준). Unity 컴파일·재생은 하지 않음. `SKILL_WORKBOOK` 환경변수로 다른 엑셀 파일을 지정해 검증할 수도 있다.
+
 ## 2026-11-06 씬과 보스·적 에셋 이름 정리
 
 - 씬 파일 네 개는 `TitleScene`, `LoadScene`, `MainScene`, `GiungScene`으로 변경했다. 빌드 목록 경로, `Define.EScene`, 씬 전환 코드, Play From Title, PlayMode 테스트의 씬 참조를 맞췄다. 씬 meta GUID와 enum 값·빌드 목록 순서는 보존했다. 기존 Giung 씬의 빌드 목록 GUID만 씬 meta의 실제 GUID로 맞췄다. 이전 작업 기록에서 쓰인 당시 이름은 유지했다.

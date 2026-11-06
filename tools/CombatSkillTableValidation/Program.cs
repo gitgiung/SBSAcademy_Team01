@@ -9,6 +9,7 @@ internal static class Program
     private static int failures;
     private static int tests;
     private static CombatSkillTableFile table;
+    private static string workbookPath;
     private static void Equal(object expected, object actual)
     {
         if (!Equals(expected, actual)) throw new Exception($"expected {expected}, actual {actual}");
@@ -28,7 +29,10 @@ internal static class Program
     }
     private static int Main(string[] args)
     {
-        table = CombatSkillWorkbook.Read("Document/SkillDatatable.xlsx");
+        // 엑셀이 열려 있어 원본을 바꾸지 못할 때 SKILL_WORKBOOK으로 사본을 검증할 수 있습니다.
+        workbookPath = Environment.GetEnvironmentVariable("SKILL_WORKBOOK");
+        if (string.IsNullOrEmpty(workbookPath)) workbookPath = "Document/SkillDatatable.xlsx";
+        table = CombatSkillWorkbook.Read(workbookPath);
         Test("acquired skill is owned once and not automatically equipped", () =>
         {
             var loadout = new PlayerLoadout(); int changes = 0; loadout.Changed += () => changes++;
@@ -150,11 +154,36 @@ internal static class Program
                 Equal("", Field(Skill(10001), field));
             Equal("Common", Field(Skill(10001), "Rarity"));
         });
-        Test("owned passive columns stay blank and scale defaults to 20 percent", () =>
+        Test("passive cooldown follows rarity and the blank scale means 20 percent", () =>
         {
-            Equal(0f, Skill(10001).PassiveCooldown); Equal(0f, Skill(10001).PassiveScale);
-            Equal(0f, Skill(20001).PassiveCooldown); Equal(0f, Field(Skill(30001), "PassiveCooldown"));
-            Equal(false, Skill(10001).TryOwnedPassive(out _, out _));
+            string[] order = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" };
+            // 같은 계열·같은 등급에서 쿨타임이 가장 짧은 값이 기준이며, 등급이 오를수록 같거나 길어야 합니다.
+            foreach (var group in new[] { (10000, 20000), (20000, 30000) })
+            {
+                float previous = 0f;
+                foreach (string rarity in order)
+                {
+                    var cooldowns = table.skills.Where(s => s.Id >= group.Item1 && s.Id < group.Item2 && s.Rarity == rarity)
+                        .Select(s => s.PassiveCooldown).ToList();
+                    if (cooldowns.Count == 0) continue;
+                    if (cooldowns.Any(c => !(c > 0f))) throw new Exception($"{group.Item1}대 {rarity}에 쿨타임이 빈 스킬이 있습니다.");
+                    if (cooldowns.Min() < previous) throw new Exception($"{group.Item1}대 {rarity} 쿨타임이 낮은 등급보다 짧습니다.");
+                    previous = cooldowns.Min();
+                }
+            }
+            // 강공격은 같은 등급의 약공격보다 짧지 않고, 시너지 등급은 규칙이 없어 비어 있습니다.
+            foreach (string rarity in order)
+            {
+                var light = table.skills.Where(s => s.Id < 20000 && s.Rarity == rarity).Select(s => s.PassiveCooldown).DefaultIfEmpty(0f).Min();
+                var heavy = table.skills.Where(s => s.Id >= 20000 && s.Id < 30000 && s.Rarity == rarity).Select(s => s.PassiveCooldown).DefaultIfEmpty(float.MaxValue).Min();
+                if (light > 0f && heavy != float.MaxValue && heavy <= light) throw new Exception($"{rarity} 강공격 쿨타임이 약공격보다 짧거나 같습니다.");
+            }
+            Equal(3f, Skill(10001).PassiveCooldown); Equal(7f, Skill(10017).PassiveCooldown);
+            Equal(8f, Skill(20005).PassiveCooldown); Equal(0f, Skill(10007).PassiveCooldown);
+            Equal(0f, Skill(10001).PassiveScale); Equal(0f, Field(Skill(30001), "PassiveCooldown"));
+            Equal(true, Skill(10001).TryOwnedPassive(out float baseCooldown, out float baseScale));
+            Equal(3f, baseCooldown); Equal(.2f, baseScale);
+            Equal(false, Skill(10007).TryOwnedPassive(out _, out _));
             var ready = new CombatSkillRecord { Id = 10014, PassiveCooldown = 3f };
             Equal(true, ready.TryOwnedPassive(out float cooldown, out float scale));
             Equal(3f, cooldown); Equal(CombatSkillRecord.DefaultPassiveScale, scale);
@@ -172,7 +201,7 @@ internal static class Program
         {
             string path = Path.GetFullPath(".utmp/CombatSkillData/inline.xlsx");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            File.Copy("Document/SkillDatatable.xlsx", path, true);
+            File.Copy(workbookPath, path, true);
             XNamespace main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             using (var zip = ZipFile.Open(path, ZipArchiveMode.Update))
             {
@@ -200,9 +229,12 @@ internal static class Program
             CombatSkillRecord Find(int id) => shipped.skills.Single(s => s.Id == id);
             Equal(46, shipped.skills.Count);
             var flame = Find(10001);
-            Equal(8f, flame.BaseValue); Equal("", flame.Icon); Equal(0f, flame.PassiveCooldown); Equal(0f, flame.PassiveScale);
+            Equal(8f, flame.BaseValue); Equal("", flame.Icon); Equal(3f, flame.PassiveCooldown); Equal(0f, flame.PassiveScale);
             var hammer = Find(20001);
-            Equal("Knockback", hammer.CrowdControl); Equal(2.2f, hammer.Radius); Equal(0f, hammer.PassiveCooldown);
+            Equal("Knockback", hammer.CrowdControl); Equal(2.2f, hammer.Radius); Equal(4f, hammer.PassiveCooldown);
+            // 엑셀과 배포 JSON의 패시브 쿨타임이 서로 다르면 어느 한쪽이 덜 반영된 것입니다.
+            foreach (var s in shipped.skills)
+                Equal(Skill(s.Id).PassiveCooldown, s.PassiveCooldown);
             var heal = Find(30001);
             Equal("HealOverTime", heal.EffectType); Equal("Self", heal.TargetType); Equal(5f, heal.EffectDuration);
             Equal(5, heal.Hits); Equal(1f, heal.HitDelay); Equal(.04f, heal.Factor); Equal("HP", heal.ScalingStat);

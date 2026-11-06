@@ -35,7 +35,7 @@
             "Description": "불꽃 탄환 1발을 적에게 쏜다.",
             "SimpleDescription": "불꽃으로 이루어진 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "불속성 기본 탄환",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.0,
             "PassiveScale": 0.0
         },
         {
@@ -73,7 +73,7 @@
             "Description": "불꽃 탄환 3발을 연속으로 쏜다.",
             "SimpleDescription": "불꽃 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 연속으로 쏜다.",
             "Explanation": "불속성 연속 난사",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.5,
             "PassiveScale": 0.0
         },
         {
@@ -111,7 +111,7 @@
             "Description": "가까운 적을 화염으로 내리친다.",
             "SimpleDescription": "가까운 원형에 화염 강타({Base_Value}*{Scaling_Factor})를 가한다.",
             "Explanation": "불속성 근접 강타",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.0,
             "PassiveScale": 0.0
         },
         {
@@ -149,7 +149,7 @@
             "Description": "화염구 1발을 적에게 던진다.",
             "SimpleDescription": "화염구 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 던진다.",
             "Explanation": "불속성 화염구",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.0,
             "PassiveScale": 0.0
         },
         {
@@ -187,7 +187,7 @@
             "Description": "화염 창을 직선으로 던진다.",
             "SimpleDescription": "직선으로 화염 창({Base_Value}*{Scaling_Factor})을 던진다.",
             "Explanation": "불속성 관통 창",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 5.0,
             "PassiveScale": 0.0
         },
         {
@@ -225,7 +225,7 @@
             "Description": "강한 플레어 탄환 1발을 쏜다.",
             "SimpleDescription": "플레어 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "불속성 고위력 탄환",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 6.0,
             "PassiveScale": 0.0
         },
         {
@@ -301,7 +301,7 @@
             "Description": "뜨거운 탄환 1발을 적에게 쏜다.",
             "SimpleDescription": "열풍으로 이루어진 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "불속성 경량 탄환",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.0,
             "PassiveScale": 0.0
         },
         {
@@ -339,7 +339,7 @@
             "Description": "불화살 1발을 직선으로 쏜다.",
             "SimpleDescription": "홍염 화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 직선으로 쏜다.",
             "Explanation": "불속성 강화 화살",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.5,
             "PassiveScale": 0.0
         },
         {
@@ -377,7 +377,7 @@
             "Description": "불씨 4발을 흩뿌린다.",
             "SimpleDescription": "불씨 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 흩뿌린다.",
             "Explanation": "불속성 산탄",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.5,
             "PassiveScale": 0.0
         },
         {
@@ -415,7 +415,7 @@
             "Description": "전방 부채꼴로 화염을 뿜는다.",
             "SimpleDescription": "전방 부채꼴에 화염({Base_Value}*{Scaling_Factor})을 뿜는다.",
             "Explanation": "불속성 전방 부채꼴",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.0,
             "PassiveScale": 0.0
         },
         {
@@ -453,7 +453,7 @@
             "Description": "용암 파편이 경로의 적을 3회 꿰뚫는다.",
             "SimpleDescription": "직선 경로를 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 꿰뚫는다.",
             "Explanation": "불속성 관통 연타",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 5.0,
             "PassiveScale": 0.0
         },
         {
@@ -491,7 +491,7 @@
             "Description": "짧은 시간에 화염을 4회 뿜는다.",
             "SimpleDescription": "전방에 화염을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 연사한다.",
             "Explanation": "불속성 단기 연사",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 6.0,
             "PassiveScale": 0.0
         },
         {
@@ -529,7 +529,7 @@
             "Description": "주변 고리 형태로 화염이 터진다.",
             "SimpleDescription": "주변 고리에 화염({Base_Value}*{Scaling_Factor})을 일으킨다.",
             "Explanation": "불속성 주변 고리",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 5.0,
             "PassiveScale": 0.0
         },
         {
@@ -567,7 +567,7 @@
             "Description": "강한 화염 구체를 발사한다.",
             "SimpleDescription": "작열 구체 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 발사한다.",
             "Explanation": "불속성 고위력 구체",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 6.0,
             "PassiveScale": 0.0
         },
         {
@@ -605,7 +605,7 @@
             "Description": "태양 탄환 6발을 퍼붓는다.",
             "SimpleDescription": "태양 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 퍼붓는다.",
             "Explanation": "불속성 다발 탄막",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 7.0,
             "PassiveScale": 0.0
         },
         {
@@ -643,7 +643,7 @@
             "Description": "전방을 가르는 멸염 섬광을 쏜다.",
             "SimpleDescription": "직선으로 멸염 섬광({Base_Value}*{Scaling_Factor})을 쏜다.",
             "Explanation": "불속성 고위력 섬광",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 7.0,
             "PassiveScale": 0.0
         },
         {
@@ -681,7 +681,7 @@
             "Description": "얼음 탄환 1발을 적에게 쏜다.",
             "SimpleDescription": "얼음으로 이루어진 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "얼음속성 기본 탄환",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.0,
             "PassiveScale": 0.0
         },
         {
@@ -719,7 +719,7 @@
             "Description": "바람 화살 1발을 적에게 쏜다.",
             "SimpleDescription": "바람 화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "바람속성 기본 화살",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.0,
             "PassiveScale": 0.0
         },
         {
@@ -757,7 +757,7 @@
             "Description": "암석 탄환 1발을 적에게 쏜다.",
             "SimpleDescription": "암석 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "땅속성 기본 탄환",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.0,
             "PassiveScale": 0.0
         },
         {
@@ -795,7 +795,7 @@
             "Description": "전기 화살 1발을 적에게 쏜다.",
             "SimpleDescription": "전기 화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "전기속성 기본 화살",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 3.0,
             "PassiveScale": 0.0
         },
         {
@@ -833,7 +833,7 @@
             "Description": "화염 망치를 내리쳐 가까운 적을 밀친다.",
             "SimpleDescription": "가까운 원형에 화염 망치({Base_Value}*{Scaling_Factor})를 가하고 밀쳐낸다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 근접 망치",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.0,
             "PassiveScale": 0.0
         },
         {
@@ -871,7 +871,7 @@
             "Description": "화염을 두르고 전방으로 돌진한다.",
             "SimpleDescription": "직선으로 돌진하며 화염({Base_Value}*{Scaling_Factor})을 가하고 밀쳐낸다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 돌진",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.5,
             "PassiveScale": 0.0
         },
         {
@@ -909,7 +909,7 @@
             "Description": "모은 화염을 주변에 한 번에 터뜨린다.",
             "SimpleDescription": "주변 원형에 대폭발({Base_Value}*{Scaling_Factor})을 일으킨다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 광역 폭발",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 5.0,
             "PassiveScale": 0.0
         },
         {
@@ -947,7 +947,7 @@
             "Description": "화염 폭풍으로 같은 범위를 여러 번 태운다.",
             "SimpleDescription": "원형에 화염 폭풍({Base_Value}*{Scaling_Factor})을 {Hit_Count}회 일으킨다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 지속 폭풍",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 7.0,
             "PassiveScale": 0.0
         },
         {
@@ -985,7 +985,7 @@
             "Description": "운석을 검으로 떨어뜨려 큰 폭발을 일으킨다.",
             "SimpleDescription": "원형에 운석검({Base_Value}*{Scaling_Factor})을 떨어뜨리고 밀쳐낸다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 운석 강타",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 8.0,
             "PassiveScale": 0.0
         },
         {
@@ -1023,7 +1023,7 @@
             "Description": "짧게 모아 전방을 화염으로 벤다.",
             "SimpleDescription": "전방 부채꼴에 화염 베기({Base_Value}*{Scaling_Factor})를 가한다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 근접 베기",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.0,
             "PassiveScale": 0.0
         },
         {
@@ -1061,7 +1061,7 @@
             "Description": "발밑에 용암을 터뜨려 주변을 밀어낸다.",
             "SimpleDescription": "주변 원형에 용암({Base_Value}*{Scaling_Factor})을 터뜨리고 밀쳐낸다.",
             "Explanation": "불속성 근접 폭발",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 4.5,
             "PassiveScale": 0.0
         },
         {
@@ -1099,7 +1099,7 @@
             "Description": "고리 형태로 열파를 터뜨린다.",
             "SimpleDescription": "열파 고리({Base_Value}*{Scaling_Factor})로 적을 밀어낸다.",
             "Explanation": "불속성 충격 고리",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 5.0,
             "PassiveScale": 0.0
         },
         {
@@ -1137,7 +1137,7 @@
             "Description": "불기둥을 세워 같은 지점을 3회 태운다.",
             "SimpleDescription": "대상 지점에 불기둥({Base_Value}*{Scaling_Factor})을 {Hit_Count}회 세운다.",
             "Explanation": "불속성 지속 기둥",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 6.0,
             "PassiveScale": 0.0
         },
         {
@@ -1175,7 +1175,7 @@
             "Description": "태양 에너지를 모아 전방을 내리친다.",
             "SimpleDescription": "전방에 태양 강타({Base_Value}*{Scaling_Factor})를 가하고 밀쳐낸다.",
             "Explanation": "불속성 중량 강타",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 6.0,
             "PassiveScale": 0.0
         },
         {
@@ -1213,7 +1213,7 @@
             "Description": "홍련으로 넓은 호를 벤다.",
             "SimpleDescription": "전방 호 범위에 횡베기({Base_Value}*{Scaling_Factor})를 가한다.",
             "Explanation": "불속성 광역 횡베기",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 6.0,
             "PassiveScale": 0.0
         },
         {
@@ -1251,7 +1251,7 @@
             "Description": "십자 형태로 화염을 터뜨린다.",
             "SimpleDescription": "십자 범위에 화염({Base_Value}*{Scaling_Factor})을 터뜨리고 밀쳐낸다.",
             "Explanation": "불속성 십자 폭발",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 7.0,
             "PassiveScale": 0.0
         },
         {
@@ -1289,7 +1289,7 @@
             "Description": "먼 거리에 업화를 떨어뜨린다.",
             "SimpleDescription": "원형 범위에 업화({Base_Value}*{Scaling_Factor})를 떨어뜨린다.",
             "Explanation": "불속성 낙화",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 7.0,
             "PassiveScale": 0.0
         },
         {
@@ -1327,7 +1327,7 @@
             "Description": "한 줄기를 멸화로 가른다.",
             "SimpleDescription": "직선에 멸화 일섬({Base_Value}*{Scaling_Factor})을 가한다.",
             "Explanation": "불속성 고위력 일섬",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 8.0,
             "PassiveScale": 0.0
         },
         {
@@ -1365,7 +1365,7 @@
             "Description": "태양을 붕괴시켜 넓은 범위를 두 번 태운다.",
             "SimpleDescription": "넓은 원형에 붕괴({Base_Value}*{Scaling_Factor})를 {Hit_Count}회 일으킨다.",
             "Explanation": "불속성 광역 붕괴",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 8.5,
             "PassiveScale": 0.0
         },
         {

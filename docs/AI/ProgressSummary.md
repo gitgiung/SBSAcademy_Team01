@@ -74,7 +74,7 @@ Enemy / Boss      일반 몬스터와 보스 패턴
 Encounter         진행 시간과 보스전 전환
 ```
 
-**씬.** 타이틀에서 로딩을 거쳐 본 씬으로 들어간다. 로딩은 `Managers.PrepareGame`으로 공통 서비스를 준비한 뒤 본 씬을 연다. 빈 데이터로 시험을 시작할 수 있어, 시작이 곧 스킬 데이터 완료는 아니다. `GiungTestScene`은 같은 전투 코드로 스폰·보스·팝업을 보는 시험 씬이다.
+**씬.** 타이틀 → 로딩 → 로비 → 로딩 → 본 씬 순서로 들어간다. 로딩은 `Managers.PrepareGame`으로 공통 서비스를 준비한 뒤 예약된 목적지(`Managers.Scene.LoadSceneThroughLoading`)를 연다. 예약이 없으면 기존처럼 본 씬(`MainScene`)을 연다. 빈 데이터로 시험을 시작할 수 있어, 시작이 곧 스킬 데이터 완료는 아니다. `GiungTestScene`은 같은 전투 코드로 스폰·보스·팝업을 보는 시험 씬이다.
 
 **공통 서비스.** `Managers`는 `@Managers` 하나로 남고, 풀과 사운드 루트를 자식으로 둔다. 바깥에서는 `Managers.Data`, `Pool`, `Resource`, `Scene`, `Sound`, `UI`로만 접근한다.
 

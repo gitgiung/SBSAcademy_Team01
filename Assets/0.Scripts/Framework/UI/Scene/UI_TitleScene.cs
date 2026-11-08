@@ -29,6 +29,7 @@ public class UI_TitleScene : UI_Scene
 
         isStarting = true;
 
-        Managers.Scene.LoadScene(EScene.LoadScene);
+        // 타이틀 → 로딩 → 로비. 로딩 씬이 게임 준비를 마친 뒤 로비를 연다.
+        Managers.Scene.LoadSceneThroughLoading(EScene.LobbyScene);
     }
 }

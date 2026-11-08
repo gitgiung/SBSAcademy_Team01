@@ -10,7 +10,8 @@ public static class Define
         TitleScene,
         LoadScene,
         MainScene,
-        GiungScene
+        GiungScene,
+        LobbyScene
     }
 
     public enum EUIEvent

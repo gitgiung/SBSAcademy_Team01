@@ -54,6 +54,25 @@ internal static class Program
             Check(l.TryEquip(PlayerSkillButton.Light, 10001)); Check(l.RemoveSkill(10001));
             Check(l.GetEquippedSkillId(PlayerSkillButton.Light) == 0);
         });
+        Test("duplicate skill upgrades stack without taking a slot", () => {
+            var l = new PlayerLoadout();
+            var skill = new Data.SkillData { DataId = 10001, Name = "불꽃 탄환" };
+            Check(l.TryAddOrUpgradeAttackSkill(skill));
+            Check(l.GetAttackSkillStack(10001) == 1);
+            Check(PlayerLoadout.DamageMultiplierForStack(1) == 1f);
+            Check(l.TryAddOrUpgradeAttackSkill(skill));
+            Check(l.GetAttackSkillStack(10001) == 2);
+            Check(l.GetAttackSkillDamageMultiplier(10001) == 1.2f);
+            Check(l.GetAttackSkill(1) == null);
+            Check(l.TryAddOrUpgradeAttackSkill(skill));
+            Check(l.GetAttackSkillStack(10001) == 3);
+            Check(l.GetAttackSkillDamageMultiplier(10001) == 1.5f);
+            Check(l.IsAttackSkillAtMaxStack(10001));
+            Check(!l.TryAddOrUpgradeAttackSkill(skill));
+            Check(!l.TryAddAttackSkill(skill));
+            Check(l.RemoveSkill(10001));
+            Check(l.GetAttackSkillStack(10001) == 0);
+        });
         Console.WriteLine($"{tests - failures}/{tests} passed");
         return failures == 0 ? 0 : 1;
     }

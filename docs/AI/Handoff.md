@@ -1,5 +1,30 @@
 # 작업 인수인계
 
+## 2026-11-09 레벨업 동일 스킬 중복 강화(1.2·1.5배)
+
+- 요청: 레벨업 보상에서 같은 스킬을 다시 고르면 피해가 강해지게 한다.
+- 규칙: 1스택=×1, 2스택=×1.2, 3스택=×1.5. 최대 3스택. 슬롯을 추가하지 않고 기존 보유 칸의 스택만 올린다. 최대 스택인 스킬만 추첨에서 제외한다. 빈 슬롯이 있으면 신규+강화, 없으면 강화만, 강화 여지도 없으면 슬롯 가득 참 안내.
+- 적용: 장착 약공격 버튼 시전(`CastLightSkill`)과 보유 패시브 자동발사(`TickOwnedPassives`) 피해에 스택 배율을 곱한다. 패시브의 `PassiveScale`(기본 0.2)은 그대로 두고 그 결과에 스택 배율을 추가한다.
+- 코드: `PlayerLoadout`에 `attackSkillStacks`, `TryAddOrUpgradeAttackSkill`, `GetAttackSkillStack`, `GetAttackSkillDamageMultiplier`, `IsAttackSkillAtMaxStack`, `DamageMultiplierForStack`. `LevelUpSkillReward.TryAcquire`는 업그레이드 경로를 쓴다. `CombatPopupController.PrepareLevelUpChoices`는 최대 스택만 제외하고, 강화 카드 설명에 `강화 1→2 (피해 ×1.2)` 문구를 붙인다.
+- 검증: `tools/PlayerLoadoutValidation/Run.ps1` **5/5**. `tools/CombatSkillTableValidation/Run.ps1`에서 이번 스택 관련 5건(획득·중복 강화·슬롯 가득 시 강화·제외·최대 스택 제외)은 통과. 같은 실행의 다른 2건(`PassiveCooldown` 엑셀·배포 JSON 불일치)은 이전 패시브 쿨타임 작업 잔여로 보이며 이번 범위에서 고치지 않음. Unity 에디터 Play·전체 PlayMode 회귀는 실행하지 않음.
+- 직접 확인: MainScene Play → 경험치로 레벨업 → 같은 약공격을 두 번·세 번 고른다. 두 번째 카드에 강화 문구가 보이고, 슬롯 수는 늘 않으며, 버튼 시전과 보유 패시브 피해가 커져야 한다. 세 번 강화한 뒤에는 그 스킬이 카드에 나오지 않는다. 이상하면 Console 첫 오류와 일시정지 상태창의 보유 칸 수를 확인한다.
+- 노션: 팀 작업 DB에 동일 제목으로 기록함.
+- 다음: 스킬 자세히 보기의 MP·쿨다운, 로딩·로비 배경 원본 아트, 탭·아이콘 화면 연결.
+
+## 2026-11-09 타이틀·로딩·로비 씬 UI 연결
+
+- 기준: `Document/씬 별 UI.pptx` 2~7번 슬라이드(타이틀·로딩·로비). 와이어프레임(2·4·6번)의 구성을 따르고, 시안 이미지(3·5·7번)는 모양 참고로만 썼다. 로딩·로비 시안은 글자·버튼 프레임이 그림에 구워져 있어 배경으로 쓸 수 없다.
+- 흐름: `TitleScene`(터치) → `LoadScene` → `LobbyScene`(게임 시작) → `LoadScene` → `MainScene`. `SceneManagerEx.LoadSceneThroughLoading(목적지)`가 목적지를 예약하고 로딩 씬이 준비 후 한 번만 꺼내 쓴다. 예약이 없으면 `MainScene`으로 가므로 `GameManager`의 재시작(`LoadScene` 경유)은 그대로다. `Define.EScene`에 `LobbyScene`을 맨 끝에 추가했고 기존 값·빌드 목록 순서는 보존했다(로비는 목록 맨 끝, GUID `a7ae3e61…`).
+- 타이틀: `Assets/2.Resources/UI/씬 UI/Title_Background.png`(시안 이미지를 1920×1080으로 변환, 로고·GAME START·저작권이 그림에 포함)을 전체 배경으로 깔았다. 임시 "Title Scene" 문구와 "Touch to start" 문구는 제거했다. `StartTouchArea` 버튼은 그대로다.
+- 로딩: 팁 문구(기획서 예시 그대로)와 우하단 회전 고리+좀비 소녀(`UI_LoadScene`). 배경은 **임시 그라데이션**이다. 기존 "Loading . . ." 문구는 시안에 없어 제거했다.
+- 로비(`UI_LobbyScene`): 좌상단 프로필(초상·이름·골드), 우상단 설정·우편·알림, 중앙 캐릭터(`Pretty_Magical_Girl/Idle/rotations/south`), 게임 시작, 하단 탭(상점·장비·메인·업그레이드·도감, 메인 강조). 배경은 **임시 그라데이션**이다. 이름은 "플레이어 이름", 골드는 0 고정이며 `SetProfile(이름, 골드)`로 나중에 연결한다. **동작하는 것은 게임 시작뿐**이다. 탭·아이콘은 대상 화면이 정해지지 않아 눌러도 아무 일도 없다.
+- 미정으로 둠: 탭·아이콘의 화면(상점·장비·업그레이드·도감·설정·우편·알림), 프로필·골드 데이터, 로딩 팁 목록, 로딩·로비의 실제 배경 아트(글자·UI가 없는 깨끗한 원본이 필요하다).
+- 씬은 Unity에서 한 번 생성했다. 이후에는 직접 편집하면 된다. 생성 도구는 저장소에 넣지 않았다.
+- 변경 보존: 작업 전 사용자 변경 4건(`AllIn1SpriteShaderLit*.shader` 2개, `NanumGothic Combat SDF.asset`, `EditorBuildSettings.asset`의 줄바꿈만 다름)은 건드리지 않았다. 빌드 설정에는 로비 한 줄만 추가했다. TitleScene·LoadScene은 Unity가 다시 저장해 직렬화 순서·ID가 일부 바뀌었다.
+- 검증: 별도 검증 복사본(`.utmp/sv`, Git 제외)에서 Unity 6000.5.0f1 PlayMode 신규 `SceneFlowTests` **4/4 통과**(타이틀→로비, 로비 UI 구성, 로비→메인, 목적지 없는 로딩→메인). 씬을 이미지로 렌더링해 세 화면을 눈으로 확인했다. 기존 전체 PlayMode 회귀는 실행하지 않았다. 실기기·Android·해상도별 확인 없음.
+- 직접 확인: Unity에서 임포트 완료 → `Tools > Play From Title` 켜기 → Play → 타이틀 화면 아무 곳이나 클릭 → 로딩 화면 → 로비(프로필·캐릭터·탭이 보임) → 게임 시작 → 로딩 → `MainScene`. 정상이면 로비의 탭·아이콘은 눌러도 반응이 없다. 이상하면 Console 첫 오류, `File > Build Profiles`의 Scene List에 `LobbyScene`이 있는지, 로비 Canvas에서 `UI_LobbyScene`의 Missing Script 여부, 한글이 네모로 나오면 TMP 폰트(`NanumGothic Combat SDF`)를 확인한다. 에디터 `Window > General > Test Runner > PlayMode`의 `SceneFlowTests`(테스트 중에는 Play From Title을 끈다)로도 확인된다.
+- 다음: 로딩·로비 배경 원본 아트 교체, 탭·아이콘 화면 정의 후 연결, 로비에서 플레이어 이름·골드 데이터 연결, 기존 "스킬 자세히 보기의 MP·쿨다운" 작업.
+
 ## 2026-11-06 야수 좀비 보스 스프라이트의 주먹 스파크 일괄 분리
 
 - 요청: 주먹에 그림으로 구워진 붉은 스파크(VFX)를 모든 방향·동작에서 떼어 낸다. 스파크는 나중에 별도 이펙트로 붙인다.

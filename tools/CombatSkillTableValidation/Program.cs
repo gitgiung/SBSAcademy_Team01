@@ -41,7 +41,20 @@ internal static class Program
             Equal(Skill(10002).Name, loadout.GetAttackSkill(0).Name);
             Equal(Skill(10002).Icon, loadout.GetAttackSkill(0).IconLabel);
             Equal(0, loadout.GetEquippedSkillId(PlayerSkillButton.Light));
-            Equal(false, Acquire(loadout, Skill(10002))); Equal(1, changes);
+            Equal(1, loadout.GetAttackSkillStack(10002)); Equal(1, changes);
+        });
+        Test("duplicate acquisition upgrades stack until max without a new slot", () =>
+        {
+            var loadout = new PlayerLoadout();
+            Equal(true, Acquire(loadout, Skill(10002)));
+            Equal(true, Acquire(loadout, Skill(10002)));
+            Equal(2, loadout.GetAttackSkillStack(10002));
+            Equal(1.2f, loadout.GetAttackSkillDamageMultiplier(10002));
+            Equal(null, loadout.GetAttackSkill(1));
+            Equal(true, Acquire(loadout, Skill(10002)));
+            Equal(3, loadout.GetAttackSkillStack(10002));
+            Equal(1.5f, loadout.GetAttackSkillDamageMultiplier(10002));
+            Equal(false, Acquire(loadout, Skill(10002)));
         });
         Test("acquisition refuses full slots and nonattack data", () =>
         {
@@ -50,6 +63,9 @@ internal static class Program
             Equal(false, Acquire(loadout, Skill(10008)));
             Equal(false, Acquire(new PlayerLoadout(), Skill(30001)));
             Equal(10006, loadout.GetAttackSkill(5).DataId);
+            // 슬롯이 가득 차도 미최대 스택 보유 스킬은 강화할 수 있습니다.
+            Equal(true, Acquire(loadout, Skill(10001)));
+            Equal(2, loadout.GetAttackSkillStack(10001));
         });
         Test("owned exclusions leave only unowned candidates and can exhaust", () =>
         {
@@ -62,14 +78,21 @@ internal static class Program
             Equal(1, result.Count); Equal(10002, result[0].Id);
             owned.Add(10002); Equal(0, DrawWithExclusions(fixture, owned).Count);
         });
-        Test("acquisition removes the selected record from the next draft", () =>
+        Test("max-stack owned skills are excluded from the next draft", () =>
         {
             var loadout = new PlayerLoadout();
-            var first = Draw(table, 3, 0)[0]; Equal(true, Acquire(loadout, first));
-            var owned = new System.Collections.Generic.HashSet<int>();
+            var first = Draw(table, 3, 0)[0];
+            Equal(true, Acquire(loadout, first));
+            Equal(true, Acquire(loadout, first));
+            Equal(true, Acquire(loadout, first));
+            var excluded = new System.Collections.Generic.HashSet<int>();
             for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
-                if (loadout.GetAttackSkill(i) != null) owned.Add(loadout.GetAttackSkill(i).DataId);
-            var next = DrawWithExclusions(table, owned);
+            {
+                var owned = loadout.GetAttackSkill(i);
+                if (owned != null && loadout.IsAttackSkillAtMaxStack(owned.DataId))
+                    excluded.Add(owned.DataId);
+            }
+            var next = DrawWithExclusions(table, excluded);
             Equal(3, next.Count); Equal(false, next.Any(skill => skill.Id == first.Id));
             Equal(true, loadout.TryEquip(PlayerSkillButton.Light, first.Id));
             Equal(first.Id, loadout.GetEquippedSkillId(PlayerSkillButton.Light));

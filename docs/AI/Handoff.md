@@ -9,6 +9,7 @@
 - 검증: `tools/LevelUpMixedDraftValidation/Run.ps1` **5/5**. Unity Play·PlayMode 회귀 미실행.
 - 직접 확인: Unity 임포트 후 Console 컴파일 오류 없음 → MainScene 레벨업은 **이전과 같이 스킬 카드만**. 스탯 카드·증강·피해 증가는 아직 없어야 정상. 이상하면 Console 첫 오류와 `LevelUp` 폴더 스크립트 Missing Script를 확인.
 - 다음 연결 시: `PrepareLevelUpChoices` → `LevelUpMixedDraft.DrawChoices`, 선택 시 실 `ILevelUpRewardApplier`, 피해에 배율 한 지점.
+- 노션: `팀프로젝트 - 1팀 / 작업`에 동일 제목으로 완료 기록. https://app.notion.com/p/413283dd2479813ba2fad3aae626733b 개발, 성장·플레이어, 중간, 시작일·완료일 2026-11-09. 할당 대상은 비움. 커밋 `33da77b`.
 
 ## 2026-11-09 레벨업 동일 스킬 중복 강화(1.2·1.5배)
 

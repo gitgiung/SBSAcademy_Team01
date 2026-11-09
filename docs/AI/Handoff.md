@@ -1,5 +1,15 @@
 # 작업 인수인계
 
+## 2026-11-09 레벨업 스탯 혼합 — 구조만 추가(미연결)
+
+- 요청: 레벨업 3장에 스킬+스탯을 섞고(C), 스탯은 Uncommon~Mythic 차등. OOP·함수형으로 **나중에 꽂을 구조만** 추가. 팝업·전투·증강 실지급은 연결하지 않음.
+- 추가: `Assets/0.Scripts/Game/UI/LevelUp/` — `ILevelUpReward`, `LevelUpSkillChoice`, `LevelUpStatChoice`/`LevelUpStatKind`, `LevelUpStatBonusTable`(temporary 피해 가산), `LevelUpMixedDraft.DrawChoices`(순수, 기존 `LevelUpSkillDraft` 재사용), `ILevelUpRewardApplier`/`NullLevelUpRewardApplier`.
+- 임시 가산(확정 아님): Uncommon 0.05 / Rare 0.08 / Epic 0.12 / Legendary 0.18 / Mythic 0.25. Common·Fusion 없음. 기본 혼합 비율 상수 스킬 0.75·스탯 0.25.
+- 건드리지 않음: `CombatPopupController.PrepareLevelUpChoices`, `LevelUpSkillReward`, `Player` 피해식, 씬·프리팹. 기존 레벨업은 스킬만 그대로.
+- 검증: `tools/LevelUpMixedDraftValidation/Run.ps1` **5/5**. Unity Play·PlayMode 회귀 미실행.
+- 직접 확인: Unity 임포트 후 Console 컴파일 오류 없음 → MainScene 레벨업은 **이전과 같이 스킬 카드만**. 스탯 카드·증강·피해 증가는 아직 없어야 정상. 이상하면 Console 첫 오류와 `LevelUp` 폴더 스크립트 Missing Script를 확인.
+- 다음 연결 시: `PrepareLevelUpChoices` → `LevelUpMixedDraft.DrawChoices`, 선택 시 실 `ILevelUpRewardApplier`, 피해에 배율 한 지점.
+
 ## 2026-11-09 레벨업 동일 스킬 중복 강화(1.2·1.5배)
 
 - 요청: 레벨업 보상에서 같은 스킬을 다시 고르면 피해가 강해지게 한다.

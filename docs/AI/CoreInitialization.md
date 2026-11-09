@@ -2,7 +2,7 @@
 
 ## 시작 경로
 
-`TitleTestScene → LoadTestScene → Managers.PrepareGame → MainTestScene`
+`TitleScene → LoadScene → Managers.PrepareGame → MainScene`
 
 `Managers.Init()`은 풀과 사운드를 한 번 초기화한다. `Initialized`는 공통 서비스 준비만 의미하며, 게임 데이터의 준비 여부는 `GameDataReady`로 확인한다.
 
@@ -23,14 +23,14 @@ LoadScene의 `preloadLabel`은 빈 문자열, `requireSkillData`는 false다. �
 실제 데이터를 연결할 때는:
 
 1. 스킬 JSON을 Addressables에 주소 `SkillData`로 등록하고 준비용 라벨을 지정한다.
-2. LoadTestScene의 LoadScene 컴포넌트에서 `preloadLabel`에 그 라벨을 지정한다.
+2. LoadScene의 LoadScene 컴포넌트에서 `preloadLabel`에 그 라벨을 지정한다.
 3. 실제 플레이에 스킬 데이터가 필수라면 `requireSkillData`를 true로 설정한다.
 
 JSON 예시 구조는 `{ "skills": [{ "DataId": 101, "Name": "..." }] }`다. 실제 값과 추가 필드는 게임 기획과 `Data.SkillData`에 맞춰 작성한다. 목록 비어 있음, null 항목, 중복 ID, JSON 오류는 실패로 처리한다.
 
 ## 호출과 실패
 
-코루틴에서 `yield return Managers.PrepareGame(label, requireSkillData);`를 호출하고 `PreparationState`를 확인한다. 실패 원인은 `PreparationError`로 확인한다. LoadScene은 실패를 Console에 기록한 뒤 MainTestScene으로 이동하지 않는다.
+코루틴에서 `yield return Managers.PrepareGame(label, requireSkillData);`를 호출하고 `PreparationState`를 확인한다. 실패 원인은 `PreparationError`로 확인한다. LoadScene은 실패를 Console에 기록한 뒤 MainScene으로 이동하지 않는다.
 
 준비 작업은 Managers가 소유한다. 같은 설정의 동시 요청은 같은 작업을 기다리며, 서로 다른 설정의 동시 요청은 거절한다. 대기하던 객체가 사라져도 공유 준비는 끝까지 진행한다. 실패 후 다시 호출하면 재시도한다.
 

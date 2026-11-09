@@ -135,15 +135,32 @@ public sealed class CombatPopupController : MonoBehaviour
             return false;
         }
         PlayerLoadout loadout = statusPlayer.data.Loadout;
+        CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
+        var excluded = new HashSet<int>();
+        var upgradeable = new HashSet<int>();
+        for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
+        {
+            if (loadout.GetAttackSkill(i) is not Data.SkillData owned) continue;
+            if (loadout.IsAttackSkillAtMaxStack(owned.DataId)) excluded.Add(owned.DataId);
+            else upgradeable.Add(owned.DataId);
+        }
         if (!loadout.HasFreeAttackSlot)
         {
-            ShowAttackSlotsFull();
-            return true;
+            // 빈 슬롯이 없으면 보유 스킬 강화만 허용합니다. 강화 여지가 없으면 가득 참 안내입니다.
+            if (upgradeable.Count == 0)
+            {
+                ShowAttackSlotsFull();
+                return true;
+            }
+            if (table?.skills != null)
+            {
+                foreach (CombatSkillRecord skill in table.skills)
+                {
+                    if (skill == null || skill.Id < 10000 || skill.Id >= 20000) continue;
+                    if (!upgradeable.Contains(skill.Id)) excluded.Add(skill.Id);
+                }
+            }
         }
-        var excluded = new HashSet<int>();
-        for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
-            if (loadout.GetAttackSkill(i) is Data.SkillData owned) excluded.Add(owned.DataId);
-        CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
         var skills = LevelUpSkillDraft.Draw(table, 3, 10000, 20000, levelUpRandom.NextDouble, excluded);
         if (skills.Count == 0)
         {
@@ -151,14 +168,16 @@ public sealed class CombatPopupController : MonoBehaviour
             return true;
         }
         var choices = new List<LevelUpCardData>();
-        foreach (var skill in skills) choices.Add(CreateSkillCard(skill, table.rarities));
+        foreach (var skill in skills) choices.Add(CreateSkillCard(skill, table.rarities, loadout));
         levelUpPanel.SetChoices(choices, index =>
         {
             // 열려 있는 동안 보유 상태가 바뀌어도 성공한 획득만 완료합니다.
             if (index < 0 || index >= skills.Count || !CanShow()) return;
-            if (LevelUpSkillReward.TryAcquire(loadout, skills[index])) CompleteLevelUp();
-            else if (!loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
-            else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록할 수 없습니다.", CompleteLevelUp);
+            CombatSkillRecord selected = skills[index];
+            bool alreadyOwned = loadout.GetAttackSkillStack(selected.Id) > 0;
+            if (LevelUpSkillReward.TryAcquire(loadout, selected)) CompleteLevelUp();
+            else if (!alreadyOwned && !loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
+            else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록하거나 강화할 수 없습니다.", CompleteLevelUp);
         });
         return true;
     }
@@ -182,18 +201,27 @@ public sealed class CombatPopupController : MonoBehaviour
         return popup;
     }
 
-    private static LevelUpCardData CreateSkillCard(CombatSkillRecord skill, List<SkillRarityRecord> rarities)
+    private static LevelUpCardData CreateSkillCard(CombatSkillRecord skill, List<SkillRarityRecord> rarities,
+        PlayerLoadout loadout = null)
     {
         string id = SkillRarityRecord.NormalizeId(skill.Rarity);
         SkillRarityRecord rarity = rarities.Find(value => value != null
             && string.Equals(SkillRarityRecord.NormalizeId(value.Id), id, System.StringComparison.OrdinalIgnoreCase));
         Color accent = Color.white;
         if (rarity != null && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color)) accent = color;
+        string description = LevelUpSkillDraft.FormatDescription(skill);
+        int currentStack = loadout != null ? loadout.GetAttackSkillStack(skill.Id) : 0;
+        if (currentStack > 0 && currentStack < PlayerLoadout.MaxAttackSkillStack)
+        {
+            int nextStack = currentStack + 1;
+            float multiplier = PlayerLoadout.DamageMultiplierForStack(nextStack);
+            description += $"\n강화 {currentStack}→{nextStack} (피해 ×{multiplier:0.#})";
+        }
         return new LevelUpCardData
         {
             SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
             Icon = string.IsNullOrEmpty(skill.Icon) ? null : Managers.Resource.Load<Sprite>(skill.Icon),
-            ActiveDescription = LevelUpSkillDraft.FormatDescription(skill), ActiveButtonLabel = "N",
+            ActiveDescription = description, ActiveButtonLabel = "N",
             FlavorText = skill.Explanation
         };
     }

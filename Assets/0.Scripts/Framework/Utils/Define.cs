@@ -7,11 +7,12 @@ public static class Define
     public enum EScene
     {
         Unknown,
-        TitleTestScene,
-        LoadTestScene,
-        MainTestScene,
-        GiungTestScene
-    }//테스트용 씬 이름이므로 나중에 변경 필요
+        TitleScene,
+        LoadScene,
+        MainScene,
+        GiungScene,
+        LobbyScene
+    }
 
     public enum EUIEvent
     {

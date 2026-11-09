@@ -1,5 +1,50 @@
 # 작업 인수인계
 
+## 2026-11-09 브랜치 병합
+
+- `MapObject`에 `main`(`14cd586`, 11/09_1)을 병합했다. `passive-inspection`은 이어서 병합한다.
+- 씬 파일은 main의 이름 `MainScene`, `GiungScene`을 유지했다. `MainScene`에는 MapObject의 보스 HP 페이드(`bossHealthFadeDuration` 0.5)와 `SprintCooldownUI`를 합쳤다. `GiungScene`은 main 내용을 유지했다. 자동 병합이 MapObject의 `MainTestScene` 변경을 `GiungScene`에 붙이려 해서 그 결합은 버리고, `MainTestScene`과 `MainScene`만 다시 맞췄다.
+- `NanumGothic Combat SDF`는 아틀라스 좌표가 서로 달라 main 쪽 파일을 유지했다.
+- `BeastZombie`는 이름과 `Enemy.Runtime`을 유지하고, MapObject에서 나중에 저장한 체력 1000, 공격력 30, 원형 반경 14, 등장 폭발 최소 크기 200, 등장 폭발 시간 4를 남겼다. main의 체력 500·공격력 15는 넣지 않았다.
+- `ZombieHound` 접촉 피해는 5, 스크립트 이름은 `Enemy.Runtime`이다.
+- 이번 병합의 Unity 컴파일·테스트는 실행하지 않았다.
+
+## 2026-11-09 레벨업 스탯 혼합 — 구조만 추가(미연결)
+
+- 요청: 레벨업 3장에 스킬+스탯을 섞고(C), 스탯은 Uncommon~Mythic 차등. OOP·함수형으로 **나중에 꽂을 구조만** 추가. 팝업·전투·증강 실지급은 연결하지 않음.
+- 추가: `Assets/0.Scripts/Game/UI/LevelUp/` — `ILevelUpReward`, `LevelUpSkillChoice`, `LevelUpStatChoice`/`LevelUpStatKind`, `LevelUpStatBonusTable`(temporary 피해 가산), `LevelUpMixedDraft.DrawChoices`(순수, 기존 `LevelUpSkillDraft` 재사용), `ILevelUpRewardApplier`/`NullLevelUpRewardApplier`.
+- 임시 가산(확정 아님): Uncommon 0.05 / Rare 0.08 / Epic 0.12 / Legendary 0.18 / Mythic 0.25. Common·Fusion 없음. 기본 혼합 비율 상수 스킬 0.75·스탯 0.25.
+- 건드리지 않음: `CombatPopupController.PrepareLevelUpChoices`, `LevelUpSkillReward`, `Player` 피해식, 씬·프리팹. 기존 레벨업은 스킬만 그대로.
+- 검증: `tools/LevelUpMixedDraftValidation/Run.ps1` **5/5**. Unity Play·PlayMode 회귀 미실행.
+- 직접 확인: Unity 임포트 후 Console 컴파일 오류 없음 → MainScene 레벨업은 **이전과 같이 스킬 카드만**. 스탯 카드·증강·피해 증가는 아직 없어야 정상. 이상하면 Console 첫 오류와 `LevelUp` 폴더 스크립트 Missing Script를 확인.
+- 다음 연결 시: `PrepareLevelUpChoices` → `LevelUpMixedDraft.DrawChoices`, 선택 시 실 `ILevelUpRewardApplier`, 피해에 배율 한 지점.
+- 노션: `팀프로젝트 - 1팀 / 작업`에 동일 제목으로 완료 기록. https://app.notion.com/p/413283dd2479813ba2fad3aae626733b 개발, 성장·플레이어, 중간, 시작일·완료일 2026-11-09. 할당 대상은 비움. 커밋 `33da77b`.
+
+## 2026-11-09 레벨업 동일 스킬 중복 강화(1.2·1.5배)
+
+- 요청: 레벨업 보상에서 같은 스킬을 다시 고르면 피해가 강해지게 한다.
+- 규칙: 1스택=×1, 2스택=×1.2, 3스택=×1.5. 최대 3스택. 슬롯을 추가하지 않고 기존 보유 칸의 스택만 올린다. 최대 스택인 스킬만 추첨에서 제외한다. 빈 슬롯이 있으면 신규+강화, 없으면 강화만, 강화 여지도 없으면 슬롯 가득 참 안내.
+- 적용: 장착 약공격 버튼 시전(`CastLightSkill`)과 보유 패시브 자동발사(`TickOwnedPassives`) 피해에 스택 배율을 곱한다. 패시브의 `PassiveScale`(기본 0.2)은 그대로 두고 그 결과에 스택 배율을 추가한다.
+- 코드: `PlayerLoadout`에 `attackSkillStacks`, `TryAddOrUpgradeAttackSkill`, `GetAttackSkillStack`, `GetAttackSkillDamageMultiplier`, `IsAttackSkillAtMaxStack`, `DamageMultiplierForStack`. `LevelUpSkillReward.TryAcquire`는 업그레이드 경로를 쓴다. `CombatPopupController.PrepareLevelUpChoices`는 최대 스택만 제외하고, 강화 카드 설명에 `강화 1→2 (피해 ×1.2)` 문구를 붙인다.
+- 검증: `tools/PlayerLoadoutValidation/Run.ps1` **5/5**. `tools/CombatSkillTableValidation/Run.ps1`에서 이번 스택 관련 5건(획득·중복 강화·슬롯 가득 시 강화·제외·최대 스택 제외)은 통과. 같은 실행의 다른 2건(`PassiveCooldown` 엑셀·배포 JSON 불일치)은 이전 패시브 쿨타임 작업 잔여로 보이며 이번 범위에서 고치지 않음. Unity 에디터 Play·전체 PlayMode 회귀는 실행하지 않음.
+- 직접 확인: MainScene Play → 경험치로 레벨업 → 같은 약공격을 두 번·세 번 고른다. 두 번째 카드에 강화 문구가 보이고, 슬롯 수는 늘 않으며, 버튼 시전과 보유 패시브 피해가 커져야 한다. 세 번 강화한 뒤에는 그 스킬이 카드에 나오지 않는다. 이상하면 Console 첫 오류와 일시정지 상태창의 보유 칸 수를 확인한다.
+- 노션: 팀 작업 DB에 동일 제목으로 기록함.
+- 다음: 스킬 자세히 보기의 MP·쿨다운, 로딩·로비 배경 원본 아트, 탭·아이콘 화면 연결.
+
+## 2026-11-09 타이틀·로딩·로비 씬 UI 연결
+
+- 기준: `Document/씬 별 UI.pptx` 2~7번 슬라이드(타이틀·로딩·로비). 와이어프레임(2·4·6번)의 구성을 따르고, 시안 이미지(3·5·7번)는 모양 참고로만 썼다. 로딩·로비 시안은 글자·버튼 프레임이 그림에 구워져 있어 배경으로 쓸 수 없다.
+- 흐름: `TitleScene`(터치) → `LoadScene` → `LobbyScene`(게임 시작) → `LoadScene` → `MainScene`. `SceneManagerEx.LoadSceneThroughLoading(목적지)`가 목적지를 예약하고 로딩 씬이 준비 후 한 번만 꺼내 쓴다. 예약이 없으면 `MainScene`으로 가므로 `GameManager`의 재시작(`LoadScene` 경유)은 그대로다. `Define.EScene`에 `LobbyScene`을 맨 끝에 추가했고 기존 값·빌드 목록 순서는 보존했다(로비는 목록 맨 끝, GUID `a7ae3e61…`).
+- 타이틀: `Assets/2.Resources/UI/씬 UI/Title_Background.png`(시안 이미지를 1920×1080으로 변환, 로고·GAME START·저작권이 그림에 포함)을 전체 배경으로 깔았다. 임시 "Title Scene" 문구와 "Touch to start" 문구는 제거했다. `StartTouchArea` 버튼은 그대로다.
+- 로딩: 팁 문구(기획서 예시 그대로)와 우하단 회전 고리+좀비 소녀(`UI_LoadScene`). 배경은 **임시 그라데이션**이다. 기존 "Loading . . ." 문구는 시안에 없어 제거했다.
+- 로비(`UI_LobbyScene`): 좌상단 프로필(초상·이름·골드), 우상단 설정·우편·알림, 중앙 캐릭터(`Pretty_Magical_Girl/Idle/rotations/south`), 게임 시작, 하단 탭(상점·장비·메인·업그레이드·도감, 메인 강조). 배경은 **임시 그라데이션**이다. 이름은 "플레이어 이름", 골드는 0 고정이며 `SetProfile(이름, 골드)`로 나중에 연결한다. **동작하는 것은 게임 시작뿐**이다. 탭·아이콘은 대상 화면이 정해지지 않아 눌러도 아무 일도 없다.
+- 미정으로 둠: 탭·아이콘의 화면(상점·장비·업그레이드·도감·설정·우편·알림), 프로필·골드 데이터, 로딩 팁 목록, 로딩·로비의 실제 배경 아트(글자·UI가 없는 깨끗한 원본이 필요하다).
+- 씬은 Unity에서 한 번 생성했다. 이후에는 직접 편집하면 된다. 생성 도구는 저장소에 넣지 않았다.
+- 변경 보존: 작업 전 사용자 변경 4건(`AllIn1SpriteShaderLit*.shader` 2개, `NanumGothic Combat SDF.asset`, `EditorBuildSettings.asset`의 줄바꿈만 다름)은 건드리지 않았다. 빌드 설정에는 로비 한 줄만 추가했다. TitleScene·LoadScene은 Unity가 다시 저장해 직렬화 순서·ID가 일부 바뀌었다.
+- 검증: 별도 검증 복사본(`.utmp/sv`, Git 제외)에서 Unity 6000.5.0f1 PlayMode 신규 `SceneFlowTests` **4/4 통과**(타이틀→로비, 로비 UI 구성, 로비→메인, 목적지 없는 로딩→메인). 씬을 이미지로 렌더링해 세 화면을 눈으로 확인했다. 기존 전체 PlayMode 회귀는 실행하지 않았다. 실기기·Android·해상도별 확인 없음.
+- 직접 확인: Unity에서 임포트 완료 → `Tools > Play From Title` 켜기 → Play → 타이틀 화면 아무 곳이나 클릭 → 로딩 화면 → 로비(프로필·캐릭터·탭이 보임) → 게임 시작 → 로딩 → `MainScene`. 정상이면 로비의 탭·아이콘은 눌러도 반응이 없다. 이상하면 Console 첫 오류, `File > Build Profiles`의 Scene List에 `LobbyScene`이 있는지, 로비 Canvas에서 `UI_LobbyScene`의 Missing Script 여부, 한글이 네모로 나오면 TMP 폰트(`NanumGothic Combat SDF`)를 확인한다. 에디터 `Window > General > Test Runner > PlayMode`의 `SceneFlowTests`(테스트 중에는 Play From Title을 끈다)로도 확인된다.
+- 다음: 로딩·로비 배경 원본 아트 교체, 탭·아이콘 화면 정의 후 연결, 로비에서 플레이어 이름·골드 데이터 연결, 기존 "스킬 자세히 보기의 MP·쿨다운" 작업.
+
 ## 2026-11-06 보스 등장에 맞춰 HP바 페이드인
 
 - 요청: 보스 HP바도 천천히 나타나게 한다. BossEncounterController에 Boss Health Fade Duration(기본 1초, 0은 즉시 표시)을 추가했다. 기존 Boss Health Slider 오브젝트에 런타임 CanvasGroup을 확보하고 알파를 0→1로 올린다. 원형 등장 연출 동안은 투명하게 유지하고 BossController.IsEntering이 끝나는 공개 타격 시점부터 페이드한다. 별도 등장 패턴이 없는 다른 보스는 활성화 직후 페이드한다. 체력 수치/Slider value는 건드리지 않아 기존 EnemyHealth 표시와 충돌하지 않는다.
@@ -49,6 +94,54 @@
 - 직접 확인: Play 종료 → Unity 컴파일 완료 → Hierarchy MobileUI 아래 Sprint 선택 → Add Component > Sprint Cooldown UI → Player 칸에 씬 Player 드래그 → Cooldown Image에 사용자가 만든 회전용 Image 드래그(비우면 Sprint 자신의 아이콘이 채워짐) → Play. 방향 입력 후 Sprint 클릭 시 실제 대시와 함께 Image가 0→1로 시계방향 채워져야 한다. 키보드 대시도 같은 표시, 쿨 중 연타는 표시를 초기화하지 않음, 일시정지 중 진행 정지를 확인한다. 기존 Button On Click에 TryUseDash를 중복 등록하지 않는다.
 - 오류 확인: Console 첫 오류, SprintCooldownUI 활성 상태/Player와 Image 참조, 대시용 MP와 방향 입력, Player Dash Cooldown, Image Source Image와 색상 알파, 상위 UI의 raycast 차단 여부를 본다. 이번 표시는 쿨타임 준비만 나타내므로 가득 차 있어도 MP 부족이나 다른 행동 중에는 대시가 거절될 수 있다.
 
+## 2026-11-06 야수 좀비 보스 스프라이트의 주먹 스파크 일괄 분리
+
+- 요청: 주먹에 그림으로 구워진 붉은 스파크(VFX)를 모든 방향·동작에서 떼어 낸다. 스파크는 나중에 별도 이펙트로 붙인다.
+- 완료: `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations`의 idle·move·run·sprint·swipe·swipe-both·swipe-left·body-charge 중 이미 작업한 3곳(body-charge/east, move/north-east, move/east)을 뺀 477장을 자동 처리했다. 픽셀이 실제로 바뀐 것은 395장이다. 나머지는 스파크가 없어 HEAD 바이트 그대로 되돌렸다. `rotations/`는 원래 스파크가 없어 건드리지 않았다.
+- 방법(생성물, Git 제외 `.utmp/BeastSpark`): ① 몸 밖으로 뻗은 가는 붉은 줄과 밝은 빨강(R≥225) 스파크 덩어리를 찾는다. ② 그 주변의 붉은 틴트·가는 줄을 지운다. ③ 몸 안쪽은 프레임 안의 원래 피부·바지 팔레트 색 중 밝기가 비슷한 색으로 바꾸고, 몸 밖은 투명 처리한다. ④ 5×5 이상 덩어리 붉은 상처(어깨·무릎)는 보호한다. ⑤ 몸에서 떨어진 20픽셀 미만 조각은 지운다. idle 옆모습 일부(east, west, north-east, north-west)는 주먹 영역을 손으로 지정했고, sprint/south-west 2·3번은 얼굴·가슴 영역을 보호했다. 캔버스 크기·알파(0/255)·meta는 그대로다.
+- 유지함: 어깨·무릎의 붉은 상처, 가슴·등의 붉은 핏줄, 얼굴 피, 팔뚝의 분홍 흉터 줄, 스와이프의 붉은 베기 궤적(별도 이펙트로 볼 수 있어 이번에 지우지 않았다. 지우려면 따로 요청). 스프라이트 GUID·애니메이터·프리팹·코드는 바꾸지 않았다.
+- 알려진 한계(자동 처리라 완벽하지 않다): ① run·sprint·body-charge 일부 프레임에서 주먹이 은은한 붉은 장갑색으로 남았다. ② (해결) body-charge/south-west 3~10번 주먹 주변의 검은 가시·테두리 덩어리는 디자인이 아니라 스파크의 검은 테두리가 남은 것이라는 사용자 확인에 따라 주먹 영역(박스 `36,60,76,106;100,82,142,116`)에서 가장자리부터 벗겨 냈다(검정·짙은 빨강 픽셀 중 몸 색 이웃이 없는 것을 반복 제거 후 얇은 검은 줄 제거). 다른 방향·다른 동작은 같은 검사에서 가시가 나오지 않아 건드리지 않았다. south-west 0~2번은 가시가 적어 제외. ③ 스파크가 얼굴·가슴을 덮은 프레임은 얼굴 피·핏줄이 일부 지워졌을 수 있다. ④ 팔레트 색으로 메운 부분이 평평해 보일 수 있다. 어색한 프레임은 수작업 보정이 필요하다.
+- 백업·되돌리기: 원본은 Git HEAD에 있다(이 폴더는 이후 커밋에서 바뀐 적 없음). 변경은 커밋 전이다. 되돌릴 프레임은 해당 PNG만 `git checkout -- 경로`로 복원한다.
+- 확인용 문서(`Document/`, 미추적, 기존 MotionCheck 덱과 같은 형식, PowerPoint COM으로 생성, 생성 스크립트는 `.utmp/BeastSpark/mkdeck.ps1`): `BeastZombie_MotionCheck_rotation_SparkRemoved.pptx`(방향 8장, 행=동작·열=프레임), `BeastZombie_MotionCheck_SparkRemoved.pptx`(프레임 0~10, 11장, 행=동작·열=방향), `BeastZombie_SparkRemoval_Compare.pptx`(동작별 8장, 프레임 0·3의 원본(HEAD)/수정 비교). 기존 MotionCheck 두 덱은 스파크가 있는 수정 전 상태라 그대로 A/B 비교에 쓴다. PNG를 다시 고치면 이 덱은 다시 생성해야 한다.
+- 검증: 전/후 비교 시트를 눈으로 확인했다. Unity 컴파일·테스트는 하지 않았다(테스트 0개). Unity 재생, 실제 씬 표시, Android는 확인하지 않았다.
+- 다음 확인: Unity가 PNG를 다시 임포트할 때까지 기다린다. Project에서 `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/idle/south`의 0~3번을 열어 주먹 주변 붉은 번개가 없는지 본다. 이어 `run`, `sprint` 아래 여러 방향도 열어 본다. 보스 프리팹을 씬에 두고 Play하면 대기·이동·돌진 때 주먹 스파크가 없고 어깨 상처·핏줄은 남아 있어야 한다. 그림이 비거나 분홍이면 해당 폴더를 우클릭해 Reimport하고 Console 첫 오류를 확인한다. 별도 스파크 VFX 제작과 남은 주먹 장갑색 보정은 다음 작업이다.
+
+## 2026-11-06 보유 패시브 쿨타임 등급별 값
+
+- 사용자 요청으로 약·강 스킬 35개의 `PassiveCooldown`을 등급별로 넣었다. 약공격 기준: Common 3 / Uncommon 3.5 / Rare 4 / Epic 5 / Legendary 6 / Mythic 7초. 강공격은 같은 등급에서 +1초. 탄 수×타격 수가 3 이상이면 +1초, 2면 +0.5초(10002·10010 4.5, 10012 5, 10013 6, 10016 7, 20004 7, 20009 6, 20015 8.5). 피해가 이미 20%라 등급이 오를수록 쿨타임만 조금 늘렸다. 확정 수치가 아니라 테스트 후 조정할 초기 균형값이다. `PassiveScale`은 그대로 비워 0.2를 쓴다.
+- 비워 둠: Fusion 등급 태양 검(10007)은 획득 확률 0이고 규칙이 없어 쿨타임 0(자동 발사 없음). 전략 스킬 제외.
+- 알려진 한계: 화염 십자(20012)의 범위 모양이 `Cross`인데 현재 약공격 도형에 없어 버튼·패시브 모두 발사되지 않는다.
+- 상태: `Assets/Resources/Data/CombatSkillTable.json`과 `Document/SkillDatatable.xlsx`(AH열) 모두 반영됐다. 엑셀이 열려 있어 사용자가 닫은 뒤 사본으로 원본을 교체했다. 엑셀과 JSON의 쿨타임이 다르면 검증 도구가 실패한다(의도한 감지). 앞으로 엑셀을 고치면 JSON도 같은 값으로 맞춘다.
+- 검증: `tools/CombatSkillTableValidation/Run.ps1` 18/18 통과(교체 후 원본 엑셀 기준). Unity 컴파일·재생은 하지 않음. `SKILL_WORKBOOK` 환경변수로 다른 엑셀 파일을 지정해 검증할 수도 있다.
+
+## 2026-11-06 씬과 보스·적 에셋 이름 정리
+
+- 씬 파일 네 개는 `TitleScene`, `LoadScene`, `MainScene`, `GiungScene`으로 변경했다. 빌드 목록 경로, `Define.EScene`, 씬 전환 코드, Play From Title, PlayMode 테스트의 씬 참조를 맞췄다. 씬 meta GUID와 enum 값·빌드 목록 순서는 보존했다. 기존 Giung 씬의 빌드 목록 GUID만 씬 meta의 실제 GUID로 맞췄다. 이전 작업 기록에서 쓰인 당시 이름은 유지했다.
+- `BossMvp` → `Boss`, `EnemyMvp`와 이동 속도 변형 → `Enemy`와 해당 변형으로 변경했다. 프리팹의 루트 이름과 씬의 Boss 이름 오버라이드, 관련 폴더 이름, `Enemy.Runtime` 어셈블리명과 참조를 맞췄다. 프리팹·어셈블리·폴더 meta를 옮기고 기존 GUID를 보존했다. MainScene의 데미지 숫자 프리팹 및 기존 사용자 설정도 보존했다.
+- 검증: 기존 meta·빌드 GUID·빌드 순서·enum 값 확인, 활성 에셋·빌드 설정·도구에서 이전 이름 0건, Overlay Canvas 정렬 4개 통과. Unity 설치본 Roslyn으로 런타임/에디터/PlayMode 테스트 어셈블리 총 7개 컴파일 종료 0. 기존 Player.ParryCamera CS0252 경고 1개. 실제 Unity 테스트 0개, 에디터 Play·빌드 미실행.
+- 직접 확인: Unity 임포트 완료 → `Tools > Play From Title` 켜기 → Play → 타이틀의 시작 버튼 → `LoadScene` → `MainScene`. 승패 화면에서 재시작 또는 타이틀 버튼을 눌러 이동을 확인한다. Project의 `Assets/1.Prefabs`에서 Boss와 Enemy를 열어 이름과 스크립트가 정상인지 확인한다. 이상하면 Console 첫 오류, `File > Build Profiles`의 Scene List, 프리팹의 Missing Script 표시를 확인한다.
+
+## 2026-11-06 GameManager의 데미지 숫자 표시 생성
+
+- `MainTestScene`의 기존 독립 표시 오브젝트 설정을 `Assets/1.Prefabs/DamageNumberDisplay.prefab`으로 옮겼다. 기존 `GameManager.Awake`가 프리팹이 연결된 씬에서만 자식으로 한 번 생성한다. 씬이 내려가면 인스턴스와 숫자 풀이 정리된다. `GiungTestScene`은 프리팹 미연결 상태다.
+- 표시 스크립트는 `Assets/0.Scripts/Game/UI/DamageNumberDisplay.cs`로 옮기고 기존 meta GUID를 보존했다. 클래스, Canvas 및 메뉴 이름에서 Test를 제거했다. 수동 배치용 Tools 메뉴는 제거했고 런타임 컴포넌트의 `샘플 숫자 표시 (Play 중)`는 카메라 중앙에서 동작한다.
+- 프리팹은 기존 나눔고딕 폰트와 색상·크기·지속시간·최대 개수 설정을 사용한다. 카메라는 첫 표시 때 `MainCamera` 태그로 찾는다. 저장된 폰트 에셋과 스폰·회수 설정 변경은 보존했다.
+- 검증: Unity 설치본 Roslyn으로 Assembly-CSharp와 Assembly-CSharp-Editor 컴파일 종료 0, 기존 Player.ParryCamera CS0252 경고 1개. 임시 .NET 풀링 검증 3/3, Overlay 정렬 검증 4개, 씬→프리팹 컴포넌트 참조·원본 스크립트 GUID·설정·다른 씬 데이터 보존 확인. Unity 테스트 0개, 에디터 Play 및 Profiler 미실행.
+- 직접 확인: Unity 임포트 완료 → `Tools > Play From Title`이 켜져 있으면 해제 → `MainTestScene`에서 GameManager Inspector의 Damage Number Prefab 확인 → Play. GameManager 아래 `DamageNumberDisplay(Clone)`이 한 개 생기고 첫 타격 또는 컴포넌트의 `샘플 숫자 표시 (Play 중)`에서 숫자가 떠야 한다. 재시작 뒤에도 인스턴스는 한 개여야 한다. 문제가 있으면 Console 첫 오류, 프리팹 참조, 폰트, 활성 카메라의 `MainCamera` 태그를 확인한다.
+
+## 2026-11-06 데미지 숫자 풀링
+
+- `DamageNumberTest`가 자기 Canvas 안에서 숫자와 외곽선 머티리얼을 재사용한다. 처음 필요한 만큼 생성하고, 만료된 숫자는 숨겨서 반납한다. 동시 한도(씬 기본 48)에 도달하면 가장 오래된 표시를 새 타격에 재사용한다. 대여할 때 표시값·위치·색·경과 시간·그리기 순서를 갱신한다. 컴포넌트를 끄거나 씬에서 내리면 사용 중 및 대기 중 머티리얼과 Canvas를 정리한다.
+- 기존 씬의 폰트·카메라·색·0.8초 지속시간·Canvas 정렬을 그대로 사용한다. 사용자 변경인 `MainTestScene.unity`와 `NanumGothic Combat SDF.asset`은 수정하지 않았다.
+- 검증: 실제 컴포넌트 소스를 링크한 임시 .NET 검증에서 재사용 관련 2건의 수정 전 실패를 확인했고 수정 후 만료 재사용·초과 시 교체 순서·비활성화/재활성화 정리 3/3 통과. `tools/ValidateDamageNumberSorting.ps1` 통과(두 씬의 Overlay Canvas 4개). Unity 설치본 Roslyn으로 Assembly-CSharp 컴파일 종료 0, 기존 `Player.ParryCamera.cs` CS0252 경고 1개. Unity 테스트 0개. 실제 씬 재생과 Profiler 프레임 시간은 미확인.
+- 직접 확인: Unity 임포트 완료 → `MainTestScene` Play → `DamageNumberTest` Inspector의 컴포넌트 메뉴에서 `테스트/샘플 숫자 표시 (Play 중)`를 띄우고 숫자가 사라진 뒤 반복한다. Canvas 아래 기존 `DamageNumber` 자식이 비활성화됐다가 다시 켜지고, 같은 동시 표시 수에서 개수가 계속 늘지 않아야 한다. 광역 공격과 플레이어 피격 때 색과 외곽선도 확인한다. 이상하면 Console 첫 오류와 컴포넌트의 Font·Target Camera 연결을 확인한다.
+
+## 2026-11-06 플레이 렉 조사 — 데미지 숫자와 발밑 그림자
+
+- `main`의 `6a2cbec`에서 조사했다. 사용자가 저장한 `MainTestScene`의 `DamageNumberTest` 오브젝트와 컴포넌트는 활성 상태이며 `NanumGothic Combat SDF`와 `Main Camera`가 연결되어 있다. 씬과 폰트 에셋의 사용자 변경을 보존했다.
+- 다중 타격 때 끊긴다면 데미지 숫자를 먼저 비교한다. 타격마다 TMP 오브젝트와 외곽선용 머티리얼 인스턴스를 생성하고, 표시 중에는 매 프레임 좌표와 알파를 갱신하며 만료 시 파괴한다. 동시 48개 제한은 생성 빈도를 제한하지 않는다. 저장된 동적 폰트에는 숫자·마침표 글리프와 두 번째 아틀라스가 추가되어 있다. 첫 타격에서만 튀는 경우에는 Canvas 최초 생성과 반복 타격 비용을 분리해서 본다.
+- 적이 쌓일수록 계속 느려진다면 그림자를 분리한다. `GroundShadow`는 공유 스프라이트를 쓰며 발밑 크기·위치를 처음에만 계산한다. 활성 유닛마다 `LateUpdate`의 렌더러 속성 갱신과 반투명 스프라이트 렌더링이 남는다. 같은 씬 저장에서 스포너 수 5→10, 화면 밖 스폰 여유 10→5, 회수 여유 20→10이 바뀌었으므로 비교 중에는 이 값들과 활성 적 수를 통제한다.
+- 검증은 씬·코드·로컬 TMP 패키지 소스 확인까지 했다. Unity 테스트 0개, Play 재현 및 Profiler 캡처 미실행. 다음은 `MainTestScene` Play → `Window > Analysis > Profiler` → `CPU Usage > Timeline`과 `Rendering`에서 기준 프레임을 기록한다. Play 중 `DamageNumberTest` 컴포넌트만 꺼서 숫자와 타격 프레임 스파이크가 함께 사라지는지 본다. 그림자 비교는 숫자를 끈 상태에서 Play 중 `Ground Shadow` 오브젝트들만 꺼서 그림자가 사라지고 유닛은 계속 움직이는지 확인한 뒤 같은 밀도의 프레임을 비교한다. 새로 스폰된 그림자와 Console 반복 경고를 확인한다. 실제 원인은 프레임 비교 후 확정한다.
 ## 2026-11-06 보유 약·강 스킬의 패시브 칸
 
 - 완료: `Document/SkillDatatable.xlsx` 약공격·강공격 시트에 `Passive_Cooldown`(AH), `Passive_Scale`(AI)을 추가했다. 데이터 칸은 비었다. 변환기와 배포 JSON도 같은 두 칸을 읽는다. 쿨타임이 0이면 자동 발사하지 않고, 배율이 비어 있으면 피해만 기존 공식의 0.2다. 탄 수·범위·타격 횟수·모양은 그대로다. MP와 입력 잠금은 쓰지 않는다. 보유 중이면 장착 여부와 상관없이 동작하고, 버튼 시전은 기존 수치를 유지한다.

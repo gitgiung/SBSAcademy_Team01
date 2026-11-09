@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Contract for a pickup spawned by an enemy in the EnemyMvp.Runtime assembly.</summary>
+/// <summary>Contract for a pickup spawned by an enemy in the Enemy.Runtime assembly.</summary>
 public interface IExperiencePickup
 {
     void Initialize(Transform target);

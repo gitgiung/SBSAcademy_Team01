@@ -218,12 +218,14 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         int shots = Mathf.Max(1, skill.Projectiles);
         float spacing = skill.ShotSpacing;
+        float stackDamage = skill.Damage(data.attackDamage)
+            * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
         for (int i = 0; i < shots; i++)
         {
             if (!isActiveAndEnabled || hasDied) break;
             float spread = shots == 1 ? 0f : (i - (shots - 1) * 0.5f) * 8f;
             Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
-            SpawnLightSkill(skill, direction);
+            SpawnLightSkill(skill, direction, stackDamage);
             if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
         }
         float hold = 0.28f + skill.RepeatSpacing * Mathf.Max(0, skill.Hits - 1);
@@ -247,7 +249,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (ownedPassiveTimers[i] > 0f) continue;
             if (!combat.TryGetClosestEnemyDirection(skill.Range, out Vector2 direction)) continue;
             ownedPassiveTimers[i] = cooldown;
-            StartCoroutine(CastOwnedPassive(skill, direction, skill.Damage(data.attackDamage) * scale));
+            float stackMul = data.Loadout.GetAttackSkillDamageMultiplier(id);
+            StartCoroutine(CastOwnedPassive(skill, direction, skill.Damage(data.attackDamage) * scale * stackMul));
         }
     }
 

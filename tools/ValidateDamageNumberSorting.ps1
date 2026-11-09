@@ -1,11 +1,11 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$source = Get-Content -LiteralPath (Join-Path $projectRoot 'Assets/0.Scripts/Game/Player/Test/DamageNumberTest.cs') -Raw
+$source = Get-Content -LiteralPath (Join-Path $projectRoot 'Assets/0.Scripts/Game/UI/DamageNumberDisplay.cs') -Raw
 $match = [regex]::Match($source, 'canvas\.sortingOrder\s*=\s*(-?\d+)\s*;')
 if (-not $match.Success) { throw '데미지 숫자 Canvas 정렬값을 찾을 수 없습니다.' }
 $damageOrder = [int]$match.Groups[1].Value
 $checked = 0
-foreach ($scene in @('MainTestScene', 'GiungTestScene')) {
+foreach ($scene in @('MainScene', 'GiungScene')) {
     $yaml = Get-Content -LiteralPath (Join-Path $projectRoot "Assets/9.Scenes/$scene.unity") -Raw
     foreach ($block in [regex]::Matches($yaml, '(?ms)^--- !u!223 .*?(?=^--- |\z)')) {
         if ($block.Value -notmatch 'm_RenderMode: 0') { continue }

@@ -14,7 +14,7 @@ public sealed class EnemyWaveTests
     [UnityTest]
     public IEnumerator WaveEntriesChangeAtThirtySecondsAndMixSuccessfulSpawnsByWeight()
     {
-        yield return SceneManager.LoadSceneAsync("MainTestScene");
+        yield return SceneManager.LoadSceneAsync("MainScene");
 
         var (director, pool, prefabs) = CreateDirector(new[] { new[] { 7, 3, 0 }, new[] { 0, 0, 1 } });
         pool.RejectSecondAttempt = true;
@@ -36,7 +36,7 @@ public sealed class EnemyWaveTests
     [UnityTest]
     public IEnumerator FailedPrefabDoesNotBlockOtherWeightedEnemies()
     {
-        yield return SceneManager.LoadSceneAsync("MainTestScene");
+        yield return SceneManager.LoadSceneAsync("MainScene");
         var (director, pool, prefabs) = CreateDirector(new[] { new[] { 1, 1, 0 } });
         pool.UnavailablePrefab = prefabs[0];
 
@@ -79,7 +79,7 @@ public sealed class EnemyWaveTests
     [UnityTearDown]
     public IEnumerator UnloadTestScene()
     {
-        Scene scene = SceneManager.GetSceneByName("MainTestScene");
+        Scene scene = SceneManager.GetSceneByName("MainScene");
         if (!scene.isLoaded) yield break;
 
         SceneManager.SetActiveScene(SceneManager.CreateScene("EnemyWaveTestCleanup"));

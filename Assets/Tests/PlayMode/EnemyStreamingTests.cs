@@ -13,7 +13,7 @@ public sealed class EnemyStreamingTests
     [UnityTest]
     public IEnumerator ScheduledSpawnsUseAllEdgesAndStayOutsideCamera()
     {
-        yield return SceneManager.LoadSceneAsync("MainTestScene");
+        yield return SceneManager.LoadSceneAsync("MainScene");
         var director = Object.FindAnyObjectByType<EnemySpawnDirector>();
         var camera = Camera.main;
         camera.aspect = 16f / 9f;
@@ -46,7 +46,7 @@ public sealed class EnemyStreamingTests
     [UnityTest]
     public IEnumerator FarEnemiesFreeCapacityWithoutKillingAndNearEnemyStays()
     {
-        yield return SceneManager.LoadSceneAsync("MainTestScene");
+        yield return SceneManager.LoadSceneAsync("MainScene");
         var director = Object.FindAnyObjectByType<EnemySpawnDirector>();
         director.Initialize();
         director.enabled = false;
@@ -104,7 +104,7 @@ public sealed class EnemyStreamingTests
     [UnityTearDown]
     public IEnumerator UnloadTestScene()
     {
-        Scene scene = SceneManager.GetSceneByName("MainTestScene");
+        Scene scene = SceneManager.GetSceneByName("MainScene");
         if (!scene.isLoaded) yield break;
 
         SceneManager.SetActiveScene(SceneManager.CreateScene("EnemyStreamingTestCleanup"));

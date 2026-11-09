@@ -17,13 +17,17 @@ public class LoadScene : BaseScene
             return false;
         }
 
-        SceneType = Define.EScene.LoadTestScene;
+        SceneType = Define.EScene.LoadScene;
         
         return true;
     }
 
     private IEnumerator Start()
     {
+        // 예약된 목적지는 준비 중 어떤 일이 생겨도 남지 않도록 시작 즉시 꺼낸다.
+        // 예약이 없으면(재시작 등) 기존처럼 MainScene으로 이동한다.
+        Define.EScene destination = Managers.Scene.ConsumeLoadingDestination(Define.EScene.MainScene);
+
         yield return null;
 
         // 1. 게임 실행에 필요한 것들을 준비한다.
@@ -36,15 +40,15 @@ public class LoadScene : BaseScene
             yield break;
         }
 
-        string sceneName = Define.EScene.MainTestScene.ToString();
+        string sceneName = destination.ToString();
         if (!Application.CanStreamedLevelBeLoaded(sceneName))
         {
             Debug.LogError($"로드할 수 없는 씬입니다: {sceneName}. Build Profiles의 Scene List를 확인하세요.", this);
             yield break;
         }
 
-        // 2. 준비가 끝나면 게임 씬을 불러온다.
-        yield return Managers.Scene.LoadSceneAsync(Define.EScene.MainTestScene);
+        // 2. 준비가 끝나면 목적지 씬(로비 또는 게임 씬)을 불러온다.
+        yield return Managers.Scene.LoadSceneAsync(destination);
     }
 
     private IEnumerator PrepareGame()

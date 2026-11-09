@@ -1,5 +1,5 @@
 {
   "name": "EnemyStreaming.PlayModeTests",
-  "references": ["EnemyMvp.Runtime"],
+  "references": ["Enemy.Runtime"],
   "optionalUnityReferences": ["TestAssemblies"]
 }

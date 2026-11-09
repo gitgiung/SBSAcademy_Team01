@@ -53,6 +53,9 @@ public readonly struct LightSkillCast
     public bool ScatterVolley => Id == 10010;
     /// <summary>화염 연사는 호 모양 베기가 아니라 정면 직선 연사입니다.</summary>
     public bool StraightRapidFire => Id == 10013;
+    /// <summary>화염구·작열 구체는 맞으면 터집니다. 표에 반경이 없어 가로 폭의 두 배를 임시 반경으로 씁니다.</summary>
+    public bool ExplodesOnHit => Id == 10004 || Id == 10015;
+    public float SplashRadius => Mathf.Max(0f, Width) * 2f;
 
     public LightSkillCast Presented()
     {

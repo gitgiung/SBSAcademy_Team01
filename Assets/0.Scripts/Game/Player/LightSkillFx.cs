@@ -19,6 +19,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private int frame;
     private bool running;
     private bool projectile;
+    private bool bursting;
     private string enemyTag = "Enemy";
     private Sprite[] frames;
     private readonly HashSet<EntityId> hitIds = new HashSet<EntityId>();
@@ -27,6 +28,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     public void OnPoolReturn()
     {
         running = false;
+        bursting = false;
         StopAllCoroutines();
         hitIds.Clear();
     }
@@ -47,6 +49,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         frameTimer = 0f;
         hitIds.Clear();
         running = true;
+        bursting = false;
 
         frames = LightSkillVisuals.Frames(skill.Shape, out frameDuration);
         if (spriteRenderer != null)
@@ -110,6 +113,11 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         if (!running || Time.deltaTime <= 0f) return;
         life -= Time.deltaTime;
         Animate();
+        if (bursting)
+        {
+            if (life <= 0f) Finish();
+            return;
+        }
         if (projectile)
         {
             float step = 12f * Time.deltaTime;
@@ -140,7 +148,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         frameTimer += Time.deltaTime;
         if (frameTimer < frameDuration) return;
         frameTimer = 0f;
-        bool loop = skill.Shape == LightSkillShape.Projectile || skill.Shape == LightSkillShape.Ring;
+        bool loop = !bursting && (skill.Shape == LightSkillShape.Projectile || skill.Shape == LightSkillShape.Ring);
         if (!loop && frame >= frames.Length - 1) return;
         frame = (frame + 1) % frames.Length;
         spriteRenderer.sprite = frames[frame];
@@ -148,9 +156,45 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (!running || !projectile || other == null || !other.CompareTag("Enemy")) return;
+        if (!running || bursting || !projectile || other == null || !other.CompareTag("Enemy")) return;
         Damage(other);
-        Finish();
+        if (!skill.ExplodesOnHit)
+        {
+            Finish();
+            return;
+        }
+        Splash();
+        BeginImpactBurst();
+    }
+
+    private void Splash()
+    {
+        float radius = skill.SplashRadius;
+        if (radius <= 0f) return;
+        foreach (Collider2D hit in Physics2D.OverlapCircleAll(transform.position, radius))
+            if (hit != null && hit.CompareTag(enemyTag)) Damage(hit);
+    }
+
+    private void BeginImpactBurst()
+    {
+        bursting = true;
+        projectile = false;
+        if (hitCollider != null) hitCollider.enabled = false;
+        frames = LightSkillVisuals.Frames(LightSkillShape.Circle, out frameDuration);
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.sharedMaterial = LightSkillVisuals.MaterialFor(skill.Element, LightSkillShape.Circle);
+            spriteRenderer.sprite = frames.Length > 0 ? frames[0] : null;
+            spriteRenderer.sortingOrder = 31;
+        }
+        transform.rotation = Quaternion.identity;
+        float height = frames != null && frames.Length > 0
+            ? frames[0].rect.height / LightSkillVisuals.PixelsPerUnit : 0f;
+        if (height > 0f)
+            transform.localScale = Vector3.one * ((skill.SplashRadius * 2f) / height);
+        frame = 0;
+        frameTimer = 0f;
+        life = Mathf.Max(0.2f, frameDuration * Mathf.Max(1, frames == null ? 1 : frames.Length));
     }
 
     private void Strike()

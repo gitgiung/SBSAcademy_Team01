@@ -50,6 +50,11 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     private System.Action<float, float> collectedReport;
     private float attractionElapsedTime;
     private bool attracted;
+    private Vector3 motionPosition;
+    private Vector3 baseScale;
+    private bool baseScaleCaptured;
+    private bool motionReady;
+    private float visualTime;
 
     public void OnPoolRent()
     {
@@ -61,12 +66,18 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         collectedReport = null;
         attractionElapsedTime = 0f;
         attracted = false;
+        motionReady = false;
+        visualTime = 0f;
+        RestoreScale();
     }
 
     public void OnPoolReturn()
     {
         attractionElapsedTime = 0f;
         attracted = false;
+        motionReady = false;
+        visualTime = 0f;
+        RestoreScale();
         collected = true;
         playerData = null;
         collectedReport = null;
@@ -84,12 +95,24 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         ResolvePlayerData(null);
     }
 
-    private void OnEnable() => RefreshExperienceColor();
+    private void OnEnable()
+    {
+        if (!baseScaleCaptured)
+        {
+            baseScale = transform.localScale;
+            baseScaleCaptured = true;
+        }
+        motionPosition = transform.position;
+        motionReady = true;
+        RefreshExperienceColor();
+    }
 
     public void Initialize(Transform target)
     {
         attractionElapsedTime = 0f;
         attracted = false;
+        motionPosition = transform.position;
+        motionReady = true;
         ResolvePlayerData(target);
         RefreshExperienceColor();
     }
@@ -131,9 +154,37 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     {
         attractionElapsedTime = 0f;
         attracted = false;
+        motionReady = false;
+        RestoreScale();
     }
 
-    private void Update() => UpdateAttraction(Time.deltaTime);
+    private void Update()
+    {
+        if (motionReady) transform.position = motionPosition;
+        UpdateAttraction(Time.deltaTime);
+        motionPosition = transform.position;
+        motionReady = true;
+        ApplyIdleMotion(Time.deltaTime);
+    }
+
+    private void ApplyIdleMotion(float deltaTime)
+    {
+        if (!baseScaleCaptured || collected || deltaTime <= 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime))
+        {
+            RestoreScale();
+            return;
+        }
+        visualTime += deltaTime;
+        float sway = Mathf.Sin(visualTime * 2.6f) * 0.07f;
+        float pulse = 1f + Mathf.Sin(visualTime * 3.4f) * 0.07f;
+        transform.position = new Vector3(motionPosition.x + sway, motionPosition.y, motionPosition.z);
+        transform.localScale = new Vector3(baseScale.x * pulse, baseScale.y * pulse, baseScale.z * pulse);
+    }
+
+    private void RestoreScale()
+    {
+        if (baseScaleCaptured) transform.localScale = baseScale;
+    }
 
     private void UpdateAttraction(float deltaTime)
     {

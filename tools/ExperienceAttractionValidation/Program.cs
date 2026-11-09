@@ -61,7 +61,7 @@ namespace UnityEngine
         public static T FindAnyObjectByType<T>() where T:class => null;
         public static void Destroy(object value) { }
     }
-    public class Transform { public Vector3 position; public T GetComponent<T>() where T:class => null; public T GetComponentInParent<T>() where T:class => null; public T GetComponentInChildren<T>() where T:class => null; }
+    public class Transform { public Vector3 position; public Vector3 localScale; public T GetComponent<T>() where T:class => null; public T GetComponentInParent<T>() where T:class => null; public T GetComponentInChildren<T>() where T:class => null; }
     public class MonoBehaviour : Object
     {
         public Transform transform = new Transform(); public object gameObject; public bool isActiveAndEnabled = true;
@@ -77,7 +77,7 @@ namespace UnityEngine
     public class TooltipAttribute : Attribute { public TooltipAttribute(string value) { } }
     public class ContextMenu : Attribute { public ContextMenu(string value) { } }
     public static class Time { public static float deltaTime; }
-    public static class Mathf { public static float Max(float a,float b)=>Math.Max(a,b); }
+    public static class Mathf { public static float Max(float a,float b)=>Math.Max(a,b); public static float Sin(float value)=>(float)Math.Sin(value); }
     public struct Color { public static Color white => new Color(); }
     public struct Color32 { public Color32(byte r,byte g,byte b,byte a) { } public static implicit operator Color(Color32 c)=>new Color(); }
     public struct Vector2

@@ -2,12 +2,12 @@
 
 ## 2026-11-09 브랜치 병합
 
-- `MapObject`에 `main`(`14cd586`, 11/09_1)을 병합했다. `passive-inspection`은 이어서 병합한다.
+- `MapObject`에 `main`(`14cd586`, 11/09_1)과 `passive-inspection`(`9f16782`)을 병합했다. 원격에는 푸시하지 않았다.
 - 씬 파일은 main의 이름 `MainScene`, `GiungScene`을 유지했다. `MainScene`에는 MapObject의 보스 HP 페이드(`bossHealthFadeDuration` 0.5)와 `SprintCooldownUI`를 합쳤다. `GiungScene`은 main 내용을 유지했다. 자동 병합이 MapObject의 `MainTestScene` 변경을 `GiungScene`에 붙이려 해서 그 결합은 버리고, `MainTestScene`과 `MainScene`만 다시 맞췄다.
 - `NanumGothic Combat SDF`는 아틀라스 좌표가 서로 달라 main 쪽 파일을 유지했다.
 - `BeastZombie`는 이름과 `Enemy.Runtime`을 유지하고, MapObject에서 나중에 저장한 체력 1000, 공격력 30, 원형 반경 14, 등장 폭발 최소 크기 200, 등장 폭발 시간 4를 남겼다. main의 체력 500·공격력 15는 넣지 않았다.
 - `ZombieHound` 접촉 피해는 5, 스크립트 이름은 `Enemy.Runtime`이다.
-- 이번 병합의 Unity 컴파일·테스트는 실행하지 않았다.
+- 이번 병합의 Unity 컴파일·테스트는 실행하지 않았다. 씬 이름이 `MainScene`으로 바뀌었으므로, 열려 있던 `MainTestScene`은 저장하지 말고 `MainScene`을 다시 연다.
 
 ## 2026-11-09 레벨업 스탯 혼합 — 구조만 추가(미연결)
 
@@ -93,6 +93,13 @@
 - 검증: `tools/DashCooldownValidation`에서 실제 PlayerMovement와 Unity 시간/이동 대역으로 8/8 통과(초기/성공/절반·완료/재입력 실패/방향 없음/0쿨/시간 정지/재사용). UI 클릭·렌더링은 대역 검증 범위 밖이다. Unity 6000.5.0f1 Roslyn + 현재 Bee 응답 파일에 새 UI 소스를 포함해 Assembly-CSharp 종료 코드 0, 오류 0, 기존 Player.ParryCamera.cs:56 CS0252 경고 1개. 출력은 `.utmp/DashCooldown`로 격리. git diff --check 통과. Unity 테스트 0개, 실제 화면·모바일 기기는 미검증이다.
 - 직접 확인: Play 종료 → Unity 컴파일 완료 → Hierarchy MobileUI 아래 Sprint 선택 → Add Component > Sprint Cooldown UI → Player 칸에 씬 Player 드래그 → Cooldown Image에 사용자가 만든 회전용 Image 드래그(비우면 Sprint 자신의 아이콘이 채워짐) → Play. 방향 입력 후 Sprint 클릭 시 실제 대시와 함께 Image가 0→1로 시계방향 채워져야 한다. 키보드 대시도 같은 표시, 쿨 중 연타는 표시를 초기화하지 않음, 일시정지 중 진행 정지를 확인한다. 기존 Button On Click에 TryUseDash를 중복 등록하지 않는다.
 - 오류 확인: Console 첫 오류, SprintCooldownUI 활성 상태/Player와 Image 참조, 대시용 MP와 방향 입력, Player Dash Cooldown, Image Source Image와 색상 알파, 상위 UI의 raycast 차단 여부를 본다. 이번 표시는 쿨타임 준비만 나타내므로 가득 차 있어도 MP 부족이나 다른 행동 중에는 대시가 거절될 수 있다.
+
+## 2026-11-06 보유 패시브 연결 검증
+
+- 기준은 `passive-inspection`의 `6b5deeb`이며 시작 작업 트리는 깨끗했다. `MainScene`의 `CombatUI`가 경험치로 레벨업 창을 열고, 카드가 약공격을 보유 슬롯에 추가한다. `Player.TickOwnedPassives`는 장착과 별개로 보유 ID를 런타임 JSON에서 찾아 자동 시전한다. 대상이 있으면 기본 피해 공식에 배율 0.2를 적용하고 MP를 소모하지 않는다. 강공격도 보유하면 이 경로를 쓰지만, 현재 기본 레벨업 추첨은 약공격만 제공한다. 카드의 패시브 설명 필드는 채워지지 않는다.
+- 배포 JSON의 약·강 공격 36개 중 35개에 양수 쿨타임이 있다. 그중 화염 십자(20012)는 7초가 설정되어도 `LightSkillCast.TryShape`가 `Cross`를 지원하지 않아 건너뛴다. 태양 검(10007)은 엑셀 약공격 시트 AH9가 2초, 런타임 JSON은 0초라 게임에서 발동하지 않는다. 두 파일의 패시브 쿨타임·배율 비교에서 이 한 행만 달랐다. 엑셀과 JSON 중 태양 검 값을 어느 쪽에 맞출지는 검증 범위 밖으로 남겼다.
+- Unity 6000.5.0f1에서 격리 복사본 컴파일 성공. 처음 배치 실행은 라이선스 IPC 실패로 중단했고, 재시도에서 `MainScene` 대상 임시 PlayMode 3개를 실행해 2개 통과·1개 실패·생략 0. 기본 자동 공격을 분리한 상태에서 경험치 13 → 레벨업 카드 클릭 → 미장착 전기 화살(10021) 피해 1.85 및 MP 100 유지, 화염 망치(20001) 보유 등록 API → 피해 3.3 및 MP 100 유지를 확인했다. 화염 십자(20012)는 같은 등록·표적 조건에서 피해 0회를 재현했다. `.utmp/PassiveInspection/playmode.xml` 및 `unity-retry.log`에 결과가 있다. `tools/CombatSkillTableValidation/Run.ps1`은 16/18 통과. 실패 2개는 태양 검의 Fusion 쿨타임 0 기대 및 엑셀과 JSON 일치 검사다.
+- 직접 확인은 Unity `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy의 `CombatUI` → Inspector에서 `CombatPopupController` 메뉴의 `테스트/경험치 13 획득` → 약공격 카드 선택 → 공격 버튼을 누르지 않고 화면 안의 적에 접근하는 순서다. 일시정지의 공격 스킬 목록에 선택한 스킬이 보이고 미장착 상태에서도 해당 효과와 피해가 생기며 MP가 줄지 않아야 한다. 시작 직후 보이는 기본 탄환은 별도 동작이다. 문제가 있으면 Console 첫 오류, 보유 목록 등록, 표적의 화면 안 위치·사거리·`Enemy` 태그를 확인한다. 이후 확인할 항목은 전체 스킬의 반복 발동 주기와 화면 연출이며, 이번에는 Windows 에디터의 배치 PlayMode만 검증했다. 원본 게임 코드·씬·데이터는 수정하지 않았다.
 
 ## 2026-11-06 야수 좀비 보스 스프라이트의 주먹 스파크 일괄 분리
 

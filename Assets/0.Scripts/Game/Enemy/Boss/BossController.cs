@@ -50,6 +50,8 @@ public sealed class BossController : MonoBehaviour
     [Tooltip("플레이어를 향해 이동하는 기본 진행 시간입니다. 돌진은 이 시간이 지나도 근거리까지 계속 추적합니다.")]
     [SerializeField, Min(0.01f)] private float dashDuration = 1.5f;
     [SerializeField, Min(0.01f)] private float dashEndDamageRadius = 2f;
+    [Tooltip("공격 없이 추격만 이 시간 이상 이어지면 돌진합니다. 근거리 안에서는 돌진하지 않습니다.")]
+    [SerializeField, Min(0.5f)] private float chaseDashDelay = 2.5f;
 
     private EnemyFollow follow;
     private EnemyHealth health;
@@ -73,6 +75,8 @@ public sealed class BossController : MonoBehaviour
     private Vector2 facingDirection = Vector2.down;
     private bool entranceQueued;
     private bool entranceRunning;
+    private float chaseOnlyTime;
+    private const float AreaSlamNormalizedTime = 0.5f;
     private SpriteRenderer[] entranceVisuals;
     private bool[] entranceRenderingStates;
     private Collider2D[] entranceColliders;
@@ -255,23 +259,31 @@ public sealed class BossController : MonoBehaviour
 
     private IEnumerator PatternLoop()
     {
+        chaseOnlyTime = 0f;
         while (isActiveAndEnabled && !health.IsDead)
         {
-            if (target == null || !target.gameObject.activeInHierarchy || Time.timeScale <= 0f ||
-                (!phaseEntryAreaPending && (!patternSelector.isActiveAndEnabled || Time.time < nextPatternTime)))
+            if (target == null || !target.gameObject.activeInHierarchy || Time.timeScale <= 0f)
             {
                 yield return null;
                 continue;
             }
 
             float distance = Vector2.Distance(body.position, target.position);
-            BossPattern selected = SelectAvailablePattern(distance);
+            bool patternReady = phaseEntryAreaPending ||
+                (patternSelector.isActiveAndEnabled && Time.time >= nextPatternTime);
+            BossPattern selected = patternReady ? SelectAvailablePattern(distance) : BossPattern.None;
             if (selected == BossPattern.None)
             {
-                // 근거리와 특수 패턴 거리 사이에서는 공격하지 않고 플레이어를 추적한다.
-                yield return null;
-                continue;
+                if (distance > closeRange) chaseOnlyTime += Time.deltaTime;
+                else chaseOnlyTime = 0f;
+                if (chaseOnlyTime < chaseDashDelay || distance <= closeRange || distance >= specialPatternDistance)
+                {
+                    yield return null;
+                    continue;
+                }
+                selected = BossPattern.Pattern3;
             }
+            chaseOnlyTime = 0f;
 
             switch (selected)
             {
@@ -413,6 +425,9 @@ public sealed class BossController : MonoBehaviour
                 if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
                     break;
                 AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+                if (useArea && !attackHitApplied && state.fullPathHash == stateHash
+                    && state.normalizedTime >= AreaSlamNormalizedTime)
+                    AnimationEvent_ApplyAreaDamage();
                 if (state.fullPathHash != stateHash || state.normalizedTime >= 1f)
                     break;
                 if (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).fullPathHash != stateHash)
@@ -452,7 +467,7 @@ public sealed class BossController : MonoBehaviour
             if (isEntranceImpact) hitVfx.ShowEntranceBurst(activeAreaRadius);
             else hitVfx.ShowAreaBurst(activeAreaRadius);
         }
-        ApplyCircleDamage(body.position, activeAreaRadius);
+        if (!isEntranceImpact) ApplyCircleDamage(body.position, activeAreaRadius);
     }
 
     /// <summary>Animation Event at the end of each swipe clip.</summary>

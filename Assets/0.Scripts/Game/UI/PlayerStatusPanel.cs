@@ -233,6 +233,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         statValues[3].text = source.speed.ToString("0.##");
         statValues[5].text = $"{source.CurrentMP:0.#} / {source.maxMP:0.#}";
         statValues[6].text = source.mpRecoveryPerSecond.ToString("0.##") + "/s";
+        statValues[11].text = source.HasShield ? $"{source.CurrentShield:0.#} / {source.MaxShield:0.#}" : "0";
     }
     private void OnResourceChanged(float current, float maximum) => RefreshStats();
     private void Subscribe()
@@ -241,6 +242,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         source.HealthChanged += OnResourceChanged;
         source.MPChanged += OnResourceChanged;
         source.EXPChanged += OnResourceChanged;
+        source.ShieldChanged += OnResourceChanged;
         loadout.Changed += Refresh;
         subscribed = true;
     }
@@ -252,6 +254,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
             source.HealthChanged -= OnResourceChanged;
             source.MPChanged -= OnResourceChanged;
             source.EXPChanged -= OnResourceChanged;
+            source.ShieldChanged -= OnResourceChanged;
         }
         if (loadout != null) loadout.Changed -= Refresh;
         subscribed = false;

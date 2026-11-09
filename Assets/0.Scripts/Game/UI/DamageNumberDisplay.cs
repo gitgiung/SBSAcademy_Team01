@@ -21,6 +21,7 @@ public sealed class DamageNumberDisplay : MonoBehaviour
     private Canvas canvas;
     private RectTransform canvasRect;
     private bool warnedMissingCamera;
+    private bool suppressed;
 
     private sealed class Number
     {
@@ -49,9 +50,15 @@ public sealed class DamageNumberDisplay : MonoBehaviour
             Show(damage, player.transform.position, playerColor);
     }
 
+    public void SuppressAndClear()
+    {
+        suppressed = true;
+        while (numbers.Count > 0) ReturnNumberAt(0);
+    }
+
     private void Show(float damage, Vector3 position, Color color)
     {
-        if (!isActiveAndEnabled || damage <= 0f || float.IsNaN(damage) || float.IsInfinity(damage)) return;
+        if (suppressed || !isActiveAndEnabled || damage <= 0f || float.IsNaN(damage) || float.IsInfinity(damage)) return;
         if (targetCamera == null) targetCamera = Camera.main;
         if (targetCamera == null)
         {

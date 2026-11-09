@@ -109,6 +109,11 @@ public class PlayerData : MonoBehaviour
     public bool IsDead => currentHealth <= 0f;
     public event System.Action<float, float> HealthChanged;
     public event System.Action PlayerDeath;
+    public float CurrentShield { get; private set; }
+    public float MaxShield { get; private set; }
+    public bool HasShield => CurrentShield > 0f && shieldDuration > 0f;
+    public event System.Action<float, float> ShieldChanged;
+    private float shieldDuration;
 
     private void Awake()
     {
@@ -209,14 +214,52 @@ public class PlayerData : MonoBehaviour
         HealthChanged?.Invoke(currentHealth, maxHealth);
     }
 
+    public void GrantShield(float amount, float duration)
+    {
+        if (IsDead || !IsValidAmount(amount) || amount <= 0f || !IsValidAmount(duration) || duration <= 0f) return;
+        MaxShield = amount;
+        CurrentShield = amount;
+        shieldDuration = duration;
+        ShieldChanged?.Invoke(CurrentShield, MaxShield);
+    }
+
+    public void TickShield(float deltaTime)
+    {
+        if (!HasShield || !IsValidAmount(deltaTime) || deltaTime <= 0f) return;
+        shieldDuration -= deltaTime;
+        if (shieldDuration <= 0f) ClearShield();
+    }
+
+    public void ClearShield()
+    {
+        if (CurrentShield <= 0f && MaxShield <= 0f && shieldDuration <= 0f) return;
+        CurrentShield = 0f;
+        MaxShield = 0f;
+        shieldDuration = 0f;
+        ShieldChanged?.Invoke(0f, 0f);
+    }
+
+    private float AbsorbShield(float damage)
+    {
+        if (!HasShield || damage <= 0f) return damage;
+        float absorbed = Mathf.Min(CurrentShield, damage);
+        CurrentShield -= absorbed;
+        if (CurrentShield <= 0.0001f) ClearShield();
+        else ShieldChanged?.Invoke(CurrentShield, MaxShield);
+        return damage - absorbed;
+    }
+
     /// <summary>Applies validated damage and publishes the updated health state.</summary>
     public bool ApplyDamage(float damage)
     {
         if (damage <= 0f || IsDead) return false;
+        damage = AbsorbShield(damage);
+        if (damage <= 0f) return true;
         currentHealth = Mathf.Max(0f, currentHealth - damage);
         HealthChanged?.Invoke(currentHealth, maxHealth);
         if (IsDead)
         {
+            ClearShield();
             CancelPendingLevelUps();
             PlayerDeath?.Invoke();
         }

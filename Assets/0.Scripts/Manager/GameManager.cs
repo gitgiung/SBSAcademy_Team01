@@ -80,6 +80,11 @@ public class GameManager : MonoBehaviour
     private void FinishGame(GameState result)
     {
         state = result;
+        if (result == GameState.Defeat)
+        {
+            DamageNumberDisplay numbers = GetComponentInChildren<DamageNumberDisplay>(true);
+            if (numbers != null) numbers.SuppressAndClear();
+        }
         Time.timeScale = 0f;
         if (gameOverPanel != null) gameOverPanel.SetActive(result == GameState.Defeat);
         if (victoryPanel != null) victoryPanel.SetActive(result == GameState.Victory);

@@ -49,6 +49,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     private bool defaultCaptured;
     private System.Action<float, float> collectedReport;
     private float attractionElapsedTime;
+    private bool attracted;
 
     public void OnPoolRent()
     {
@@ -59,11 +60,13 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         playerData = null;
         collectedReport = null;
         attractionElapsedTime = 0f;
+        attracted = false;
     }
 
     public void OnPoolReturn()
     {
         attractionElapsedTime = 0f;
+        attracted = false;
         collected = true;
         playerData = null;
         collectedReport = null;
@@ -86,6 +89,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     public void Initialize(Transform target)
     {
         attractionElapsedTime = 0f;
+        attracted = false;
         ResolvePlayerData(target);
         RefreshExperienceColor();
     }
@@ -123,7 +127,11 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         pickupRenderer.color = selectedColor;
     }
 
-    private void OnDisable() => attractionElapsedTime = 0f;
+    private void OnDisable()
+    {
+        attractionElapsedTime = 0f;
+        attracted = false;
+    }
 
     private void Update() => UpdateAttraction(Time.deltaTime);
 
@@ -133,6 +141,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
             || float.IsNaN(attractionSpeed) || float.IsInfinity(attractionSpeed))
         {
             attractionElapsedTime = 0f;
+            attracted = false;
             return;
         }
 
@@ -140,14 +149,19 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         if (pickupDistance <= 0f)
         {
             attractionElapsedTime = 0f;
+            attracted = false;
             return;
         }
 
         Vector2 offset = (Vector2)playerData.transform.position - (Vector2)transform.position;
-        if (offset.sqrMagnitude > pickupDistance * pickupDistance)
+        if (!attracted)
         {
-            attractionElapsedTime = 0f;
-            return;
+            if (offset.sqrMagnitude > pickupDistance * pickupDistance)
+            {
+                attractionElapsedTime = 0f;
+                return;
+            }
+            attracted = true;
         }
 
         if (deltaTime <= 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime)) return;

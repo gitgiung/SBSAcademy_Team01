@@ -20,6 +20,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField] private InputActionAsset inputActions;
     [Header("약공격 연결")]
     [SerializeField] private Button lightAttackButton;
+    [SerializeField] private Button shieldButton;
     [SerializeField] private GameObject lightAttackProjectile;
     [Header("패시브 투사체 (Key는 SkillData.PassivePrefabKey와 일치)")]
     [SerializeField] private PlayerProjectileBinding[] passiveProjectiles = new PlayerProjectileBinding[0];
@@ -70,6 +71,9 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private InputAction parryInput;
     private InputAction attackInput;
     private GameObject lightFxPrototype;
+    private PlayerShieldBar shieldBar;
+    private float nextShieldReadyTime;
+    private const int WaterShieldId = 30009;
     private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
     private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];
     private bool lastExternalMoving;
@@ -142,17 +146,21 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         lightSkill = new PlayerLightSkill(this, data, view);
         if (lightAttackButton != null)
             Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
+        shieldBar = gameObject.AddComponent<PlayerShieldBar>();
+        shieldBar.Initialize(data, playerSpriteRenderer);
     }
 
     private void Start()
     {
         data.InitHealth();
         view.RefreshHealth();
+        BindShieldButton();
     }
 
     private void Update()
     {
         if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
+        data.TickShield(Time.deltaTime);
         data.TickMPRecovery(Time.deltaTime);
         lightSkill?.CheckAnimation();
         if (IsInputLocked)
@@ -197,6 +205,38 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         return TryCastLightSkill(CurrentAim());
     }
 
+    /// <summary>표의 물의 방패를 겁니다. 유지 중에는 캐릭터 위 보호막 체력이 보입니다.</summary>
+    public void TryUseShieldSkill()
+    {
+        if (data == null || hasDied || data.IsDead || Time.timeScale <= 0f) return;
+        if (Time.time < nextShieldReadyTime) return;
+        if (!CombatSkillTable.TryGet(WaterShieldId, out CombatSkillRecord record) || record.EffectType != "Shield") return;
+        float amount = data.maxHealth * Mathf.Max(0f, record.Factor);
+        float duration = record.EffectDuration;
+        if (!(amount > 0f) || !(duration > 0f) || float.IsNaN(amount) || float.IsNaN(duration)) return;
+        data.GrantShield(amount, duration);
+        nextShieldReadyTime = Time.time + Mathf.Max(0f, record.Cooldown);
+    }
+
+    private void BindShieldButton()
+    {
+        if (shieldButton == null)
+        {
+            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                if (buttons[i] != null && buttons[i].gameObject.scene == gameObject.scene && buttons[i].name == "Skill")
+                {
+                    shieldButton = buttons[i];
+                    break;
+                }
+            }
+        }
+        if (shieldButton == null || shieldButton.onClick.GetPersistentEventCount() > 0) return;
+        shieldButton.onClick.RemoveListener(TryUseShieldSkill);
+        shieldButton.onClick.AddListener(TryUseShieldSkill);
+    }
+
     public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);
     public void NotifyLightAttackAnimationFinished(int actionId) => lightSkill?.OnAnimationFinished(actionId);
 
@@ -210,25 +250,28 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
         if (aim.sqrMagnitude < 0.0001f)
             aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
-        StartCoroutine(CastLightSkill(skill, aim.normalized, actionId));
+        float stackDamage = skill.Damage(data.attackDamage)
+            * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
+        StartCoroutine(CastShots(skill, aim.normalized, stackDamage, true, actionId));
         return true;
     }
 
-    private IEnumerator CastLightSkill(LightSkillCast skill, Vector2 aim, int actionId)
+    private IEnumerator CastShots(LightSkillCast skill, Vector2 aim, float damage, bool lockUntilEnd, int actionId)
     {
+        skill = skill.Presented();
         int shots = Mathf.Max(1, skill.Projectiles);
-        float spacing = skill.ShotSpacing;
-        float stackDamage = skill.Damage(data.attackDamage)
-            * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
+        float spacing = skill.ScatterVolley ? 0f : skill.ShotSpacing;
         for (int i = 0; i < shots; i++)
         {
-            if (!isActiveAndEnabled || hasDied) break;
-            float spread = shots == 1 ? 0f : (i - (shots - 1) * 0.5f) * 8f;
+            if (!isActiveAndEnabled || hasDied || data == null || data.IsDead) break;
+            if (!lockUntilEnd && Time.timeScale <= 0f) yield break;
+            float spread = shots == 1 || skill.StraightRapidFire ? 0f : (i - (shots - 1) * 0.5f) * 8f;
             Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
-            SpawnLightSkill(skill, direction, stackDamage);
+            SpawnLightSkill(skill, direction, damage);
             if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
         }
-        float hold = 0.28f + skill.RepeatSpacing * Mathf.Max(0, skill.Hits - 1);
+        if (!lockUntilEnd) yield break;
+        float hold = skill.ScatterVolley ? 0.15f : 0.28f + skill.RepeatSpacing * Mathf.Max(0, skill.Hits - 1);
         if (hold > 0f) yield return new WaitForSeconds(hold);
         CompleteLightAttack(actionId);
     }
@@ -250,21 +293,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (!combat.TryGetClosestEnemyDirection(skill.Range, out Vector2 direction)) continue;
             ownedPassiveTimers[i] = cooldown;
             float stackMul = data.Loadout.GetAttackSkillDamageMultiplier(id);
-            StartCoroutine(CastOwnedPassive(skill, direction, skill.Damage(data.attackDamage) * scale * stackMul));
-        }
-    }
-
-    private IEnumerator CastOwnedPassive(LightSkillCast skill, Vector2 aim, float damage)
-    {
-        int shots = Mathf.Max(1, skill.Projectiles);
-        float spacing = skill.ShotSpacing;
-        for (int i = 0; i < shots; i++)
-        {
-            if (!isActiveAndEnabled || hasDied || data == null || data.IsDead || Time.timeScale <= 0f) yield break;
-            float spread = shots == 1 ? 0f : (i - (shots - 1) * 0.5f) * 8f;
-            Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
-            SpawnLightSkill(skill, direction, damage);
-            if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
+            StartCoroutine(CastShots(skill, direction, skill.Damage(data.attackDamage) * scale * stackMul, false, 0));
         }
     }
 
@@ -454,6 +483,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void OnDestroy()
     {
+        if (shieldButton != null) shieldButton.onClick.RemoveListener(TryUseShieldSkill);
         if (lightFxPrototype != null) Destroy(lightFxPrototype);
         view?.Dispose();
     }

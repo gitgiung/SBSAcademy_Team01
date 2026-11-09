@@ -34,9 +34,9 @@ static class Program
         Test("같은 시간의 두 번째 이동이 더 빠름", () => { var p=New(); Step(p,1); Near(2,X(p)); Step(p,1); Near(6,X(p)); });
         Test("프레임 간격 독립", () => { var a=New(); var b=New(); Step(a,1); for(int i=0;i<10;i++) Step(b,.1f); Near(X(a),X(b)); });
         Test("일시정지 동안 누적 가속 없음", () => { var p=New(); Step(p,1); Step(p,0); Step(p,1); Near(6,X(p)); });
-        Test("흡입 범위 이탈 후 시작 속도로 재개", () => {
+        Test("흡입 중 범위를 벗어나도 가속을 유지", () => {
             var p=New(); Step(p,1); var d=(PlayerData)typeof(ExperiencePickup).GetField("playerData",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(p);
-            d.experiencePickupDistance=1; Step(p,1); Near(2,X(p)); d.experiencePickupDistance=1000; Step(p,1); Near(4,X(p)); });
+            d.experiencePickupDistance=1; Step(p,1); Near(6,X(p)); });
         Test("비활성 후 누적 속도 초기화", () => { var p=New(); Step(p,1); Call(p,"OnDisable"); Step(p,1); Near(4,X(p)); });
         Test("풀 재대여 시 누적 속도 초기화", () => { var p=New(); Step(p,1); p.OnPoolReturn(); p.OnPoolRent(); var d=new PlayerData{experiencePickupDistance=1000}; d.transform.position=new Vector3(100,0,0); Set(p,"playerData",d); Step(p,1); Near(4,X(p)); });
         Test("시작 속도 0은 기존처럼 흡입 끔", () => { var p=New(10,0); Step(p,1); Near(0,X(p)); });

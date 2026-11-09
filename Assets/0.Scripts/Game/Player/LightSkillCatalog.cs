@@ -49,6 +49,17 @@ public readonly struct LightSkillCast
 
     public float ShotSpacing => Projectiles > 1 ? (HitDelay > 0f && HitDelay < 1f ? HitDelay : 0.12f) : 0f;
     public float RepeatSpacing => Hits > 1 ? (HitDelay > 0f && HitDelay < 1f ? HitDelay : 0.2f) : 0f;
+    /// <summary>불씨 산탄은 시간 차를 둔 연사가 아니라 한 번에 흩뿌립니다.</summary>
+    public bool ScatterVolley => Id == 10010;
+    /// <summary>화염 연사는 호 모양 베기가 아니라 정면 직선 연사입니다.</summary>
+    public bool StraightRapidFire => Id == 10013;
+
+    public LightSkillCast Presented()
+    {
+        if (!StraightRapidFire) return this;
+        return new LightSkillCast(Id, Name, Element, MpCost, LightSkillShape.Projectile,
+            Range, 0f, Width > 0.01f ? Width : 0.35f, Mathf.Max(1, Hits), 1, HitDelay, BaseValue, Factor);
+    }
 
     public static bool TryFrom(CombatSkillRecord record, out LightSkillCast skill)
     {

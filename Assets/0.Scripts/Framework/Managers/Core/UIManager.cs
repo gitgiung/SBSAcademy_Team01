@@ -278,6 +278,12 @@ public class UIManager
         return _popupStack.Count;
     }
 
+    public bool IsTopPopup(UI_Popup popup)
+    {
+        RefreshPopupStack();
+        return popup != null && _popupStack.Count > 0 && _popupStack.Peek() == popup;
+    }
+
     private void RemovePopupFromStack(UI_Popup popup)
     {
         UI_Popup[] remaining = _popupStack.Reverse().Where(item => item != popup).ToArray();

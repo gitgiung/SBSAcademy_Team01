@@ -143,8 +143,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperiencePickup
   experienceAmount: 1
-  attractionSpeed: 1
-  attractionAcceleration: 3
+  attractionSpeed: 10
+  attractionAcceleration: 18
   pickupRenderer: {fileID: 667000003}
   experienceColors:
   - minimumExperience: 0

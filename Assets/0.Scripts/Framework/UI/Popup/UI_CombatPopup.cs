@@ -1,9 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 /// <summary>전투 팝업의 화면 수명을 씬의 진행 담당자에게 전달합니다.</summary>
-public sealed class UI_CombatPopup : UI_Popup
+public sealed class UI_CombatPopup : UI_Popup, IPointerClickHandler
 {
     [SerializeField] private Button closeButton;
     [SerializeField] private RectTransform contentRoot;
@@ -52,5 +53,26 @@ public sealed class UI_CombatPopup : UI_Popup
     {
         if (closeButton != null)
             closeButton.onClick.RemoveListener(ClosePopupUI);
+    }
+
+    /// <summary>회색 바깥 패널을 누르면 뒤로가기와 같은 닫기입니다. 내용 버튼은 자식이 먼저 받습니다.</summary>
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left) return;
+        if (Managers.UI == null || !Managers.UI.IsTopPopup(this)) return;
+        ClosePopupUI();
+    }
+
+    private void Update()
+    {
+        if (Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame) return;
+        if (Managers.UI == null || !Managers.UI.IsTopPopup(this)) return;
+        PlayerStatusPanel status = GetComponentInChildren<PlayerStatusPanel>(true);
+        if (status != null && status.OptionsVisible)
+        {
+            status.HideOptions();
+            return;
+        }
+        ClosePopupUI();
     }
 }

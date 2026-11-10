@@ -72,8 +72,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private InputAction attackInput;
     private GameObject lightFxPrototype;
     private PlayerShieldBar shieldBar;
-    private float nextShieldReadyTime;
-    private const int WaterShieldId = 30009;
+    private float nextTacticalReadyTime;
+    private const int FallbackTacticalId = 30009;
     private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
     private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];
     private bool lastExternalMoving;
@@ -154,13 +154,15 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         data.InitHealth();
         view.RefreshHealth();
-        BindShieldButton();
+        BindTacticalButton();
     }
 
     private void Update()
     {
         if (Time.timeScale <= 0f || hasDied || data.IsDead) return;
         data.TickShield(Time.deltaTime);
+        data.TickHealOverTime(Time.deltaTime);
+        data.TickInvulnerable(Time.deltaTime);
         data.TickMPRecovery(Time.deltaTime);
         lightSkill?.CheckAnimation();
         if (IsInputLocked)
@@ -205,20 +207,23 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         return TryCastLightSkill(CurrentAim());
     }
 
-    /// <summary>표의 물의 방패를 겁니다. 유지 중에는 캐릭터 위 보호막 체력이 보입니다.</summary>
-    public void TryUseShieldSkill()
+    /// <summary>장착한 전략 스킬을 시전합니다. 미장착이면 표의 물의 방패(30009)로 대체합니다.</summary>
+    public bool TryUseTacticalSkill()
     {
-        if (data == null || hasDied || data.IsDead || Time.timeScale <= 0f) return;
-        if (Time.time < nextShieldReadyTime) return;
-        if (!CombatSkillTable.TryGet(WaterShieldId, out CombatSkillRecord record) || record.EffectType != "Shield") return;
-        float amount = data.maxHealth * Mathf.Max(0f, record.Factor);
-        float duration = record.EffectDuration;
-        if (!(amount > 0f) || !(duration > 0f) || float.IsNaN(amount) || float.IsNaN(duration)) return;
-        data.GrantShield(amount, duration);
-        nextShieldReadyTime = Time.time + Mathf.Max(0f, record.Cooldown);
+        if (data == null || hasDied || data.IsDead || Time.timeScale <= 0f || IsInputLocked) return false;
+        if (Time.time < nextTacticalReadyTime) return false;
+        int id = data.Loadout != null ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) : 0;
+        if (id == 0) id = FallbackTacticalId;
+        if (!CombatSkillTable.TryGet(id, out CombatSkillRecord record)) return false;
+        if (!TacticalSkillEffect.TryApply(data, record)) return false;
+        nextTacticalReadyTime = Time.time + Mathf.Max(0f, record.Cooldown);
+        return true;
     }
 
-    private void BindShieldButton()
+    /// <summary>이전 보호막 버튼 경로 호환용입니다.</summary>
+    public void TryUseShieldSkill() => TryUseTacticalSkill();
+
+    private void BindTacticalButton()
     {
         if (shieldButton == null)
         {
@@ -483,7 +488,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void OnDestroy()
     {
-        if (shieldButton != null) shieldButton.onClick.RemoveListener(TryUseShieldSkill);
+        if (shieldButton != null) shieldButton.onClick.RemoveListener(TryUseShieldSkill); // TryUseTacticalSkill 경로
         if (lightFxPrototype != null) Destroy(lightFxPrototype);
         view?.Dispose();
     }

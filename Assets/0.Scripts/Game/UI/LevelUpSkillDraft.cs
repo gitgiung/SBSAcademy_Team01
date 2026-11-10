@@ -32,10 +32,19 @@ public static class LevelUpSkillDraft
         var seen = new HashSet<int>();
         if (table.skills != null)
             foreach (var skill in table.skills)
-                if (skill != null && skill.Id >= minId && skill.Id < maxId
-                    && (excludedIds == null || !excludedIds.Contains(skill.Id))
-                    && byRarity.TryGetValue(SkillRarityRecord.NormalizeId(skill.Rarity), out var bucket) && seen.Add(skill.Id))
+            {
+                if (skill == null || skill.Id < minId || skill.Id >= maxId) continue;
+                if (excludedIds != null && excludedIds.Contains(skill.Id)) continue;
+                // 전략 스킬만 등급 칸이 비어 있어도 일반 등급으로 추첨합니다.
+                string rarityId = SkillRarityRecord.NormalizeId(skill.Rarity);
+                if (rarityId.Length == 0)
+                {
+                    if (skill.Id < 30000 || skill.Id >= 40000) continue;
+                    rarityId = "Common";
+                }
+                if (byRarity.TryGetValue(rarityId, out var bucket) && seen.Add(skill.Id))
                     bucket.Skills.Add(skill);
+            }
 
         while (result.Count < count)
         {

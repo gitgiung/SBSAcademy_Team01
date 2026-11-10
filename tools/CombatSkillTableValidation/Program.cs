@@ -61,11 +61,21 @@ internal static class Program
             var loadout = new PlayerLoadout();
             for (int id = 10001; id <= 10006; id++) Equal(true, Acquire(loadout, Skill(id)));
             Equal(false, Acquire(loadout, Skill(10008)));
-            Equal(false, Acquire(new PlayerLoadout(), Skill(30001)));
             Equal(10006, loadout.GetAttackSkill(5).DataId);
             // 슬롯이 가득 차도 미최대 스택 보유 스킬은 강화할 수 있습니다.
             Equal(true, Acquire(loadout, Skill(10001)));
             Equal(2, loadout.GetAttackSkillStack(10001));
+        });
+        Test("tactical acquisition registers and auto-equips once", () =>
+        {
+            var loadout = new PlayerLoadout();
+            Equal(true, Acquire(loadout, Skill(30001)));
+            Equal(30001, loadout.GetTacticalSkill(0).DataId);
+            Equal(30001, loadout.GetEquippedSkillId(PlayerSkillButton.Tactical));
+            Equal(false, Acquire(loadout, Skill(30001)));
+            Equal(true, Acquire(loadout, Skill(30002)));
+            Equal(30002, loadout.GetTacticalSkill(1).DataId);
+            Equal(30001, loadout.GetEquippedSkillId(PlayerSkillButton.Tactical));
         });
         Test("owned exclusions leave only unowned candidates and can exhaust", () =>
         {

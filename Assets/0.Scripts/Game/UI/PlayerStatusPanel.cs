@@ -92,7 +92,15 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         }
         Text(Rect(mainRoot.transform, "AttackEquipHint", 175, 143, 560, 26),
             "약공격 클릭: 장착 / 다시 클릭: 해제 · 강공격은 추후 연결", font, 17, Color.white, TextAlignmentOptions.Left);
-        for (int i = 0; i < 5; i++) tacticals.Add(new Cell(Rect(mainRoot.transform, "TacticalSlot" + i, 790 + i % 3 * 72, 200 + i / 3 * 75, 60, 60), font));
+        for (int i = 0; i < 5; i++)
+        {
+            int index = i;
+            var cell = new Cell(Rect(mainRoot.transform, "TacticalSlot" + i, 790 + i % 3 * 72, 200 + i / 3 * 75, 60, 60), font);
+            cell.SetAction(() => ToggleTacticalSkill(index));
+            tacticals.Add(cell);
+        }
+        Text(Rect(mainRoot.transform, "TacticalEquipHint", 790, 350, 200, 40),
+            "전략 클릭: Skill 버튼 장착", font, 15, Color.white, TextAlignmentOptions.Left);
         relicRow = new ItemRow(mainRoot.transform, "Relics", 230, font);
         augmentRow = new ItemRow(mainRoot.transform, "Augments", 390, font);
         var gear = Button(Rect(mainRoot.transform, "OptionsButton", 936, 16, 43, 43), "설정", font,
@@ -206,7 +214,9 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < tacticals.Count; i++)
         {
             var skill = loadout?.GetTacticalSkill(i);
-            tacticals[i].Show(skill?.Name, SkillIcon(skill));
+            bool equipped = skill != null && loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) == skill.DataId;
+            tacticals[i].Show(skill?.Name, SkillIcon(skill), false, equipped);
+            tacticals[i].SetInteractable(skill != null && skill.DataId >= 30000 && skill.DataId < 40000);
         }
         relicRow.Refresh(loadout?.Relics);
         augmentRow.Refresh(loadout?.Augments);
@@ -220,6 +230,15 @@ public sealed class PlayerStatusPanel : MonoBehaviour
             loadout.TryUnequip(PlayerSkillButton.Light);
         else
             loadout.TryEquip(PlayerSkillButton.Light, skill.DataId);
+    }
+    private void ToggleTacticalSkill(int index)
+    {
+        var skill = loadout?.GetTacticalSkill(index);
+        if (skill == null || skill.DataId < 30000 || skill.DataId >= 40000) return;
+        if (loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) == skill.DataId)
+            loadout.TryUnequip(PlayerSkillButton.Tactical);
+        else
+            loadout.TryEquip(PlayerSkillButton.Tactical, skill.DataId);
     }
     private static Sprite SkillIcon(Data.SkillData skill) => skill != null && !string.IsNullOrEmpty(skill.IconLabel)
         ? Managers.Resource.Load<Sprite>(skill.IconLabel) : null;

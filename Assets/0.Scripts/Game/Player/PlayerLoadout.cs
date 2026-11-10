@@ -44,6 +44,15 @@ public sealed class PlayerLoadout
         }
     }
 
+    public bool HasFreeTacticalSlot
+    {
+        get
+        {
+            for (int i = 0; i < TacticalCapacity; i++) if (GetTacticalSkill(i) == null) return true;
+            return false;
+        }
+    }
+
     private void EnsureSlots()
     {
         if (attackSkills == null || attackSkills.Length != AttackCapacity) Array.Resize(ref attackSkills, AttackCapacity);

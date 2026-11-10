@@ -114,6 +114,12 @@ public class PlayerData : MonoBehaviour
     public bool HasShield => CurrentShield > 0f && shieldDuration > 0f;
     public event System.Action<float, float> ShieldChanged;
     private float shieldDuration;
+    private float healOverTimePerTick;
+    private float healOverTimeDelay;
+    private float healOverTimeTimer;
+    private int healOverTimeHitsLeft;
+    private float invulnerableRemaining;
+    public bool IsInvulnerable => invulnerableRemaining > 0f;
 
     private void Awake()
     {
@@ -211,8 +217,68 @@ public class PlayerData : MonoBehaviour
     {
         if (maxHealth <= 0f) maxHealth = 100f;
         currentHealth = maxHealth;
+        ClearHealOverTime();
+        ClearInvulnerable();
         HealthChanged?.Invoke(currentHealth, maxHealth);
     }
+
+    /// <summary>유효한 양만 회복하며 최대 체력을 넘기지 않습니다.</summary>
+    public float RestoreHealth(float amount)
+    {
+        if (IsDead || !IsValidAmount(amount) || !IsValidAmount(maxHealth)) return 0f;
+        float restored = Mathf.Min(amount, Mathf.Max(0f, maxHealth - currentHealth));
+        if (restored <= 0f) return 0f;
+        currentHealth += restored;
+        HealthChanged?.Invoke(currentHealth, maxHealth);
+        return restored;
+    }
+
+    public void BeginHealOverTime(float amountPerTick, float hitDelay, int hitCount)
+    {
+        if (IsDead || !IsValidAmount(amountPerTick) || amountPerTick <= 0f) return;
+        if (!IsValidAmount(hitDelay) || hitDelay <= 0f || hitCount <= 0) return;
+        healOverTimePerTick = amountPerTick;
+        healOverTimeDelay = hitDelay;
+        healOverTimeTimer = 0f;
+        healOverTimeHitsLeft = hitCount;
+    }
+
+    public void TickHealOverTime(float deltaTime)
+    {
+        if (healOverTimeHitsLeft <= 0 || IsDead || !IsValidAmount(deltaTime) || deltaTime <= 0f) return;
+        healOverTimeTimer += deltaTime;
+        while (healOverTimeHitsLeft > 0 && healOverTimeTimer >= healOverTimeDelay)
+        {
+            healOverTimeTimer -= healOverTimeDelay;
+            healOverTimeHitsLeft--;
+            RestoreHealth(healOverTimePerTick);
+            if (IsDead) { ClearHealOverTime(); return; }
+        }
+        if (healOverTimeHitsLeft <= 0) ClearHealOverTime();
+    }
+
+    public void ClearHealOverTime()
+    {
+        healOverTimePerTick = 0f;
+        healOverTimeDelay = 0f;
+        healOverTimeTimer = 0f;
+        healOverTimeHitsLeft = 0;
+    }
+
+    public void GrantInvulnerable(float duration)
+    {
+        if (IsDead || !IsValidAmount(duration) || duration <= 0f) return;
+        invulnerableRemaining = Mathf.Max(invulnerableRemaining, duration);
+    }
+
+    public void TickInvulnerable(float deltaTime)
+    {
+        if (invulnerableRemaining <= 0f || !IsValidAmount(deltaTime) || deltaTime <= 0f) return;
+        invulnerableRemaining -= deltaTime;
+        if (invulnerableRemaining <= 0f) ClearInvulnerable();
+    }
+
+    public void ClearInvulnerable() => invulnerableRemaining = 0f;
 
     public void GrantShield(float amount, float duration)
     {
@@ -253,6 +319,7 @@ public class PlayerData : MonoBehaviour
     public bool ApplyDamage(float damage)
     {
         if (damage <= 0f || IsDead) return false;
+        if (IsInvulnerable) return true;
         damage = AbsorbShield(damage);
         if (damage <= 0f) return true;
         currentHealth = Mathf.Max(0f, currentHealth - damage);
@@ -260,6 +327,8 @@ public class PlayerData : MonoBehaviour
         if (IsDead)
         {
             ClearShield();
+            ClearHealOverTime();
+            ClearInvulnerable();
             CancelPendingLevelUps();
             PlayerDeath?.Invoke();
         }

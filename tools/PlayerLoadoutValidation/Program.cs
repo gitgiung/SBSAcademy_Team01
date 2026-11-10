@@ -73,6 +73,19 @@ internal static class Program
             Check(l.RemoveSkill(10001));
             Check(l.GetAttackSkillStack(10001) == 0);
         });
+        Test("tactical ownership equip and free slot", () => {
+            var l = new PlayerLoadout();
+            Check(l.HasFreeTacticalSlot);
+            Check(l.TryAddTacticalSkill(new Data.SkillData { DataId = 30002, Name = "복원 치유" }));
+            Check(l.TryEquip(PlayerSkillButton.Tactical, 30002));
+            Check(l.GetEquippedSkillId(PlayerSkillButton.Tactical) == 30002);
+            Check(!l.TryAddTacticalSkill(new Data.SkillData { DataId = 30002, Name = "복원 치유" }));
+            Check(!l.TryEquip(PlayerSkillButton.Tactical, 30001));
+            for (int id = 30003; id <= 30006; id++)
+                Check(l.TryAddTacticalSkill(new Data.SkillData { DataId = id, Name = "t" + id }));
+            Check(!l.HasFreeTacticalSlot);
+            Check(!l.TryAddTacticalSkill(new Data.SkillData { DataId = 30007, Name = "수호 기도" }));
+        });
         Console.WriteLine($"{tests - failures}/{tests} passed");
         return failures == 0 ? 0 : 1;
     }

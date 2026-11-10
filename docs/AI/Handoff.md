@@ -1,5 +1,24 @@
 # 작업 인수인계
 
+## 2026-11-10 야수 좀비 보스 스프라이트 잘림·참조 오류 수정
+
+- 재현: `body-charge/east` 0·1·4, `body-charge/west` 4, `swipe/north-east` 3의 주 Sprite Rect 밖에 각각 17·9·102·149·5픽셀이 있었다. `body-charge-loop_NorthEast`의 8.png 키는 본체 대신 6×7 조각을 참조했고, 레거시 `BossIdle`은 삭제된 임시 Square 스프라이트를 참조했다.
+- 수정: 5개 주 Rect를 대칭 확장해 원본 좌표상 중심과 기존 Sprite ID/GUID를 보존했다. 북동 돌진 8.png 키는 본체를, 레거시 대기는 남쪽 대기 0.png를 참조하도록 키와 바인딩을 맞췄다. 예전 스파크 제거가 적용되기 전 원본을 쓰던 `Animator/FrameSources`의 할퀴기 사본 38장은 대응하는 현재 PNG로 교체해 48장 모두 일치시켰다.
+- 검증: PNG 560장과 클립 73개의 Sprite 키 554개를 파일 검사했다. 주 Rect 밖 알파, 누락 참조, 작은 조각을 쓰는 키 모두 0건. Rect 수정 전후를 눈으로 비교했고 `git diff --check` 통과. `BeastZombieArtTests` EditMode 12개를 추가했다. 격리 Unity 6000.5.0f1이 유효한 에디터 라이선스를 찾지 못해 종료(198)했으므로 Unity 테스트 실행 0개, 실제 임포트·재생 미확인이다.
+- 직접 확인: Unity 임포트 완료 → `MainScene`에서 `BeastZombie` 선택 → `Window > Animation > Animation` → `body-charge-loop_NorthEast`의 약 0.33초에 보스 본체가 표시되는지, `body-charge-loop_East`와 `body-charge-loop_West` 첫 프레임에서 발이 온전히 나오는지 확인한다. `Boss_Swipe_NorthEast`와 `Boss_SwipeLeft_West`에서 할퀴기 중 예전 스파크가 다시 튀지 않는지도 확인한다. 이상하면 해당 PNG와 클립의 `Reimport`, `Sprite Editor`의 본체 Rect와 Console의 첫 임포트 오류를 확인한다.
+- 남은 확인: 원본 PNG 캔버스 가장자리에 발·손 픽셀이 닿는 대기 11장과 양손 할퀴기 4장은 원본 자체의 잘림 여부를 별도로 판단해야 한다. 에디터에서 `Window > General > Test Runner > EditMode`의 `BeastZombieArtTests`를 실행하고 MainScene에서 실제 재생을 확인한다.
+
+## 2026-11-10 전략 스킬(회복·보호막·무적) 연결
+
+- 요청: 회복이 없어 힘드니 전략 스킬을 추가한다.
+- 시전: 모바일 `Skill` 버튼이 장착한 전략 스킬을 쓴다. 미장착이면 기존처럼 물의 방패(30009)로 대체한다. 지원 EffectType은 `Heal`(복원 치유), `HealOverTime`(재생 치유), `Recover`(급속 회복/MP), `Shield`(물의 방패), `Invulnerable`(수호 기도). 버프·오라(방어/공격 태세, 바람의 가호, 축복, 불타는 갑주)는 아직 시전하지 않으며 레벨업 추첨에서도 뺀다. 스테이지당 횟수(표 설명의 5회)는 데이터 칸이 없어 쿨타임만 적용한다.
+- 획득: 레벨업 카드에 약공격과 전략을 섞는다(임시 비율 약공격 0.75 / 전략 0.25). 전략은 등급 칸이 비어 있어도 Common 가중으로 추첨한다. 첫 전략 획득 시 Tactical 버튼에 자동 장착한다.
+- 장착: 일시정지 상태창의 전략 칸을 클릭하면 Skill 버튼 장착/해제. 보유·장착 표시는 약공격과 같다.
+- 코드: `TacticalSkillEffect`, `PlayerData` 체력 회복·지속 회복·무적, `Player.TryUseTacticalSkill`, `LevelUpSkillReward` 전략 등록, `CombatPopupController` 혼합 추첨, `PlayerStatusPanel` 전략 장착.
+- 검증: `tools/PlayerLoadoutValidation/Run.ps1` **6/6**. `tools/CombatSkillTableValidation/Run.ps1` **18/20**(신규 전략 획득 1건 포함 통과). 실패 2건은 태양 검(10007) 패시브 쿨타임 엑셀·배포 JSON 불일치로 이전부터 있던 항목이며 이번 범위에서 고치지 않음. Unity 컴파일·Play·PlayMode는 실행하지 않았다.
+- 직접 확인: Unity 임포트 후 Console 오류 없음 → `Tools > Play From Title` 끄기 → MainScene Play. 시작 직후 `Skill`은 물의 방패(보호막 막대). 경험치로 레벨업해 재생/복원 치유·급속 회복·수호 기도·물의 방패 카드가 나오면 선택 → 일시정지에서 전략 칸에 등록·[장착] 표시 → 재개 후 `Skill`로 해당 효과 확인(체력/MP 회복, 보호막, 1.5초 무적). 이상하면 Console 첫 오류, 장착 ID 30001~30003·30007·30009, 쿨타임 6초를 확인한다.
+- 다음: 버프·오라 시전, 스테이지당 사용 횟수 칸, 스킬 자세히 보기의 MP·쿨다운.
+
 ## 2026-11-09 화염구 폭발과 경험치 구슬 흔들림
 
 - 화염구(10004)와 작열 구체(10015)는 적에게 맞으면 기존 원형 폭발 그림으로 터진다. 맞은 대상과 주변은 그 스킬의 기존 피해를 한 번씩 받는다. 표에 폭발 반경이 없어 가로 폭의 두 배를 임시 반경으로 쓴다. 화염구 1.8, 작열 구체 2.2. 탄환·화살·산탄은 그대로 한 점 피격이다. 사거리 끝에서 저절로 터지지는 않는다.

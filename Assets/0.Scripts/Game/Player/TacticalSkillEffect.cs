@@ -47,7 +47,10 @@ public static class TacticalSkillEffect
         int hits = Mathf.Max(1, record.Hits);
         float delay = record.HitDelay > 0f ? record.HitDelay : 1f;
         if (!(perTick > 0f) || float.IsNaN(perTick) || float.IsNaN(delay)) return false;
-        data.BeginHealOverTime(perTick, delay, hits);
+        // 첫 회복은 즉시 적용하고, 남은 횟수는 간격마다 이어집니다.
+        data.RestoreHealth(perTick);
+        if (hits > 1) data.BeginHealOverTime(perTick, delay, hits - 1);
+        else data.ClearHealOverTime();
         return true;
     }
 

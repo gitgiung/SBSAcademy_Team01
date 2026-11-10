@@ -20,15 +20,26 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private bool running;
     private bool projectile;
     private bool bursting;
+    private bool forking;
+    private bool sunderScaled;
+    private bool whirlScaled;
     private string enemyTag = "Enemy";
     private Sprite[] frames;
     private readonly HashSet<EntityId> hitIds = new HashSet<EntityId>();
+    private readonly List<SpriteRenderer> forks = new List<SpriteRenderer>();
+    private Sprite[] forkFrames;
+    private int forkFrame;
+    private float forkTimer;
+    // 구운 불줄기 그림의 가장 굵은 부분이 뿌리 쪽 반폭 약 14픽셀입니다. 맞히는 두께는 그 절반 정도의 임시값입니다.
+    private const float ForkHitThickness = 0.7f;
 
     public void OnPoolRent() => Cache();
     public void OnPoolReturn()
     {
         running = false;
         bursting = false;
+        forking = false;
+        HideForks();
         StopAllCoroutines();
         hitIds.Clear();
     }
@@ -50,11 +61,54 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         hitIds.Clear();
         running = true;
         bursting = false;
+        forking = false;
+        HideForks();
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
 
         frames = LightSkillVisuals.Frames(skill.Shape, out frameDuration);
+        Material material = LightSkillVisuals.MaterialFor(skill.Element, skill.Shape);
+        // 작열 구체는 pixelfx plasma-shot을 불 색으로 구운 그림을 씁니다. 없으면 기존 불꽃 탄환 그림입니다.
+        if (skill.ForksOnHit && projectile)
+        {
+            Sprite[] orb = LightSkillVisuals.BlazeFrames(LightSkillVisuals.BlazeOrbPrefix);
+            if (orb.Length > 0)
+            {
+                frames = orb;
+                frameDuration = LightSkillVisuals.BlazeFrameDuration;
+                material = LightSkillVisuals.BlazeMaterial();
+            }
+        }
+        // 절멸의 불은 구워 둔 불 균열 그림을 씁니다. 없으면 기존 직선 그림입니다.
+        sunderScaled = false;
+        if (skill.SunderingFire && skill.Shape == LightSkillShape.Line)
+        {
+            Sprite[] sunder = LightSkillVisuals.BlazeFrames(LightSkillVisuals.SunderFirePrefix);
+            if (sunder.Length > 0)
+            {
+                frames = sunder;
+                frameDuration = LightSkillVisuals.BlazeFrameDuration;
+                material = LightSkillVisuals.BlazeMaterial();
+                sunderScaled = true;
+                life = frameDuration * frames.Length + skill.RepeatSpacing * (hitsLeft - 1);
+            }
+        }
+        // 화염 고리는 구워 둔 불 회오리 그림을 한 번 재생합니다. 없으면 기존 바닥 고리 그림입니다.
+        whirlScaled = false;
+        if (skill.FlameWhirl && skill.Shape == LightSkillShape.Ring)
+        {
+            Sprite[] whirl = LightSkillVisuals.BlazeFrames(LightSkillVisuals.FlameWhirlPrefix);
+            if (whirl.Length > 0)
+            {
+                frames = whirl;
+                frameDuration = LightSkillVisuals.BlazeFrameDuration;
+                material = LightSkillVisuals.BlazeMaterial();
+                whirlScaled = true;
+                life = frameDuration * frames.Length + skill.RepeatSpacing * (hitsLeft - 1);
+            }
+        }
         if (spriteRenderer != null)
         {
-            spriteRenderer.sharedMaterial = LightSkillVisuals.MaterialFor(skill.Element, skill.Shape);
+            spriteRenderer.sharedMaterial = material;
             spriteRenderer.sprite = frames.Length > 0 ? frames[0] : null;
             spriteRenderer.sortingOrder = 30;
         }
@@ -92,10 +146,18 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
                 transform.localScale = Vector3.one * (diameter / height);
                 break;
             case LightSkillShape.Ring:
-                transform.localScale = Vector3.one * ((skill.Range * 2f) / height);
+                // 회오리 그림은 가운데에서 불 벽까지가 Range가 되도록 같은 비율로만 키웁니다.
+                if (whirlScaled)
+                    transform.localScale = Vector3.one * (skill.Range / (LightSkillVisuals.FlameWhirlReachPixels / LightSkillVisuals.PixelsPerUnit));
+                else
+                    transform.localScale = Vector3.one * ((skill.Range * 2f) / height);
                 break;
             case LightSkillShape.Line:
-                transform.localScale = new Vector3(skill.Range / width, Mathf.Max(0.4f, skill.Width) / height, 1f);
+                // 균열 그림은 가로세로를 따로 늘리지 않고 닿는 길이에 맞춰 같은 비율로만 키웁니다.
+                if (sunderScaled)
+                    transform.localScale = Vector3.one * (skill.Range / (LightSkillVisuals.SunderFireReachPixels / LightSkillVisuals.PixelsPerUnit));
+                else
+                    transform.localScale = new Vector3(skill.Range / width, Mathf.Max(0.4f, skill.Width) / height, 1f);
                 break;
             case LightSkillShape.Cone:
             case LightSkillShape.Arc:
@@ -115,6 +177,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         Animate();
         if (bursting)
         {
+            if (forking) AnimateForks();
             if (life <= 0f) Finish();
             return;
         }
@@ -148,7 +211,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         frameTimer += Time.deltaTime;
         if (frameTimer < frameDuration) return;
         frameTimer = 0f;
-        bool loop = !bursting && (skill.Shape == LightSkillShape.Projectile || skill.Shape == LightSkillShape.Ring);
+        bool loop = !bursting && !whirlScaled && (skill.Shape == LightSkillShape.Projectile || skill.Shape == LightSkillShape.Ring);
         if (!loop && frame >= frames.Length - 1) return;
         frame = (frame + 1) % frames.Length;
         spriteRenderer.sprite = frames[frame];
@@ -163,8 +226,101 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             Finish();
             return;
         }
-        Splash();
-        BeginImpactBurst();
+        if (skill.ForksOnHit) BurstForks();
+        else
+        {
+            Splash();
+            BeginImpactBurst();
+        }
+    }
+
+    private void BurstForks()
+    {
+        forkFrames = LightSkillVisuals.BlazeFrames(LightSkillVisuals.BlazeForkPrefix);
+        float reach = skill.SplashRadius;
+        // 구운 그림이 없거나 반경이 없으면 예전 원형 폭발로 대신합니다.
+        if (forkFrames.Length == 0 || reach <= 0f)
+        {
+            Splash();
+            BeginImpactBurst();
+            return;
+        }
+
+        bursting = true;
+        forking = true;
+        projectile = false;
+        if (hitCollider != null) hitCollider.enabled = false;
+        if (spriteRenderer != null) spriteRenderer.enabled = false;
+        transform.rotation = Quaternion.identity;
+        transform.localScale = Vector3.one;
+
+        int count = Random.Range(6, 9);
+        float spin = Random.Range(0f, 360f);
+        float scale = reach / (LightSkillVisuals.BlazeForkReachPixels / LightSkillVisuals.PixelsPerUnit);
+        EnsureForks(count);
+        Vector2 origin = transform.position;
+        for (int i = 0; i < forks.Count; i++)
+        {
+            SpriteRenderer fork = forks[i];
+            bool active = i < count;
+            fork.gameObject.SetActive(active);
+            if (!active) continue;
+            float angle = spin + 360f * i / count + Random.Range(-10f, 10f);
+            float length = Random.Range(0.92f, 1.08f);
+            fork.transform.localPosition = Vector3.zero;
+            fork.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            fork.transform.localScale = new Vector3(scale * length, scale * (Random.value < 0.5f ? 1f : -1f), 1f);
+            fork.sprite = forkFrames[0];
+            DamageFork(origin, angle, reach * length);
+        }
+        forkFrame = 0;
+        forkTimer = 0f;
+        life = LightSkillVisuals.BlazeFrameDuration * forkFrames.Length;
+    }
+
+    /// <summary>불줄기 한 가닥이 닿는 적에게 피해를 줍니다. 한 적은 줄기가 몇 개 닿아도 한 번만 맞습니다.</summary>
+    private void DamageFork(Vector2 origin, float angleDegrees, float length)
+    {
+        float radians = angleDegrees * Mathf.Deg2Rad;
+        Vector2 dir = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
+        Vector2 center = origin + dir * (length * 0.5f);
+        Vector2 size = new Vector2(length, ForkHitThickness);
+        foreach (Collider2D hit in Physics2D.OverlapCapsuleAll(center, size, CapsuleDirection2D.Horizontal, angleDegrees))
+            if (hit != null && hit.CompareTag(enemyTag)) Damage(hit);
+    }
+
+    private void EnsureForks(int count)
+    {
+        while (forks.Count < count)
+        {
+            var child = new GameObject("Blaze Fork");
+            child.transform.SetParent(transform, false);
+            SpriteRenderer renderer = child.AddComponent<SpriteRenderer>();
+            renderer.sharedMaterial = LightSkillVisuals.BlazeMaterial();
+            if (spriteRenderer != null) renderer.sortingLayerID = spriteRenderer.sortingLayerID;
+            renderer.sortingOrder = 31;
+            child.SetActive(false);
+            forks.Add(renderer);
+        }
+    }
+
+    private void AnimateForks()
+    {
+        if (forkFrames == null || forkFrames.Length == 0) return;
+        forkTimer += Time.deltaTime;
+        while (forkTimer >= LightSkillVisuals.BlazeFrameDuration && forkFrame < forkFrames.Length - 1)
+        {
+            forkTimer -= LightSkillVisuals.BlazeFrameDuration;
+            forkFrame++;
+        }
+        for (int i = 0; i < forks.Count; i++)
+            if (forks[i] != null && forks[i].gameObject.activeSelf) forks[i].sprite = forkFrames[forkFrame];
+    }
+
+    private void HideForks()
+    {
+        for (int i = 0; i < forks.Count; i++)
+            if (forks[i] != null) forks[i].gameObject.SetActive(false);
     }
 
     private void Splash()

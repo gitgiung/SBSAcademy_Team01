@@ -1,5 +1,58 @@
 # 작업 인수인계
 
+## 2026-11-10 화염 고리를 pixelfx 불 회오리로 교체
+
+- 요청: 화염 고리(10014)를 히오스 번개 회오리 같은 불 속성 연출로 바꾼다. 같은 pixelfx 방식으로 만든다.
+- 이펙트: pixelfx에 새로 쓴 `fire/flame-whirl`(`.utmp/pixelfx/src/fx/fire/flame-whirl.js`)을 구워 `Assets/Resources/LightSkills/Blaze/FlameWhirl_00`~`24`(184×176, 30fps, 약 0.83초, 피벗 92,112 = 바닥 고리 가운데)를 쓴다. 발밑에서 흰 섬광과 함께 바닥 고리가 번지고, 플레이어를 둘러싼 불 벽이 소용돌이치며 올라온다(나선 띠, 회전 방향으로 기운 불꽃 혀). 가운데에서 바깥 벽까지 번개처럼 갈라지는 불 팔 3개가 매 프레임 지직거리며 휘감고, 불똥이 돌며 튄다. 끝으로 갈수록 붉은 잔불로 식으며 마지막 프레임은 비어 있다. 돌·연기는 없다.
+- 코드: `LightSkillCast.FlameWhirl`(ID 10014), `LightSkillVisuals.FlameWhirlPrefix` / `FlameWhirlReachPixels`(80, 굽기 옵션 reach와 같아야 함), `LightSkillFx.Play`·`ApplyScale`·`Animate`. 그림은 가운데에서 불 벽까지가 `Range`가 되도록 `Range / 2.5`배로만 키우고(Range 2.5면 1배), 반복하지 않고 한 번 재생한다. 수명은 프레임 수 × 1/30초다. 구운 그림이 없으면 기존 `lightflamering` 바닥 고리로 대신한다. 강공격 열파 충격(20008)의 고리는 그대로다.
+- 피해: 바꾸지 않았다. 시전 즉시 기존 고리(안쪽 `Range - Width` ~ 바깥 `Range`) 안의 적에게 한 번 들어간다. 불 벽은 반경의 약 80~100% 구간이라 판정과 비슷하게 맞춰져 있다. 그림은 바닥을 세로 0.72배로 찌그러뜨린 타원이라 위아래 판정 거리는 그림보다 길다.
+- 다시 굽기: `.utmp/pixelfx`에서 `node export-blaze.mjs`. 기존 GUID는 유지된다(새 프레임만 새 GUID). 확인용은 `node preview-whirl.mjs 3,7,12,18 3 2`가 `preview-whirl.png`를 만든다.
+- 검증: pixelfx `tools/check.mjs` 통과(프레임당 약 9ms, 설명 길이 경고만), 대표 프레임 9장과 전체 25프레임을 눈으로 확인했다. Unity 임포트·컴파일·Play·테스트는 실행하지 않았다.
+- 직접 확인: Unity 임포트가 끝나면 Console에 오류가 없는지 본다. `Resources/LightSkills/Blaze`의 `FlameWhirl_*` PNG 25장이 Sprite로 임포트되고 Filter Mode가 Point인지 본다. `Tools > Play From Title`을 끄고 MainScene Play. `테스트/원하는 카드 고르기`로 화염 고리를 고르거나 장착해 공격하면, 플레이어 주위에 불 벽이 소용돌이치며 서고 안쪽에서 번개 같은 불줄기가 3갈래로 휘돈 뒤 붉게 식으며 사라진다. 이전의 납작한 고리 그림이 보이면 구운 그림 로드 실패이니 Console 첫 오류와 `Blaze` 폴더의 `FlameWhirl_` PNG 유무, 스킬 ID 10014를 확인한다. 크기·위치가 어색하면 알려 주면 `reach`·`SY`를 조정해 다시 굽는다.
+
+## 2026-11-10 절멸의 불을 pixelfx 불 균열로 교체
+
+- 요청: 절멸의 불(10017)을 히오스 스랄 궁극기(Sundering)처럼 전방 직선을 가르는 균열로 만들되, 대지 연출(파편·흙먼지·바위·어두운 바닥)은 없애고 균열을 불로 채운다.
+- 이펙트: pixelfx에 새로 쓴 `fire/sundering-fire`(`.utmp/pixelfx/src/fx/fire/sundering-fire.js`)를 구워 `Assets/Resources/LightSkills/Blaze/SunderFire_00`~`27`(288×112, 30fps, 0.9초, 피벗 16,56)을 쓴다. 흰 불씨 선이 0.2초에 끝까지 달려 나가고, 그 뒤를 불길이 따라가며 균열을 채워 가운데는 금빛·흰 심, 가장자리는 붉게 일렁인다. 양쪽 벽에서 불꽃 혀가 들쭉날쭉 솟고 불똥이 튀며, 뿌리부터 붉은 잔불로 식는다. 돌·먼지·연기는 없다.
+- 코드: `LightSkillCast.SunderingFire`(ID 10017), `LightSkillVisuals.SunderFirePrefix` / `SunderFireReachPixels`(256, 굽기 옵션 reach와 같아야 함), `LightSkillFx.Play`와 `ApplyScale`. 균열 그림은 가로세로를 따로 늘리지 않고 `Range / 8`배로만 키운다(Range 8이면 1배). 그림 수명은 프레임 수 × 1/30초다. 구운 그림이 없으면 기존 `lightthrust` 직선으로 대신한다.
+- 피해: 바꾸지 않았다. 기존처럼 시전 즉시 가로 Range × 세로 Width 상자 안의 적에게 한 번 들어간다. 그림은 0.2~0.3초에 걸쳐 끝까지 번지므로 먼 적은 불이 닿기 전에 피해를 받는다. 균열 진행에 맞춰 피해를 늦출지는 기획 확인이 필요해 건드리지 않았다.
+- 다시 굽기: `.utmp/pixelfx`에서 `node export-blaze.mjs`. 기존 GUID는 유지된다. 확인용은 `node tools/render.mjs fire/sundering-fire --all --zoom 2`.
+- 검증: pixelfx `tools/check.mjs` 통과(프레임당 약 5ms 경고만), 28프레임을 눈으로 확인했고 마지막 프레임이 비는 것을 확인했다. Unity 임포트·컴파일·Play·테스트는 실행하지 않았다.
+- 직접 확인: Unity 임포트가 끝나면 Console에 오류가 없는지 본다. `Resources/LightSkills/Blaze`의 `SunderFire_*` PNG 28장이 Sprite로 임포트되고 Filter Mode가 Point인지 본다. `Tools > Play From Title`을 끄고 MainScene Play. `테스트/원하는 카드 고르기`로 절멸의 불을 고르거나 장착해 적 쪽으로 쏘면, 플레이어에서 조준 방향으로 흰 선이 번지고 그 뒤로 주황·금빛 불이 균열을 채우며 양옆으로 불꽃이 솟았다가 붉게 식는다. 돌·먼지가 보이면 안 된다. 이상하면 Console 첫 오류, 스킬 ID 10017, `Blaze` 폴더의 `SunderFire_` PNG 유무를 확인한다.
+
+## 2026-11-10 테스트에서 원하는 레벨업 카드 고르기
+
+- CombatUI의 `CombatPopupController` 컴포넌트 메뉴에 `테스트/원하는 카드 고르기`를 추가했다. Play 중 목록에서 스킬을 누르면 그 카드만 레벨업 창에 열리고, 카드를 고르면 기존 획득·강화 경로로 등록된다. 경험치는 소모하지 않는다.
+- 목록은 약공격·강공격·전략 전체다. 이름 또는 ID로 거를 수 있다. 시전이 연결되지 않은 전략은 `(시전 미연결)`로 표시되며, 고르면 슬롯에는 들어가지만 효과는 나가지 않는다. 자동 레벨업이 열려 있는 동안에는 지정 카드로 바꾸지 않는다.
+- 검증: Unity 컴파일·Play·테스트는 실행하지 않았다.
+- 직접 확인: Unity 임포트 후 Console 오류 없음 → `Tools > Play From Title` 끄기 → MainScene Play → Hierarchy의 `CombatUI` 선택 → Inspector `CombatPopupController` 오른쪽 위 ⋮ → `테스트/원하는 카드 고르기` → 목록에서 스킬 클릭 → 레벨업 카드 한 장만 보이면 그 카드를 클릭. 일시정지 상태창의 보유 칸에 그 스킬이 있어야 한다. 이상하면 Console 첫 경고, 전투가 진행 중인지(승패·일시정지 아님), 공격 슬롯 6칸·전략 슬롯 5칸이 가득 찼는지 확인한다.
+
+## 2026-11-10 작열 구체를 pixelfx로 교체 — 비행 plasma-shot, 폭발 시 불줄기 6~8가닥
+
+- 요청: 작열 구체(10015)를 pixelfx `projectiles/plasma-shot`으로 바꾸고, 맞아서 터지면 불줄기가 6~8가닥으로 순식간에 퍼지며 피해는 1회. 처음 만든 `LineRenderer` 선은 빈약해서 폐기했다.
+- 비행: Unity는 JS를 실행하지 않으므로 plasma-shot을 불 팔레트(`#2a0c0a`~`#ffffff` 8색)·size 9로 구워 `Assets/Resources/LightSkills/Blaze/PlasmaOrb_00`~`23`(144×60, 30fps 루프, 피벗 108,30)을 쓴다. 속성 색조 이동 없이 `Sprites/Default` 재질로 구운 색 그대로 보여 준다. 크기는 기존 탄환과 같은 배율(폭 1.1 → 1.8)이다.
+- 폭발: pixelfx 소스를 새로 쓴 `fire/blaze-fork`(`tools/PixelFxBake/blaze-fork.js`)를 구워 `BlazeFork_00`~`21`(120×76, 30fps, 약 0.73초, 피벗 8,38)을 쓴다. 두꺼운 불꽃 혀 7개 부채가 0.06초에 뻗고, 흰 폭발·불덩이·불똥이 튀며 붉은 잔불로 식는다. 맞는 순간 6~8개(무작위)를 360도로 고르게 돌려 놓고 일부는 위아래로 뒤집는다.
+- 피해: 줄기마다 뿌리~끝 캡슐(길이 2.2×두께 0.7)에 닿은 적에게 기존 피해를 준다. 한 적은 몇 줄기에 닿아도, 처음 맞은 탄환 피해와 합쳐서도 한 번만 맞는다. 줄기 길이는 표에 반경이 없어 기존 임시 반경 2.2, 두께 0.7도 임시값이다. 줄기 사이 빈 곳의 적은 맞지 않는다. 구운 그림이 없으면 예전 원형 폭발로 대신한다.
+- 화염구(10004)는 그대로다. 사거리 끝에서 저절로 터지지는 않는다.
+- 다시 굽기: `.utmp/pixelfx`(patch-gg/pixelfx 복제본)에 `blaze-fork.js`를 `src/fx/fire/`로, `export-blaze.mjs`를 루트로 복사한 뒤 `node export-blaze.mjs`. `preview-blaze.mjs`는 확인용 contact sheet를 만든다. 기존 GUID는 유지된다.
+- 검증: pixelfx 렌더 프레임 24+22장을 눈으로 확인했다. Unity 임포트·컴파일·Play·테스트는 실행하지 않았다.
+- 직접 확인: Unity 임포트가 끝나면 Console에 오류가 없는지 본다. `Resources/LightSkills/Blaze`의 PNG가 Sprite로 임포트되고 Filter Mode가 Point인지도 본다. `Tools > Play From Title`을 끄고 MainScene을 Play한다. 작열 구체를 장착해 적이 뭉친 곳에 쏘면 초록이 아닌 주황 불덩이가 꼬리를 끌며 날아가고, 맞는 순간 두꺼운 불길 6~8갈래가 사방으로 확 퍼졌다가 붉게 식는다. 줄기에 닿은 적만 한 번씩 피해를 입는다. 화염구는 예전 둥근 폭발이어야 한다. 이상하면 Console 첫 오류, `Blaze` 폴더 PNG 46장, 스킬 ID 10015를 확인한다.
+
+## 2026-11-10 전략 스킬 버튼이 안 먹히던 문제
+
+- 재현: 전략을 장착한 뒤 모바일 `Skill`을 눌러도 회복·보호막이 안 들어갔다.
+- 원인: `Skill` 버튼이 Inspector에 연결되지 않았고(`shieldButton` 비움), 런타임 `onClick`만 붙이는 경로가 약했다. 시전에 약공격 `IsInputLocked` 검사까지 들어가 잠금 중에는 아예 거절됐다. 재생 치유는 첫 회복이 1초 뒤라 반응이 없어 보이기도 했다.
+- 수정: `PlayerTacticalSkillButton`을 약공격과 같이 포인터 다운으로 시전. MainScene Player에 `Skill` 버튼을 직접 연결. `IsInputLocked` 거절 제거(기존 보호막과 동일). 재생 치유는 즉시 1회 회복 후 나머지를 간격으로 적용.
+- 검증: Unity Play·테스트는 실행하지 않았다. 코드 경로와 씬 참조만 확인.
+- 직접 확인: Unity 임포트 → `Tools > Play From Title` 끄기 → MainScene Play. 피격으로 체력을 깎은 뒤 일시정지에서 복원/재생 치유를 장착하고 `Skill`을 누른다. 체력 바가 바로 오르거나(복원) 즉시 회복 후 이어져야 한다. 미장착이면 물의 방패 막대가 떠야 한다. 이상하면 Console 첫 오류, Player의 Shield Button이 Skill인지, 장착 ID가 30001~30003·30007·30009인지 확인한다.
+
+## 2026-11-10 패링 이펙트를 pixelfx parry로 교체
+
+- 요청: 지금 패링 섬광을 pixelfx `impacts/parry`로 바꾼다. 보여 준 코드는 `createFrame` → `createFx(parry)` → `update` / `draw` / `composite`다.
+- 구현: Unity는 그 JS를 실행하지 않으므로 같은 이펙트를 기본 팔레트·시드·height 30으로 구워 `Assets/Resources/PlayerDefenseVfx/ParryFlash_00`~`16`(200×112, 30fps, 피벗은 바닥 원점 100,96)를 한 번 재생한다. 떨어지는 스파크 팬은 빼고 섬광·고리·작은 별만 남겼다. 보이는 구간은 약 0.57초다. 충돌 섬광이 플레이어 스프라이트 중심에 오도록 원점보다 30픽셀 위를 맞췄고 크기는 1.75이다. 글로우는 `SBSAcademy/Sprite Additive`로 더하고 `ParryAdditive` Tint는 `#eb4799`이다. 가드 보호막 5프레임, 가드 색, 패링 판정·히트스톱은 그대로다. 히트스톱 중에는 이 프레임도 같이 멈춘다. `MagicBarrier` 원본과 보스 테스트용 `ParryFlash_03_Red`는 바꾸지 않았다.
+- 검증: 구운 26장의 크기가 200×112이고, 0번 흰 별의 중심이 원점보다 30픽셀 위인 것을 픽셀로 확인했다. Unity 임포트·Play·테스트 러너는 실행하지 않았다.
+- 직접 확인: Unity 임포트가 끝날 때까지 기다린 뒤 Console에 셰이더 오류가 없는지 본다. `Tools > Play From Title`을 끄고 `MainScene`을 Play한다. 적의 공격이 들어오는 순간에 `E`(게임패드는 북쪽 버튼)로 패링이 성공하면 캐릭터 가운데에 흰 십자 섬광이 나고, 금색 고리가 갈라진 다음 불꽃이 아래로 떨어진다. `E`를 계속 누르는 가드는 예전 보호막이 반복되어야 한다. 이상하면 Console 첫 오류, `ParryFlash_00`이 200×112인지, `ParryAdditive` 머티리얼의 셰이더가 `SBSAcademy/Sprite Additive`인지를 확인한다.
+
 ## 2026-11-10 야수 좀비 보스 스프라이트 잘림·참조 오류 수정
 
 - 재현: `body-charge/east` 0·1·4, `body-charge/west` 4, `swipe/north-east` 3의 주 Sprite Rect 밖에 각각 17·9·102·149·5픽셀이 있었다. `body-charge-loop_NorthEast`의 8.png 키는 본체 대신 6×7 조각을 참조했고, 레거시 `BossIdle`은 삭제된 임시 Square 스프라이트를 참조했다.

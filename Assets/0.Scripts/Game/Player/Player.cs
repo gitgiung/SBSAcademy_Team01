@@ -148,6 +148,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         InitializeHeavyCharge();
         if (lightAttackButton != null)
             Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
+        BindTacticalButton();
         shieldBar = gameObject.AddComponent<PlayerShieldBar>();
         shieldBar.Initialize(data, playerSpriteRenderer);
     }
@@ -156,6 +157,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         data.InitHealth();
         view.RefreshHealth();
+        // 모바일 UI가 Awake 이후에 켜지는 경우를 대비해 한 번 더 연결합니다.
         BindTacticalButton();
     }
 
@@ -218,7 +220,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     /// <summary>장착한 전략 스킬을 시전합니다. 미장착이면 표의 물의 방패(30009)로 대체합니다.</summary>
     public bool TryUseTacticalSkill()
     {
-        if (data == null || hasDied || data.IsDead || Time.timeScale <= 0f || IsInputLocked) return false;
+        // 약공격 잠금과 별개로 전략은 기존 보호막처럼 사망·정지 중에만 거절합니다.
+        if (data == null || hasDied || data.IsDead || Time.timeScale <= 0f) return false;
         if (Time.time < nextTacticalReadyTime) return false;
         int id = data.Loadout != null ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) : 0;
         if (id == 0) id = FallbackTacticalId;
@@ -235,7 +238,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (shieldButton == null)
         {
-            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             for (int i = 0; i < buttons.Length; i++)
             {
                 if (buttons[i] != null && buttons[i].gameObject.scene == gameObject.scene && buttons[i].name == "Skill")
@@ -245,9 +248,10 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
                 }
             }
         }
-        if (shieldButton == null || shieldButton.onClick.GetPersistentEventCount() > 0) return;
+        if (shieldButton == null) return;
+        // 약공격과 같이 포인터 다운에서 바로 시전합니다. Inspector 영구 이벤트와 무관합니다.
         shieldButton.onClick.RemoveListener(TryUseShieldSkill);
-        shieldButton.onClick.AddListener(TryUseShieldSkill);
+        Util.GetOrAddComponent<PlayerTacticalSkillButton>(shieldButton.gameObject).Bind(this);
     }
 
     public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);

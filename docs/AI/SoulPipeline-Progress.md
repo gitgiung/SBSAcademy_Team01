@@ -3,7 +3,7 @@
 노션에는 이 내용을 **한 페이지**에만 올린다. 분산 금지.
 
 ## 브랜치
-`feature/soul-pipeline-3d` (커밋 08:00 예약)
+`feature/soul-pipeline-3d` — 커밋 `e2886c0` 푸시 완료 (사용자 즉시 요청)
 
 ## 완료된 구현
 - URP `UniversalRenderer` (index1), 기본 2D Renderer 유지

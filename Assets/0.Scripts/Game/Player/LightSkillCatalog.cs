@@ -91,6 +91,17 @@ public readonly struct LightSkillCast
 
 public static class LightSkillCatalog
 {
+    public static bool TryCreateHeavy(CombatSkillRecord record, out LightSkillCast skill)
+    {
+        skill = default;
+        // 화염 돌진은 전용 이동이 필요하며 십자 범위는 공통 판정에서 지원하지 않습니다.
+        return record != null && record.Id >= 20000 && record.Id < 30000 && record.Id != 20002
+            && record.CastType == "Charge" && record.CostType == "MP"
+            && record.CostAmount >= 0f && !float.IsInfinity(record.CostAmount)
+            && record.CastTime > 0f && !float.IsInfinity(record.CastTime)
+            && LightSkillCast.TryFrom(record, out skill);
+    }
+
     public static bool TryGet(int id, out LightSkillCast skill)
     {
         skill = default;

@@ -33,6 +33,8 @@ internal static class Program
         workbookPath = Environment.GetEnvironmentVariable("SKILL_WORKBOOK");
         if (string.IsNullOrEmpty(workbookPath)) workbookPath = "Document/SkillDatatable.xlsx";
         table = CombatSkillWorkbook.Read(workbookPath);
+        var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
+            File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
         Test("acquired skill is owned once and not automatically equipped", () =>
         {
             var loadout = new PlayerLoadout(); int changes = 0; loadout.Changed += () => changes++;
@@ -55,6 +57,71 @@ internal static class Program
             Equal(3, loadout.GetAttackSkillStack(10002));
             Equal(1.5f, loadout.GetAttackSkillDamageMultiplier(10002));
             Equal(false, Acquire(loadout, Skill(10002)));
+        });
+        Test("level-up offers supported heavy attacks without automatically equipping them", () =>
+        {
+            var loadout = new PlayerLoadout();
+            var choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
+            Equal(true, choices.Any(skill => skill.Id == 20001));
+            Equal(false, choices.Any(skill => skill.Id == 20002 || skill.Id == 20012));
+            Equal(13, choices.Count(skill => skill.Id >= 20000));
+            Equal(true, Acquire(loadout, shipped.skills.Single(skill => skill.Id == 20001)));
+            Equal(1, loadout.GetAttackSkillStack(20001));
+            Equal(0, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            Equal(true, loadout.TryEquip(PlayerSkillButton.Heavy, 20001));
+            Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            Equal(false, Acquire(loadout, shipped.skills.Single(skill => skill.Id == 20002)));
+            Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            var otherHeavy = shipped.skills.Single(skill => skill.Id == 20006);
+            Equal(true, Acquire(loadout, otherHeavy));
+            Equal(1, loadout.GetAttackSkillStack(20006));
+            Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            Equal(true, Acquire(loadout, otherHeavy));
+            Equal(2, loadout.GetAttackSkillStack(20006));
+            Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+        });
+        Test("full slots offer owned heavy upgrades and exclude max stacks", () =>
+        {
+            var loadout = new PlayerLoadout();
+            var hammer = shipped.skills.Single(skill => skill.Id == 20001);
+            Equal(true, Acquire(loadout, hammer));
+            for (int id = 10001; id <= 10005; id++) Equal(true, Acquire(loadout, Skill(id)));
+            var choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
+            Equal(6, choices.Count);
+            Equal(true, choices.Any(skill => skill.Id == 20001));
+            Equal(false, choices.Any(skill => skill.Id == 20006));
+            Equal(true, Acquire(loadout, hammer));
+            Equal(true, Acquire(loadout, hammer));
+            choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
+            Equal(false, choices.Any(skill => skill.Id == 20001));
+        });
+        Test("heavy charge uses the selected skill cost and duration once per release", () =>
+        {
+            var skill = shipped.skills.Single(value => value.Id == 20004);
+            var player = new PlayerData();
+            var charge = new PlayerHeavyCharge(player, () => true);
+            var settings = new PlayerHeavyChargeSettings
+            {
+                Configured = true, MPCost = 10f,
+                StageTimes = new[] { 0f, .4f, .8f }, StageBonuses = new[] { .1f, .1f, .5f }
+            };
+            var aim = new UnityEngine.Vector2(3f, 0f);
+            Equal(true, charge.TryBegin(settings, aim, skill));
+            Equal(4f, player.MP);
+            Equal(true, charge.SuperArmor);
+            int id = charge.CurrentId;
+            Equal(false, charge.TryBegin(settings, aim, skill));
+            charge.Tick(.375f, aim);
+            Equal(2, charge.Stage);
+            charge.Tick(.375f, aim);
+            Equal(3, charge.Stage);
+            Equal(true, charge.TryRelease(id, out HeavyChargeRelease result));
+            Equal(.75f, result.Elapsed);
+            Equal(1.7, Math.Round(result.Multiplier, 2));
+            Equal(1f, result.Direction.x);
+            Equal(false, charge.TryRelease(id, out _));
+            Equal(false, charge.TryBegin(settings, aim, skill));
+            Equal(4f, player.MP);
         });
         Test("acquisition refuses full slots and nonattack data", () =>
         {
@@ -212,11 +279,11 @@ internal static class Program
                 if (light > 0f && heavy != float.MaxValue && heavy <= light) throw new Exception($"{rarity} 강공격 쿨타임이 약공격보다 짧거나 같습니다.");
             }
             Equal(3f, Skill(10001).PassiveCooldown); Equal(7f, Skill(10017).PassiveCooldown);
-            Equal(8f, Skill(20005).PassiveCooldown); Equal(0f, Skill(10007).PassiveCooldown);
+            Equal(8f, Skill(20005).PassiveCooldown); Equal(2f, Skill(10007).PassiveCooldown);
             Equal(0f, Skill(10001).PassiveScale); Equal(0f, Field(Skill(30001), "PassiveCooldown"));
             Equal(true, Skill(10001).TryOwnedPassive(out float baseCooldown, out float baseScale));
             Equal(3f, baseCooldown); Equal(.2f, baseScale);
-            Equal(false, Skill(10007).TryOwnedPassive(out _, out _));
+            Equal(true, Skill(10007).TryOwnedPassive(out _, out _));
             var ready = new CombatSkillRecord { Id = 10014, PassiveCooldown = 3f };
             Equal(true, ready.TryOwnedPassive(out float cooldown, out float scale));
             Equal(3f, cooldown); Equal(CombatSkillRecord.DefaultPassiveScale, scale);

@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/9.Scenes/LobbyScene.unity
     guid: a7ae3e613caec6f49a434acf46f7f029
+  - enabled: 1
+    path: Assets/9.Scenes/SoulArena3D.unity
+    guid: e7c4a91b5d2f48a0b3e6c9d1f0a28475
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: 0ae9f39306273a24384f4e0c4e456462, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

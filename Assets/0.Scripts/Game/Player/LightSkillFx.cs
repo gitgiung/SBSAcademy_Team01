@@ -23,6 +23,13 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private bool forking;
     private bool sunderScaled;
     private bool whirlScaled;
+    private bool missileArt;
+    private bool homing;
+    private Vector2 castOrigin;
+    private Vector2 fallbackAim;
+    private Collider2D target;
+    private float age;
+    private float seekTimer;
     private string enemyTag = "Enemy";
     private Sprite[] frames;
     private readonly HashSet<EntityId> hitIds = new HashSet<EntityId>();
@@ -32,6 +39,20 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private float forkTimer;
     // 구운 불줄기 그림의 가장 굵은 부분이 뿌리 쪽 반폭 약 14픽셀입니다. 맞히는 두께는 그 절반 정도의 임시값입니다.
     private const float ForkHitThickness = 0.7f;
+    private const float ProjectileSpeed = 12f;
+    private const float ProjectileHitRadius = 0.28f;
+    // 유도 미사일의 움직임입니다. 표에 없는 연출용 임시값입니다.
+    // 가시에서 곧게 튀어나오는 시간, 느리게 떠나 제 속도가 될 때까지의 시간과 처음 속도 비율입니다.
+    private const float HomingStraightTime = 0.06f;
+    private const float HomingBoostTime = 0.22f;
+    private const float HomingLaunchSpeedRatio = 0.35f;
+    // 초당 꺾을 수 있는 각도입니다. 날수록 세게 꺾어 표적 둘레를 맴돌지 않게 합니다.
+    private const float HomingTurnStart = 300f;
+    private const float HomingTurnMax = 1080f;
+    private const float HomingTurnRampEnd = 0.45f;
+    // 쫓을 적이 없을 때 다시 찾는 간격, 휘어 가는 만큼 더 주는 수명입니다.
+    private const float HomingSeekInterval = 0.1f;
+    private const float HomingExtraLife = 0.8f;
 
     public void OnPoolRent() => Cache();
     public void OnPoolReturn()
@@ -39,6 +60,8 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         running = false;
         bursting = false;
         forking = false;
+        homing = false;
+        target = null;
         HideForks();
         StopAllCoroutines();
         hitIds.Clear();
@@ -55,13 +78,15 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         hitsLeft = Mathf.Max(1, skill.Hits);
         hitTimer = 0f;
         traveled = 0f;
-        life = projectile ? skill.Range / 12f + 0.2f : 0.45f + skill.RepeatSpacing * (hitsLeft - 1);
+        life = projectile ? skill.Range / ProjectileSpeed + 0.2f : 0.45f + skill.RepeatSpacing * (hitsLeft - 1);
         frame = 0;
         frameTimer = 0f;
         hitIds.Clear();
         running = true;
         bursting = false;
         forking = false;
+        homing = false;
+        target = null;
         HideForks();
         if (spriteRenderer != null) spriteRenderer.enabled = true;
 
@@ -76,6 +101,19 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
                 frames = orb;
                 frameDuration = LightSkillVisuals.BlazeFrameDuration;
                 material = LightSkillVisuals.BlazeMaterial();
+            }
+        }
+        // 태양 탄막은 구워 둔 흰 불꽃 미사일 그림을 씁니다. 없으면 기존 불꽃 탄환 그림입니다.
+        missileArt = false;
+        if (skill.SunBarrage && projectile)
+        {
+            Sprite[] missile = LightSkillVisuals.BlazeFrames(LightSkillVisuals.SunMissilePrefix);
+            if (missile.Length > 0)
+            {
+                frames = missile;
+                frameDuration = LightSkillVisuals.BlazeFrameDuration;
+                material = LightSkillVisuals.BlazeMaterial();
+                missileArt = true;
             }
         }
         // 절멸의 불은 구워 둔 불 균열 그림을 씁니다. 없으면 기존 직선 그림입니다.
@@ -121,10 +159,37 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         if (hitCollider != null)
         {
             hitCollider.enabled = projectile;
-            hitCollider.radius = 0.28f;
+            // 미사일 그림은 1배로 보여 주므로, 맞는 크기는 기존 탄환 배율을 곱했던 것과 같게 맞춥니다.
+            hitCollider.radius = missileArt ? ProjectileHitRadius * ProjectileScale() : ProjectileHitRadius;
         }
         gameObject.name = skill.Name;
     }
+
+    /// <summary>
+    /// 적을 쫓는 미사일로 쏩니다. launchDirection으로 곧게 떠난 뒤, 시전 지점(castOrigin)에서 사거리 안에 있는 적 중
+    /// 자신과 가장 가까운 적으로 휘어 갑니다. 적이 없으면 aim 쪽으로 날아갑니다. 닿은 적에게 일반 탄환처럼 한 번 피해를 주고 사라집니다.
+    /// </summary>
+    public void PlayHoming(LightSkillCast skill, Vector2 launchDirection, Vector2 aim, Vector2 castOrigin, float damage, string enemyTag)
+    {
+        Play(skill, launchDirection, damage, enemyTag);
+        if (!projectile) return;
+        homing = true;
+        this.castOrigin = castOrigin;
+        fallbackAim = aim.sqrMagnitude > 0.0001f ? aim.normalized : direction;
+        target = null;
+        age = 0f;
+        seekTimer = 0f;
+        life += HomingExtraLife;
+        FaceDirection();
+    }
+
+    // 휘는 동안 그림이 뒤집히지 않도록 Z축으로만 돌립니다.
+    private void FaceDirection()
+    {
+        transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+    }
+
+    private float ProjectileScale() => Mathf.Clamp(skill.Width / 0.5f, 0.7f, 1.8f);
 
     private void Cache()
     {
@@ -164,8 +229,8 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
                 transform.localScale = Vector3.one * (skill.Range / height);
                 break;
             default:
-                float projectileScale = Mathf.Clamp(skill.Width / 0.5f, 0.7f, 1.8f);
-                transform.localScale = Vector3.one * projectileScale;
+                // 미사일 그림은 플레이어와 같은 픽셀 크기로 구웠으므로 늘리지 않습니다.
+                transform.localScale = missileArt ? Vector3.one : Vector3.one * ProjectileScale();
                 break;
         }
     }
@@ -183,7 +248,12 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         }
         if (projectile)
         {
-            float step = 12f * Time.deltaTime;
+            if (homing)
+            {
+                FlyHoming(Time.deltaTime);
+                return;
+            }
+            float step = ProjectileSpeed * Time.deltaTime;
             transform.position += (Vector3)(direction * step);
             traveled += step;
             if (traveled >= skill.Range || life <= 0f) Finish();
@@ -203,6 +273,65 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             }
         }
         if (life <= 0f) Finish();
+    }
+
+    /// <summary>유도 미사일 한 프레임입니다. 표적을 고르고, 꺾을 수 있는 만큼만 방향을 틀어 나아갑니다.</summary>
+    private void FlyHoming(float deltaTime)
+    {
+        age += deltaTime;
+        Vector2 position = transform.position;
+        if (!CanChase(target))
+        {
+            target = null;
+            seekTimer -= deltaTime;
+            if (seekTimer <= 0f)
+            {
+                seekTimer = HomingSeekInterval;
+                target = ClosestEnemy(position);
+            }
+        }
+
+        Vector2 wanted = target != null ? (Vector2)target.bounds.center - position : fallbackAim;
+        if (age >= HomingStraightTime && wanted.sqrMagnitude > 0.0001f)
+        {
+            float turn = Mathf.Lerp(HomingTurnStart, HomingTurnMax,
+                Mathf.InverseLerp(HomingStraightTime, HomingTurnRampEnd, age)) * deltaTime;
+            float angle = Mathf.Clamp(Vector2.SignedAngle(direction, wanted), -turn, turn);
+            direction = ((Vector2)(Quaternion.Euler(0f, 0f, angle) * (Vector3)direction)).normalized;
+            FaceDirection();
+        }
+
+        float speed = ProjectileSpeed * Mathf.Lerp(HomingLaunchSpeedRatio, 1f, Mathf.Clamp01(age / HomingBoostTime));
+        float step = speed * deltaTime;
+        transform.position += (Vector3)(direction * step);
+        traveled += step;
+
+        // 휘어 가므로 날아간 길이가 아니라 시전 지점에서 사거리 밖으로 나가는 순간에 끝냅니다.
+        Vector2 fromOrigin = (Vector2)transform.position - castOrigin;
+        bool leaving = Vector2.Dot(fromOrigin, direction) > 0f;
+        if (life <= 0f || (leaving && fromOrigin.sqrMagnitude >= skill.Range * skill.Range)) Finish();
+    }
+
+    private bool CanChase(Collider2D enemy)
+    {
+        if (enemy == null || !enemy.enabled || !enemy.gameObject.activeInHierarchy || !enemy.CompareTag(enemyTag)) return false;
+        return !(enemy.TryGetComponent<EnemyHealth>(out EnemyHealth health) && health.IsDead);
+    }
+
+    /// <summary>시전 지점에서 사거리 안에 있는 살아 있는 적 중 from과 가장 가까운 적입니다.</summary>
+    private Collider2D ClosestEnemy(Vector2 from)
+    {
+        Collider2D closest = null;
+        float closestDistance = float.PositiveInfinity;
+        foreach (Collider2D candidate in Physics2D.OverlapCircleAll(castOrigin, skill.Range))
+        {
+            if (!CanChase(candidate)) continue;
+            float distance = ((Vector2)candidate.bounds.center - from).sqrMagnitude;
+            if (distance >= closestDistance) continue;
+            closestDistance = distance;
+            closest = candidate;
+        }
+        return closest;
     }
 
     private void Animate()

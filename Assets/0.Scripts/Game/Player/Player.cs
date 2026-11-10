@@ -71,6 +71,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private InputAction parryInput;
     private InputAction attackInput;
     private GameObject lightFxPrototype;
+    private SunBarrageCrest sunCrest;
     private PlayerShieldBar shieldBar;
     private float nextTacticalReadyTime;
     private const int FallbackTacticalId = 30009;
@@ -278,13 +279,26 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         skill = skill.Presented();
         int shots = Mathf.Max(1, skill.Projectiles);
         float spacing = skill.ScatterVolley ? 0f : skill.ShotSpacing;
+        // 태양 탄막은 태양 문양을 먼저 그린 뒤, 긴 가시 끝에서 적을 쫓는 미사일을 한 발씩 쏩니다.
+        SunBarrageCrest crest = SunCrestFor(skill);
+        int firstSpike = 0;
+        if (crest != null)
+        {
+            crest.Play(crest.DrawSeconds + spacing * (shots - 1) + SunBarrageCrest.LingerSeconds);
+            firstSpike = crest.NearestSpike(aim);
+            yield return new WaitForSeconds(crest.DrawSeconds);
+        }
         for (int i = 0; i < shots; i++)
         {
             if (!isActiveAndEnabled || hasDied || data == null || data.IsDead) break;
             if (!lockUntilEnd && Time.timeScale <= 0f) yield break;
-            float spread = shots == 1 || skill.StraightRapidFire ? 0f : (i - (shots - 1) * 0.5f) * 8f;
-            Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
-            SpawnLightSkill(skill, direction, damage);
+            if (crest != null) SpawnSunMissile(skill, crest, firstSpike + i, aim, damage);
+            else
+            {
+                float spread = shots == 1 || skill.StraightRapidFire ? 0f : (i - (shots - 1) * 0.5f) * 8f;
+                Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
+                SpawnLightSkill(skill, direction, damage);
+            }
             if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
         }
         if (!lockUntilEnd) yield break;
@@ -327,13 +341,43 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
                 skillFx.Play(skill, direction, damage, enemyTag);
         }
 
+        PopLightFx(position, Arm);
+    }
+
+    /// <summary>구운 태양 탄막 그림이 있을 때만 태양 문양을 돌려줍니다. 없으면 null이고 예전 탄환 연사로 쏩니다.</summary>
+    private SunBarrageCrest SunCrestFor(LightSkillCast skill)
+    {
+        if (!skill.SunBarrage || skill.Shape != LightSkillShape.Projectile) return null;
+        if (LightSkillVisuals.BlazeFrames(LightSkillVisuals.SunMissilePrefix).Length == 0) return null;
+        if (sunCrest == null) sunCrest = SunBarrageCrest.Attach(transform);
+        return sunCrest.Ready ? sunCrest : null;
+    }
+
+    /// <summary>태양 문양의 긴 가시 끝에서 유도 미사일 한 발을 쏩니다. 적이 없으면 aim 쪽으로 날아갑니다.</summary>
+    private void SpawnSunMissile(LightSkillCast skill, SunBarrageCrest crest, int spike, Vector2 aim, float damage)
+    {
+        EnsureLightFxPrototype();
+        Vector2 castOrigin = transform.position;
+        Vector2 outward = crest.SpikeDirection(spike);
+        crest.Flare(spike);
+        void Arm(GameObject fx)
+        {
+            if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
+                skillFx.PlayHoming(skill, outward, aim, castOrigin, damage, enemyTag);
+        }
+
+        PopLightFx(crest.SpikeTip(spike), Arm);
+    }
+
+    private void PopLightFx(Vector3 position, Action<GameObject> arm)
+    {
         if (Managers.Initialized && Managers.Pool != null)
-            Managers.Pool.Pop(lightFxPrototype, position, Quaternion.identity, initialize: Arm);
+            Managers.Pool.Pop(lightFxPrototype, position, Quaternion.identity, initialize: arm);
         else
         {
             GameObject fx = Instantiate(lightFxPrototype, position, Quaternion.identity);
             fx.SetActive(true);
-            Arm(fx);
+            arm(fx);
         }
     }
 
@@ -490,6 +534,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         CancelParryFeedback();
         CancelParryCameraZoom();
         StopAllCoroutines();
+        // 발사 코루틴이 끊기면 태양 문양만 남지 않게 함께 지웁니다.
+        if (sunCrest != null) sunCrest.Cancel();
         Array.Clear(ownedPassiveIds, 0, ownedPassiveIds.Length);
         Array.Clear(ownedPassiveTimers, 0, ownedPassiveTimers.Length);
         lightSkill?.Cancel();

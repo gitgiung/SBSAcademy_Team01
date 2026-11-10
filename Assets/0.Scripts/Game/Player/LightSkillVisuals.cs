@@ -51,6 +51,20 @@ public static class LightSkillVisuals
     public const string FlameWhirlPrefix = "FlameWhirl_";
     /// <summary>회오리 그림에서 가운데부터 바깥 불 벽까지의 가로 픽셀 길이입니다. 굽기 옵션 reach와 같아야 합니다.</summary>
     public const float FlameWhirlReachPixels = 80f;
+    /// <summary>pixelfx로 구워 둔 태양 탄막의 태양 문양(sun-crest)입니다. 피벗이 가운데입니다.</summary>
+    public const string SunCrestPrefix = "SunCrest_";
+    /// <summary>태양 문양에서 반복 재생하는 구간의 시작 프레임입니다. 그 앞은 그려지는 구간입니다. 굽기 소스의 IN과 같아야 합니다.</summary>
+    public const int SunCrestLoopStart = 7;
+    /// <summary>반복 구간의 프레임 수입니다. 그 뒤는 흩어지는 구간입니다. 굽기 소스의 HOLD와 같아야 합니다.</summary>
+    public const int SunCrestLoopLength = 12;
+    /// <summary>미사일이 나가는 긴 가시의 개수입니다. 0번이 위쪽이고 시계 방향으로 돕니다. 굽기 소스의 긴 가시 수와 같아야 합니다.</summary>
+    public const int SunCrestSpikes = 6;
+    /// <summary>가운데에서 미사일이 나오는 긴 가시 끝까지의 픽셀 거리입니다. 굽기 옵션 radius + long보다 조금 안쪽입니다.</summary>
+    public const float SunCrestTipPixels = 64f;
+    /// <summary>pixelfx로 구워 둔 가시 끝의 발사 섬광(sun-flare)입니다. 오른쪽을 향하고 피벗이 가시 끝입니다.</summary>
+    public const string SunFlarePrefix = "SunFlare_";
+    /// <summary>pixelfx로 구워 둔 흰 불꽃 미사일(sun-missile)입니다. 오른쪽을 향하고 피벗이 탄두 가운데입니다.</summary>
+    public const string SunMissilePrefix = "SunMissile_";
     public const float BlazeFrameDuration = 1f / 30f;
 
     private static Sprite[] blazeSprites;

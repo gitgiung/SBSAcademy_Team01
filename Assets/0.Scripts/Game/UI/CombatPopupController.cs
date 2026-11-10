@@ -278,7 +278,8 @@ public sealed class CombatPopupController : MonoBehaviour
         if (rarity != null && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color)) accent = color;
         string description = LevelUpSkillDraft.FormatDescription(skill);
         int currentStack = loadout != null ? loadout.GetAttackSkillStack(skill.Id) : 0;
-        if (currentStack > 0 && currentStack < PlayerLoadout.MaxAttackSkillStack)
+        bool isUpgrade = currentStack > 0 && currentStack < PlayerLoadout.MaxAttackSkillStack;
+        if (isUpgrade)
         {
             int nextStack = currentStack + 1;
             float multiplier = PlayerLoadout.DamageMultiplierForStack(nextStack);
@@ -289,7 +290,7 @@ public sealed class CombatPopupController : MonoBehaviour
             SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
             Icon = string.IsNullOrEmpty(skill.Icon) ? null : Managers.Resource.Load<Sprite>(skill.Icon),
             ActiveDescription = description, ActiveButtonLabel = "N",
-            FlavorText = skill.Explanation
+            FlavorText = skill.Explanation, IsUpgrade = isUpgrade
         };
     }
 
@@ -445,6 +446,20 @@ public sealed class CombatPopupController : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    [ContextMenu("테스트/SoulArena3D 로드")]
+    private void LoadSoulArenaDebug()
+    {
+        if (!Application.isPlaying) return;
+        try
+        {
+            Managers.Scene.LoadScene(Define.EScene.SoulArena3D);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"SoulArena3D 로드 실패: {ex.Message}", this);
+        }
+    }
+
     [ContextMenu("테스트/경험치 13 획득")]
     private void PreviewExperience()
     {

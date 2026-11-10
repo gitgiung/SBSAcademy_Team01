@@ -42,6 +42,12 @@ public class UI_LobbyScene : UI_Scene
         if (startButton != null)
             startButton.BindEvent(evt => OnClickStart());
 
+        // 임시: 도감 탭 = SoulArena3D 본선 파이프라인 진입(마감 전 검증용).
+        // 도감 화면이 정해지면 이 바인딩을 정식 화면으로 바꾼다.
+        GameObject soulArenaButton = GetButton((int)Buttons.CodexTab)?.gameObject;
+        if (soulArenaButton != null)
+            soulArenaButton.BindEvent(evt => OnClickSoulArena());
+
         return true;
     }
 
@@ -75,5 +81,30 @@ public class UI_LobbyScene : UI_Scene
             isStarting = false;
             throw;
         }
+    }
+
+    private void OnClickSoulArena()
+    {
+        if (isStarting)
+            return;
+
+        isStarting = true;
+        try
+        {
+            Managers.Scene.LoadSceneThroughLoading(EScene.SoulArena3D);
+        }
+        catch
+        {
+            isStarting = false;
+            Debug.LogError("[SoulPipeline] SoulArena3D 로드 실패. Build Settings에 씬이 있는지 확인.");
+            throw;
+        }
+    }
+
+    private void Update()
+    {
+        // 키보드 단축: F6 = SoulArena3D (버튼 바인딩이 없을 때 대비)
+        if (!isStarting && Input.GetKeyDown(KeyCode.F6))
+            OnClickSoulArena();
     }
 }

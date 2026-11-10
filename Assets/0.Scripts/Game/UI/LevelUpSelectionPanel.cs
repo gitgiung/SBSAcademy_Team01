@@ -19,6 +19,8 @@ public sealed class LevelUpCardData
     public string PassiveDescription;
     public string ActiveButtonLabel = "N";
     public string FlavorText;
+    /// <summary>보유 약공격의 스택 강화 카드일 때 true입니다. 테두리 빛 이펙트를 켭니다.</summary>
+    public bool IsUpgrade;
 }
 
 /// <summary>레벨업 카드 표시 전용 뷰. 선택 효과와 전투 정지는 호출자가 처리합니다.</summary>
@@ -193,6 +195,8 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         private readonly TMP_Text passiveTag;
         private readonly List<Image> edges = new List<Image>();
         private readonly List<Image> iconEdges = new List<Image>();
+        private readonly Image upgradeShine;
+        private readonly LevelUpCardBorderShine shinePlayer;
 
         internal Card(RectTransform rect, TMP_FontAsset font, UnityEngine.Events.UnityAction choose, UnityEngine.Events.UnityAction info)
         {
@@ -200,6 +204,15 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             Border(rect, Color.white, 3);
             foreach (Transform child in rect)
                 if (child.TryGetComponent<Image>(out var edge)) edges.Add(edge);
+            // 테두리 막대 바로 위·글자·아이콘보다 아래에 둡니다. 구운 림이 카드 가장자리(Border)와 같게 맞춰져 있습니다.
+            var shineRect = Stretch(rect, "UpgradeShine");
+            upgradeShine = shineRect.gameObject.AddComponent<Image>();
+            upgradeShine.type = UnityEngine.UI.Image.Type.Simple;
+            upgradeShine.raycastTarget = false;
+            upgradeShine.preserveAspect = false;
+            upgradeShine.enabled = false;
+            shinePlayer = shineRect.gameObject.AddComponent<LevelUpCardBorderShine>();
+            shinePlayer.Bind(upgradeShine);
             select = rect.gameObject.AddComponent<Button>();
             select.targetGraphic = rect.GetComponent<Image>();
             select.transition = Selectable.Transition.None;
@@ -257,6 +270,15 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             passiveTag.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(data.PassiveDescription));
             flavor.text = data.FlavorText;
             select.interactable = selectable;
+            // 강화 카드만 테두리 빛을 켭니다. 흰색에 등급 색을 살짝만 섞어 잘 보이게 합니다.
+            if (data.IsUpgrade && shinePlayer.Ready)
+            {
+                Color tint = data.Accent;
+                tint.a = 1f;
+                upgradeShine.color = Color.Lerp(Color.white, tint, 0.45f);
+                shinePlayer.Play();
+            }
+            else shinePlayer.Stop();
         }
 
         internal void Focus()

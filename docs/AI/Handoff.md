@@ -1,5 +1,96 @@
 # 작업 인수인계
 
+## 2026-11-11 사용자 요청으로 즉시 커밋·푸시
+
+- 브랜치: `feature/soul-pipeline-3d` — 사용자가 08:00 대기 없이 **바로 커밋/푸시** 요청.
+- 포함: SoulArena3D 본선 파이프라인 + 팀 안내/Progress + 작업 트리의 pixelfx·프로토타입 잔여(유실 방지).
+- 노션 **한곳만**: https://app.notion.com/p/414283dd247981f49c61ee058a887059 · 원본 `docs/AI/SoulPipeline-Progress.md`
+- Play: Play From Title 끄고 `Tools > Soul Pipeline > 0. One-Click Setup` 또는 로비 F6.
+
+## 2026-11-11 본선 Soul Pipeline 착수 (3D맵·휴머노이드·접근슬래시)
+
+### 완료(코드/에셋 반영, Unity 메뉴로 조립)
+
+- **팀 안내**: `docs/AI/SoulPipeline-TeamGuide.md` (Play 절차·레거시·Main 합류·성능)
+- **설계**: `docs/superpowers/specs/2026-11-11-motion-readable-boss-pipeline.md`
+- **URP**: `UniversalRenderer` 추가, `UniversalRP` renderer list index **1**. 기본 index 0은 기존 `Renderer2D` 유지 → MainScene 2D 깨지지 않게.
+- **표시 규격**: `SoulRenderSpec` — 평탄 XZ, yaw45/pitch35 직교, 캐릭 스케일 1. (포켓봉크는 렌더만)
+- **휴머노이드(임시/CC0)**: `Assets/2.Resources/Art/SoulPipeline/Humanoid/` — KinemIQ 마네킹 + Idle/Walk/Sword_slash 등. 최종 Mixamo·야수좀비로 교체 가능.
+- **런타임**: `Assets/0.Scripts/Game/SoulPipeline/` — CameraRig, Avatar, BossApproachSlash, WeaponHitbox3D, ArenaBootstrap
+- **조립 메뉴**: `Tools > Soul Pipeline > 1~3` → Prefab/`SoulArena3D` 생성. **MainScene 미덮어씀**.
+
+### 레거시
+
+| 유지 | 비고 |
+|------|------|
+| MainScene + BeastZombie 2D+바닥 VFX | 플레이/회귀용 레거시. 개편 대상이나 지금 직접 치환 안 함 |
+| MotionBossPrototype 스프라이트 토이 | 조기 검증용. 본선 아님 |
+| 뱀서 성장·UI·스폰 | Main에서 유지. SoulArena 합류 후 이식 |
+| pixelfx bake 미커밋 | 비핵. 본선과 무관. 커밋 요청 전 방치 |
+
+### 기본으로 확정한 미정
+
+- 첫 휴머노이드 = KinemIQ 마네킹(CC0). 팀 Mixamo/야수좀비 오면 같은 Idle/Walk/Slash + 손 히트박스 계약으로 교체.
+- 본선 검증 씬 = **`SoulArena3D` 병행**. Main 직접 덮기 금지(합류은 가이드 단계 3~5).
+
+### 성능·용량
+
+- 정밀 콜라이더/모션: 보스·플레이어. 잡몹 단순. pixelfx 스킬 양산 금지. 서버 추후. 기믹 기획 미정→미구현.
+
+### 검증
+
+- Unity Play·테스트 러너 **미실행**(사용자 에디터 동일 프로젝트). 메뉴 조립은 팀/사용자가 Unity에서 실행.
+- 커밋·푸시 안 함. 브랜치 `feature/pixelfx-parry-blaze-vfx` + pixelfx/프로토타입 미커밋 잔존.
+
+### 팀 Play 확인 (짧게)
+
+1. Play From Title 끄기  
+2. `Tools > Soul Pipeline > 1` → `2` → `3` (또는 Open SoulArena3D)  
+3. Play: WASD / E. 바닥 경고 없이 접근+슬래시 모션으로 읽고 패링  
+4. 실패 시: URP renderer #1, Prefab 손 `SoulWeaponHitbox3D`, Console 첫 오류
+
+### 마감 전 남은 일 (우선)
+
+1. SoulArena3D Play 안정화(임포트·Animator Humanoid·손 본 바인딩)  
+2. 팀 Mixamo/야수좀비 아트를 Prefab 계약으로 교체  
+3. 로비/디버그에서 SoulArena 진입 연결 → 이후 BossEncounter 치환  
+4. 페이즈2 한 기믹은 기획 확정 후  
+5. pixelfx는 본선 아님(별도 정리/커밋 요청 시)
+
+## 2026-11-11 모션 읽기 보스 — 임시 몸 1패턴 프로토타입 (조기 검증·레거시)
+
+- 스프라이트 임시몸 샌드박스 `MotionBossPrototype`. 본선은 위 Soul Pipeline으로 이전.
+- 합의 이력: 야수좀비 개편(B), 평탄 3D, 서버 추후, 임시몸 먼저.
+
+## 2026-11-11 강화 카드 테두리 빛(pixelfx card-border-shine)
+
+- 요청: 레벨업 카드 중 **강화**(이미 보유한 약공격 스택 업) 카드만 테두리에 빛이 선을 타고 불규칙한 주기로 지나가는 이펙트를 넣는다. pixelfx로 굽는다.
+- 이펙트: `tools/PixelFxBake/card-border-shine.js` → `Assets/Resources/UI/LevelUp/CardBorderShine_00`~`59`(208×264, 30fps, 2초 루프, 피벗 가운데, Filter Point, PPU 32). **짧은 밝은 하이라이트 한 덩어리**가 Border 막대 위(inset 2)를 불규칙한 속도로 돈다. 긴 꼬리·점 잔상·코너 스파크·깜빡 소멸은 제거(안 보이고 `...`처럼 보이던 원인). 틴트는 흰색↔Accent 45% 혼합.
+- 코드: `LevelUpCardData.IsUpgrade`. `CombatPopupController.CreateSkillCard`가 `GetAttackSkillStack`이 (0, Max)일 때만 true. `LevelUpSelectionPanel.Card`가 테두리 바로 위·글자/아이콘 아래에 `UpgradeShine` Image를 두고 `LevelUpCardBorderShine`이 unscaledDeltaTime으로 재생한다(레벨업은 timeScale=0). 신규 획득·맥스 스택·전략 카드는 꺼진다.
+- 다시 굽기: `.utmp/pixelfx`가 없으면 clone 후 저장소 루트에서 `node tools/PixelFxBake/export-card-border.mjs`. `CardBorderShine_`만 쓰고 GUID 유지.
+- 검증: pixelfx check 통과, 60장 존재 확인. Unity 임포트·Play·테스트 러너는 실행하지 않음(사용자 에디터 동일 프로젝트 열림). 린트 오류 없음.
+- 직접 확인: Unity 임포트·컴파일 후 Console 오류 없는지 본다. `Resources/UI/LevelUp`의 `CardBorderShine_*` 60장이 Sprite(Point, PPU 32)인지 본다. `Tools > Play From Title` 끄고 MainScene Play → 약공격을 한 번 획득한 뒤 같은 스킬이 강화 카드로 다시 나오거나, Hierarchy `CombatUI` → `CombatPopupController` ⋮ → `테스트/원하는 카드 고르기`로 **이미 장착한** 약공격을 다시 고른다(설명에 `강화 n→n+1`이 붙는 카드). 테두리를 따라 흰빛이 불규칙한 속도로 돌고 가끔 잠깐 비었다가 다시 돌아와야 한다. 첫 획득·전략 카드에는 빛이 없어야 한다. 이상하면 Console 첫 오류, `IsUpgrade` 경로(스택 1~2), PNG 60장 로드를 확인한다.
+
+## 2026-11-11 태양 탄막을 pixelfx 태양 문양 + 유도 미사일로 교체
+
+- 요청: 태양 탄막(10016)을 pixelfx로 바꾼다. 시작할 때 플레이어 주위에 태양이 그려지고, 태양의 뾰족한 가시에서 전투기 미사일 같은 흰 불꽃 투사체가 적을 쫓아가듯 날아간다.
+- 이펙트(모두 `Assets/Resources/LightSkills/Blaze`, 30fps, PPU 32, 1배로 표시):
+  - `SunCrest_00`~`27`(176×176, 피벗 가운데) — pixelfx `fire/sun-crest`. 0~6은 흰 점이 원을 한 바퀴 돌며 불 고리를 그리고 지나간 자리에서 가시 12개(긴 것 6, 짧은 것 6)가 튀어나오는 구간, 7~18은 이음매 없이 반복하는 유지 구간(프레임 19가 7과 픽셀까지 같음), 19~27은 가시가 들어가고 고리가 불씨로 흩어지는 구간이다. 고리 반지름 38px(약 1.2유닛), 긴 가시 끝 약 68px(약 2.1유닛).
+  - `SunMissile_00`~`11`(80×28, 피벗 64,14 = 탄두 가운데, 반복) — pixelfx `projectiles/sun-missile`. 흰 몸통에 주황 테두리, 뒤로 젖힌 꼬리 날개, 흰 심의 제트 불꽃과 가는 열선, 불똥. 연기는 없다.
+  - `SunFlare_00`~`06`(72×48, 피벗 20,24, 오른쪽 방향) — pixelfx `fire/sun-flare`. 미사일이 떠나는 가시 끝의 흰 별 섬광·고리·불똥.
+- 코드: `LightSkillCast.SunBarrage`(ID 10016). `SunBarrageCrest`(새 파일)가 플레이어 자식으로 문양을 재생하고 가시 끝 위치·방향·발사 섬광을 담당한다(플레이어 스케일 3배를 되돌려 1배로 표시, Default 정렬 레이어 29, 섬광 31 — 다른 약공격 그림처럼 캐릭터 아래에 깔린다). `Player.CastShots`가 문양을 먼저 그린 뒤 `SpawnSunMissile`로 긴 가시 끝(가운데에서 64px = 2유닛)에서 한 발씩 쏜다. 첫 발은 조준 방향에 가장 가까운 가시, 이후 시계 방향이다. `LightSkillFx.PlayHoming`·`FlyHoming`이 유도 비행이다. `LightSkillVisuals.SunCrestLoopStart`(7)·`SunCrestLoopLength`(12)·`SunCrestSpikes`(6)·`SunCrestTipPixels`(64)는 굽기 소스와 같아야 한다. 구운 그림이 없으면 문양 없이 예전 부채꼴 탄환 연사로 대신한다.
+- 동작 변화(표는 안 바꿈. MP 14, 6발, 간격 0.2초, 피해 8 + ATK×1.15, 맞으면 사라짐은 그대로):
+  - 문양이 그려지는 7프레임(약 0.23초) 뒤에 첫 발이 나간다. 수동 시전의 입력 잠금도 그만큼 길어진다.
+  - 예전의 ±20도 부채꼴 직선 대신, 각 미사일이 **시전 지점에서 Range(6.5) 안에 있는 살아 있는 적 중 자신과 가장 가까운 적**을 쫓는다. 표적이 죽으면 0.1초마다 다시 찾는다. 적이 없으면 조준 방향으로 휘어 날아간다.
+  - 끝나는 조건이 "날아간 길이 ≥ Range"에서 "시전 지점에서 Range 밖으로 나가는 순간"으로 바뀌었고 수명에 0.8초를 더했다(휘는 만큼 길이 필요).
+  - 맞는 크기는 예전과 같다(반지름 0.28 × 기존 탄환 배율 0.8).
+  - 임시값(표에 없음, `LightSkillFx` 상수): 곧게 나가는 0.06초, 처음 속도 35% → 0.22초에 12, 회전 초당 300도 → 0.45초에 1080도, 문양이 마지막 발 뒤에 남는 0.15초. Range가 2유닛보다 작아지면 미사일이 가시 끝에서 바로 사라지니 그때는 `SunCrestTipPixels`도 같이 줄여야 한다.
+- 다시 굽기: 원본은 `tools/PixelFxBake/sun-crest.js`·`sun-flare.js`·`sun-missile.js`다. `.utmp/pixelfx`가 없으면 `git clone --depth 1 https://github.com/patch-gg/pixelfx .utmp/pixelfx` 후, 저장소 루트에서 `node tools/PixelFxBake/export-sun.mjs`. 자기 접두사 PNG만 쓰고 기존 GUID는 유지한다. 확인용은 `node tools/PixelFxBake/preview-sun.mjs fire/sun-crest 4 ground 4,7,12,21 crest`(결과는 `.utmp/pixelfx/preview-*.png`).
+- **주의**: `tools/PixelFxBake/export-blaze.mjs`는 출력 경로가 다른 PC 경로로 고정돼 있고, 출력 폴더의 PNG를 전부 지운 뒤 자기 작업 2개(PlasmaOrb·BlazeFork)만 다시 쓴다. 이 저장소에는 `flame-whirl.js`·`sundering-fire.js` 원본이 없다(이전 PC의 `.utmp`에만 있었음). 경로만 이 PC로 고쳐 실행하면 FlameWhirl·SunderFire·Sun* 그림이 사라지니, 쓰려면 지우는 부분부터 고쳐야 한다.
+- 검증: pixelfx `tools/check.mjs` 3개 모두 통과(경고 없음), 전체 프레임을 눈으로 확인. Unity 6000.5.0f1의 내장 csc와 `Library/Bee`의 응답 파일 참조로 Assembly-CSharp를 `.utmp/SunBarrageCompile`에 따로 컴파일해 오류 0(경고 3은 기존 `Player.cs` `FindObjectsByType` 폐기 경고). `FlyHoming`과 같은 상수의 궤적 시뮬레이션(`.utmp/SunBarrageCompile/homing-sim.mjs`, 60·30fps, 11가지 배치)에서 사거리 안에 살아 있는 적이 남아 있으면 모두 명중, 맴돌다 수명으로 끝난 미사일 0, 적이 없거나 다 죽었거나 사거리 밖이면 조준 방향으로 날아가 사거리 끝에서 소멸. 이 시뮬레이션은 수식 확인이며 Unity 물리 판정을 대신하지 않는다. **Unity 임포트·Play·테스트 러너는 실행하지 않았다**(사용자 에디터가 같은 프로젝트를 열고 있었음). 실제 충돌 판정·풀 재사용·정렬 순서는 Play에서 확인이 필요하다.
+- 이번 변경과 무관한 기존 문제: `tools/CombatSkillTableValidation/Run.ps1`이 빌드되지 않는다(`Program.cs`가 코드에 없는 `LevelUpSkillReward.DrawChoices`를 호출, HEAD에서도 동일). 고치지 않았다.
+- 직접 확인: Unity로 돌아가 임포트·컴파일이 끝나면 Console에 오류가 없는지 본다. `Resources/LightSkills/Blaze`의 `SunCrest_*` 28장, `SunMissile_*` 12장, `SunFlare_*` 7장이 Sprite(Filter Mode Point, PPU 32)로 들어왔는지 본다. `Tools > Play From Title`을 끄고 MainScene Play → Hierarchy `CombatUI` → `CombatPopupController` ⋮ → `테스트/원하는 카드 고르기`에서 태양 탄막을 골라 장착하고 약공격을 쓴다. 캐릭터 둘레에 흰 점이 돌며 태양이 그려지고, 긴 가시 끝이 번쩍일 때마다 흰 미사일이 하나씩(0.2초 간격, 6발) 튀어나와 가까운 적으로 휘어 가 맞으면 사라진다. 마지막 발 뒤에 가시가 들어가고 고리가 불씨로 흩어진다. 적이 없으면 미사일이 조준 방향으로 모여 날아가다 사라진다. 예전 주황 탄환 6발이 부채꼴로 나가면 구운 그림 로드 실패이니 Console 첫 오류와 `Blaze` 폴더의 `SunCrest_`·`SunMissile_` PNG 유무, 스킬 ID 10016을 확인한다. 태양 크기·미사일 크기·휘는 정도가 어색하면 알려 주면 굽기 옵션(`radius`·`long`)과 `LightSkillFx`의 유도 상수를 조정한다.
+
 ## 2026-11-10 화염 고리를 pixelfx 불 회오리로 교체
 
 - 요청: 화염 고리(10014)를 히오스 번개 회오리 같은 불 속성 연출로 바꾼다. 같은 pixelfx 방식으로 만든다.

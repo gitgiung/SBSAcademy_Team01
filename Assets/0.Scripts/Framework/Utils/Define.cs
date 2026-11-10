@@ -11,7 +11,9 @@ public static class Define
         LoadScene,
         MainScene,
         GiungScene,
-        LobbyScene
+        LobbyScene,
+        /// <summary>본선 3D 소울 파이프라인 검증 씬. Main 합류 전 병행.</summary>
+        SoulArena3D
     }
 
     public enum EUIEvent

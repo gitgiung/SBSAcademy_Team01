@@ -1,0 +1,2 @@
+﻿CC0 1.0 — Quaternius Universal Animation Library / KinemIQ retarget.
+See README_KinemIQ_CC0.txt. Temporary pipeline mannequin until team Mixamo/beast zombie art lands.

@@ -1,11 +1,12 @@
 # 작업 인수인계
 
-## 2026-11-11 사용자 요청으로 즉시 커밋·푸시
+## 2026-11-11 사용자 요청으로 즉시 커밋·푸시 (완료)
 
-- 브랜치: `feature/soul-pipeline-3d` — 사용자가 08:00 대기 없이 **바로 커밋/푸시** 요청.
-- 포함: SoulArena3D 본선 파이프라인 + 팀 안내/Progress + 작업 트리의 pixelfx·프로토타입 잔여(유실 방지).
+- 브랜치: `feature/soul-pipeline-3d` → `e2886c0` / `36a6b58` 푸시됨. 08:00 마감 루프는 **사용자에 의해 중단**.
+- 포함: SoulArena3D 본선 파이프라인 + 팀 안내/Progress + pixelfx·프로토타입 잔여.
 - 노션 **한곳만**: https://app.notion.com/p/414283dd247981f49c61ee058a887059 · 원본 `docs/AI/SoulPipeline-Progress.md`
 - Play: Play From Title 끄고 `Tools > Soul Pipeline > 0. One-Click Setup` 또는 로비 F6.
+- PC 자동 종료는 **실행하지 않음**.
 
 ## 2026-11-11 본선 Soul Pipeline 착수 (3D맵·휴머노이드·접근슬래시)
 

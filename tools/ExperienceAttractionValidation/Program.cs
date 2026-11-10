@@ -51,6 +51,7 @@ public class PlayerData : MonoBehaviour
 {
     public bool IsDead;
     public float experiencePickupDistance;
+    public float PickupDistance => experiencePickupDistance;
     public bool TryCollectExperience(float raw, out float awarded) { awarded=raw; return true; }
 }
 public class PooledObject { public uint LeaseVersion; public bool IsRented; public void ReturnToPool(uint lease) { } }

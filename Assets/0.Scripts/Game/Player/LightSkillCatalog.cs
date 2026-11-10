@@ -64,6 +64,15 @@ public readonly struct LightSkillCast
             Range, 0f, Width > 0.01f ? Width : 0.35f, Mathf.Max(1, Hits), 1, HitDelay, BaseValue, Factor);
     }
 
+    public LightSkillCast WithStatUpgrades(int additionalProjectiles, float rangeMultiplier)
+    {
+        if (Shape == LightSkillShape.Projectile)
+            return new LightSkillCast(Id, Name, Element, MpCost, Shape, Range, Angle, Width,
+                Projectiles + additionalProjectiles, Hits, HitDelay, BaseValue, Factor);
+        return new LightSkillCast(Id, Name, Element, MpCost, Shape, Range * rangeMultiplier, Angle,
+            Width * rangeMultiplier, Projectiles, Hits, HitDelay, BaseValue, Factor);
+    }
+
     public static bool TryFrom(CombatSkillRecord record, out LightSkillCast skill)
     {
         skill = default;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 스탯 종류·등급 → 가산값 순수 조회 테이블.
-/// temporary: 기획 확정 전 테스트용 상수이며 Strengthentable 연동 전입니다.
+/// 호출자가 전달한 값만 보관합니다.
 /// </summary>
 public sealed class LevelUpStatBonusTable
 {
@@ -15,18 +15,10 @@ public sealed class LevelUpStatBonusTable
     private readonly Dictionary<(LevelUpStatKind kind, string rarity), float> amounts =
         new Dictionary<(LevelUpStatKind, string), float>();
 
-    private LevelUpStatBonusTable() { }
-
-    /// <summary>temporary 피해량 가산. Common/Fusion은 넣지 않습니다.</summary>
-    public static LevelUpStatBonusTable CreateTemporaryDamageDefaults()
+    public LevelUpStatBonusTable(IEnumerable<(LevelUpStatKind kind, string rarity, float amount)> entries)
     {
-        var table = new LevelUpStatBonusTable();
-        table.amounts[(LevelUpStatKind.Damage, "Uncommon")] = 0.05f;
-        table.amounts[(LevelUpStatKind.Damage, "Rare")] = 0.08f;
-        table.amounts[(LevelUpStatKind.Damage, "Epic")] = 0.12f;
-        table.amounts[(LevelUpStatKind.Damage, "Legendary")] = 0.18f;
-        table.amounts[(LevelUpStatKind.Damage, "Mythic")] = 0.25f;
-        return table;
+        foreach (var (kind, rarity, amount) in entries)
+            amounts.Add((kind, SkillRarityRecord.NormalizeId(rarity)), amount);
     }
 
     public static IReadOnlyList<string> EligibleRarities => StatRarityOrder;

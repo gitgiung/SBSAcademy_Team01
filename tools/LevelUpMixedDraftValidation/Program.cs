@@ -60,25 +60,96 @@ internal static class Program
         };
     }
 
-    private static int Main()
+    private static int Main(string[] args)
     {
-        Test("temporary table has Uncommon~Mythic only and graded amounts", () =>
+        var statCards = PlayerStatTableExporter.Read("Document/PlayerDatatable.xlsx");
+        if (args.Length == 1 && args[0] == "--export")
         {
-            var table = LevelUpStatBonusTable.CreateTemporaryDamageDefaults();
+            System.IO.File.WriteAllText("Assets/Resources/Data/PlayerStatTable.json", UnityEngine.JsonUtility.ToJson(statCards, true));
+            return 0;
+        }
+        Test("workbook exports every card and keeps key, unit, weight and cap", () =>
+        {
+            Check(statCards.Cards.Length == 13);
+            Check(statCards.Cards.Select(card => card.Stat).Distinct().Count() == 13);
+            Check(statCards.Cards.All(card => card.Weight == 1));
+            var regen = statCards.Cards.Single(card => card.Stat == PlayerStat.HP_Regen);
+            Check(Math.Abs(regen.Values[1] - .001f) < 1e-6);
+            var speed = statCards.Cards.Single(card => card.Stat == PlayerStat.Move_Speed);
+            Check(speed.Values[0] == 0 && speed.Values[5] == .25f);
+            var xp = statCards.Cards.Single(card => card.Stat == PlayerStat.XP_Gain);
+            Check(xp.Values[2] == 1.14f && xp.Limit == 1.5f);
+            Check(statCards.Cards.Single(card => card.Stat == PlayerStat.Projectile_Count).Values.Length == 4);
+            var json = System.IO.File.ReadAllText("Assets/Resources/Data/PlayerStatTable.json");
+            var shipped = UnityEngine.JsonUtility.FromJson<PlayerStatTable>(json);
+            Check(UnityEngine.JsonUtility.ToJson(shipped, false) == UnityEngine.JsonUtility.ToJson(statCards, false));
+        });
+        Test("weighted choices do not duplicate or offer capped stats and reject stale upgrades", () =>
+        {
+            var progress = new PlayerStatProgress();
+            var hp = statCards.Cards.Single(card => card.Stat == PlayerStat.HP);
+            var projectiles = statCards.Cards.Single(card => card.Stat == PlayerStat.Projectile_Count);
+            Check(progress.Draw(new[] { projectiles, hp }, 3, () => 0).Count == 2);
+            Check(progress.TryUpgrade(projectiles, 1));
+            Check(!progress.TryUpgrade(projectiles, 1));
+            Check(progress.TryUpgrade(projectiles, 2));
+            Check(progress.TryUpgrade(projectiles, 3));
+            Check(!progress.TryUpgrade(projectiles, 4));
+            Check(progress.Value(PlayerStat.Projectile_Count) == 3);
+            Check(progress.Draw(new[] { projectiles, hp }, 3, () => 0).Single() == hp);
+            Check(new PlayerStatProgress().Value(PlayerStat.Projectile_Count) == 0);
+            var capped = new PlayerStatCard { Stat = PlayerStat.DEF, Values = new[] { 0f, 2f, 4f }, Limit = 1f, Weight = 9f };
+            Check(progress.Draw(new[] { hp, capped }, 1, () => .5).Single() == capped);
+            Check(progress.TryUpgrade(capped, 1) && progress.Value(PlayerStat.DEF) == 1f);
+            Check(!progress.TryUpgrade(capped, 2));
+        });
+        PlayerStatCard Card(PlayerStat stat) => statCards.Cards.Single(card => card.Stat == stat);
+        Test("PlayerData applies table recovery, health, mitigation and movement", () =>
+        {
+            var player = new PlayerData { speed = 5f, maxHealth = 100f, currentHealth = 80f, maxMP = 100f };
+            var notifications = new List<(float current, float maximum)>();
+            player.HealthChanged += (current, maximum) => notifications.Add((current, maximum));
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 1));
+            Check(player.maxHealth == 150f && player.currentHealth == 130f);
+            Check(notifications.SequenceEqual(new[] { (130f, 150f) }));
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP_Regen), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.MP_Regen), 1));
+            player.TickMPRecovery(2f);
+            player.TickHealthRecovery(2f);
+            Check(Math.Abs(player.currentHealth - 130.3f) < 1e-5 && Math.Abs(player.CurrentMP - 2.4f) < 1e-5);
+            Check(player.TryUpgradeStat(Card(PlayerStat.DEF), 1));
+            player.ApplyDamage(10f);
+            Check(Math.Abs(player.currentHealth - (130.3f - 10f * (1f - 2f / 35.34f))) < 1e-5);
+            Check(player.TryUpgradeStat(Card(PlayerStat.Move_Speed), 1));
+            Check(Math.Abs(player.MoveSpeed - 5.25f) < 1e-5);
+            Check(player.speed == 5f);
+        });
+        Test("PlayerData composes damage and applies XP before fractional carry", () =>
+        {
+            var player = new PlayerData { experiencePickupDistance = 3f };
+            Check(player.TryUpgradeStat(Card(PlayerStat.ATK), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.Elm_All_ATK), 1));
+            Check(Math.Abs(player.ScaleAttackDamage(100f) - 110f) < 1e-4);
+            Check(Math.Abs(player.ScaleAttackDamage(100f, "ELEM_FIRE") - 121f) < 1e-4);
+            Check(player.TryUpgradeStat(Card(PlayerStat.XP_Gain), 1));
+            Check(player.TryCollectExperience(10f, out float first) && first == 10f);
+            Check(player.TryCollectExperience(10f, out float second) && second == 11f);
+            Check(player.TryUpgradeStat(Card(PlayerStat.Pickup_Radius), 1));
+            Check(Math.Abs(player.PickupDistance - 3.3f) < 1e-5);
+        });
+
+        Test("bonus table uses supplied values and does not fill missing rows", () =>
+        {
+            var table = new LevelUpStatBonusTable(new[] { (LevelUpStatKind.Damage, "Rare", 2f) });
             Check(!table.TryGetAmount(LevelUpStatKind.Damage, "Common", out _));
-            Check(!table.TryGetAmount(LevelUpStatKind.Damage, "Fusion", out _));
-            Check(table.TryGetAmount(LevelUpStatKind.Damage, "Uncommon", out float u) && Math.Abs(u - 0.05f) < 1e-6);
-            Check(table.TryGetAmount(LevelUpStatKind.Damage, "Rare", out float r) && Math.Abs(r - 0.08f) < 1e-6);
-            Check(table.TryGetAmount(LevelUpStatKind.Damage, "Epic", out float e) && Math.Abs(e - 0.12f) < 1e-6);
-            Check(table.TryGetAmount(LevelUpStatKind.Damage, "Legendary", out float l) && Math.Abs(l - 0.18f) < 1e-6);
-            Check(table.TryGetAmount(LevelUpStatKind.Damage, "Mythic", out float m) && Math.Abs(m - 0.25f) < 1e-6);
-            Check(u < r && r < e && e < l && l < m);
+            Check(!table.TryGetAmount(LevelUpStatKind.Damage, "Uncommon", out _));
+            Check(table.TryGetAmount(LevelUpStatKind.Damage, "Rare", out float amount) && amount == 2f);
         });
 
         Test("mixed draft is pure for the same random sequence", () =>
         {
             var table = SampleTable();
-            var bonuses = LevelUpStatBonusTable.CreateTemporaryDamageDefaults();
+            var bonuses = SampleBonuses();
             double[] rolls =
             {
                 0.9, 0.0, 0.0, // skill share miss -> stat; pick first weighted uncommon
@@ -99,7 +170,7 @@ internal static class Program
         Test("stat-only pack never emits Common or Fusion", () =>
         {
             var table = SampleTable();
-            var bonuses = LevelUpStatBonusTable.CreateTemporaryDamageDefaults();
+            var bonuses = SampleBonuses();
             // Always prefer stats (skillShare 0).
             var rolls = Enumerable.Repeat(0.0, 32).ToArray();
             var choices = LevelUpMixedDraft.DrawChoices(
@@ -118,7 +189,7 @@ internal static class Program
 
         Test("null applier refuses without side effects", () =>
         {
-            var reward = new LevelUpStatChoice(LevelUpStatKind.Damage, "Uncommon", 0.05f, "피해량 증가");
+            var reward = new LevelUpStatChoice(LevelUpStatKind.Damage, "Uncommon", 1f, "Test stat");
             Check(!NullLevelUpRewardApplier.Instance.TryApply(reward, null));
             Check(!NullLevelUpRewardApplier.Instance.TryApply(null, null));
         });
@@ -135,4 +206,11 @@ internal static class Program
         Console.WriteLine($"{tests - failures}/{tests} passed");
         return failures == 0 ? 0 : 1;
     }
+
+    private static LevelUpStatBonusTable SampleBonuses() => new LevelUpStatBonusTable(new[]
+    {
+        (LevelUpStatKind.Damage, "Uncommon", 1f),
+        (LevelUpStatKind.Damage, "Rare", 2f),
+        (LevelUpStatKind.Damage, "Epic", 3f)
+    });
 }

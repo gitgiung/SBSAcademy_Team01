@@ -17,6 +17,8 @@ public class GrowthPopupTests
     static void Set(object target,string field,object value) => target.GetType().GetField(field,BindingFlags.Instance|BindingFlags.NonPublic).SetValue(target,value);
     static void Call(object target,string method) => target.GetType().GetMethod(method,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(target,null);
     static int Pending(PlayerData d) => (int)typeof(PlayerData).GetProperty("PendingLevelUps").GetValue(d);
+    static void SetStatCards(params PlayerStatCard[] cards) => typeof(PlayerStatTable)
+        .GetField("loadedCards", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, cards);
     static Button NamedButton(Component owner,string name) => owner.GetComponentsInChildren<Button>(true).First(b=>b.name==name);
     UI_CombatPopup Popup(string name)
     {
@@ -31,6 +33,7 @@ public class GrowthPopupTests
     {
         Time.timeScale=1;
         Managers.UI=new UIManager();
+        SetStatCards();
         // 추첨/획득도 실제 구현을 실행하되 표 입력만 고정합니다.
         var skills=Enumerable.Range(10001,10).ToDictionary(i=>i,i=>new CombatSkillRecord{Id=i,Name="검증 스킬",Rarity="Common"});
         typeof(CombatSkillTable).GetField("skills",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,skills);
@@ -44,6 +47,23 @@ public class GrowthPopupTests
         var pauseButton=new GameObject("PauseButton",typeof(RectTransform),typeof(Button)); pauseButton.transform.SetParent(root.transform);
         Set(controller,"pauseButton",pauseButton.GetComponent<Button>()); Set(controller,"pausePopup",pause); Set(controller,"levelUpPopup",level); Set(controller,"statusPlayer",player);
         root.SetActive(true);
+    }
+
+    [UnityTest] public IEnumerator FullSkillSlotsStillOfferStatAndApplyOnlyOnce()
+    {
+        yield return null;
+        for (int i = 0; i < 6; i++) data.Loadout.TryAddAttackSkill(new Data.SkillData { DataId = 11000 + i });
+        SetStatCards(new PlayerStatCard { Stat = PlayerStat.HP, Name = "체력", Values = new[] { 100f, 150f, 200f }, Weight = 1f });
+        data.ApplyDamage(20f);
+        data.AddEXP(13);
+        var choice = NamedButton(level, "Choice0");
+        choice.onClick.Invoke();
+        choice.onClick.Invoke();
+        Assert.That(data.StatCards.Level(PlayerStat.HP), Is.EqualTo(1));
+        Assert.That(data.maxHealth, Is.EqualTo(150f));
+        Assert.That(data.currentHealth, Is.EqualTo(130f));
+        Assert.That(Pending(data), Is.Zero);
+        yield return null;
     }
     [UnityTearDown] public IEnumerator Cleanup()
     {

@@ -5,6 +5,30 @@ public class PlayerData : MonoBehaviour
 {
     [SerializeField] private PlayerLoadout loadout = new PlayerLoadout();
     public PlayerLoadout Loadout => loadout ?? (loadout = new PlayerLoadout());
+    public PlayerStatProgress StatCards { get; } = new PlayerStatProgress();
+    public float MoveSpeed => speed * (1f + StatCards.Value(PlayerStat.Move_Speed));
+    public float MPRecovery => StatCards.Value(PlayerStat.MP_Regen, mpRecoveryPerSecond);
+    public float PickupDistance => experiencePickupDistance * (1f + StatCards.Value(PlayerStat.Pickup_Radius));
+    public float DamageMultiplier => StatCards.Value(PlayerStat.ATK, 1f);
+    public float PassiveCooldownMultiplier => 1f - StatCards.Value(PlayerStat.Cooldown);
+
+    public float ScaleAttackDamage(float damage, string element = null) => damage * DamageMultiplier
+        * (string.IsNullOrEmpty(element) || element == "None" || element == "ELEM_NONE"
+            ? 1f : 1f + StatCards.Value(PlayerStat.Elm_All_ATK));
+
+    public bool TryUpgradeStat(PlayerStatCard card, int level)
+    {
+        if (IsDead || !StatCards.TryUpgrade(card, level)) return false;
+        if (card.Stat == PlayerStat.HP)
+        {
+            float previousMaxHealth = maxHealth;
+            maxHealth = StatCards.Value(PlayerStat.HP);
+            float healthIncrease = Mathf.Max(0f, maxHealth - previousMaxHealth);
+            currentHealth = Mathf.Min(currentHealth + healthIncrease, maxHealth);
+            HealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+        return true;
+    }
     [Header("플레이어 기본 설정")]
     public float speed = 5f;
     public float maxHealth = 100f;
@@ -85,9 +109,10 @@ public class PlayerData : MonoBehaviour
         if (IsDead || !IsValidAmount(rawExperience) || rawExperience <= 0) return false;
         ExperienceBonus.Update(experienceGameplayTime, CurrentLevel);
         // 실패하는 지급은 carry도 소비하지 않습니다.
-        double exact = rawExperience * ExperienceBonus.Multiplier + ExperienceBonus.FractionalCarry;
+        double boostedExperience = rawExperience * (double)StatCards.Value(PlayerStat.XP_Gain, 1f);
+        double exact = boostedExperience * ExperienceBonus.Multiplier + ExperienceBonus.FractionalCarry;
         if (exact > float.MaxValue || ExperienceProgress.Experience + System.Math.Floor(exact) > float.MaxValue) return false;
-        awarded = (float)ExperienceBonus.Award(rawExperience);
+        awarded = (float)ExperienceBonus.Award(boostedExperience);
         if (awarded > 0 && !AddEXP(awarded)) return false;
         ExperienceBonus.Update(experienceGameplayTime, CurrentLevel);
 #if UNITY_5_3_OR_NEWER
@@ -206,8 +231,14 @@ public class PlayerData : MonoBehaviour
 
     public void TickMPRecovery(float deltaTime)
     {
-        if (!IsValidAmount(deltaTime) || deltaTime <= 0f || !IsValidAmount(mpRecoveryPerSecond)) return;
-        RestoreMP(mpRecoveryPerSecond * deltaTime);
+        if (!IsValidAmount(deltaTime) || deltaTime <= 0f) return;
+        RestoreMP(MPRecovery * deltaTime);
+    }
+
+    public void TickHealthRecovery(float deltaTime)
+    {
+        float healthRegen = StatCards.Value(PlayerStat.HP_Regen);
+        if (healthRegen > 0f) RestoreHealth(maxHealth * healthRegen * deltaTime);
     }
 
     private static bool IsValidAmount(float value) =>
@@ -320,6 +351,8 @@ public class PlayerData : MonoBehaviour
     {
         if (damage <= 0f || IsDead) return false;
         if (IsInvulnerable) return true;
+        float defense = StatCards.Value(PlayerStat.DEF);
+        damage *= 1f - defense / (defense + 33.34f);
         damage = AbsorbShield(damage);
         if (damage <= 0f) return true;
         currentHealth = Mathf.Max(0f, currentHealth - damage);

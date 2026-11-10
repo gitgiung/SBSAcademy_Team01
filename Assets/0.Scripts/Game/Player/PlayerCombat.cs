@@ -56,7 +56,7 @@ internal sealed class PlayerCombat
             if (skill == null || !skill.PassiveConfigured || string.IsNullOrWhiteSpace(skill.PassivePrefabKey)
                 || !Nonnegative(skill.PassiveDamage) || !Nonnegative(skill.PassiveInterval) || skill.PassiveInterval <= 0f
                 || !Nonnegative(skill.PassiveSpeed) || !Nonnegative(skill.PassiveRange) || skill.PassiveRange <= 0f) continue;
-            timers[i] = Mathf.Max(0f, timers[i] - deltaTime);
+            timers[i] = Mathf.Max(0f, timers[i] - deltaTime / data.PassiveCooldownMultiplier);
             if (timers[i] > 0f) continue;
             projectiles.TryGetValue(skill.PassivePrefabKey, out GameObject prefab);
             if (prefab == null) prefab = Managers.Resource.Load<GameObject>(skill.PassivePrefabKey);
@@ -64,7 +64,7 @@ internal sealed class PlayerCombat
             Transform target = camera != null ? FindClosestTarget(skill.PassiveRange, camera) : null;
             if (target == null) continue;
             Vector2 direction = target.position - owner.position;
-            float damage = skill.PassiveDamage;
+            float damage = data.ScaleAttackDamage(skill.PassiveDamage);
             float speed = skill.PassiveSpeed;
             // 누적 연사를 하지 않고, 풀 활성화 콜백 전에 다음 주기를 확정합니다.
             timers[i] = skill.PassiveInterval;
@@ -87,7 +87,7 @@ internal sealed class PlayerCombat
         if (pool == null) return;
 
         Vector2 direction = target.position - owner.position;
-        float damage = data.attackDamage;
+        float damage = data.ScaleAttackDamage(data.attackDamage);
         float speed = data.bulletSpeed;
         attackTimer = Mathf.Max(.01f, data.attackCooldown);
         pool.Pop(bulletPrefab, owner.position, Quaternion.identity,

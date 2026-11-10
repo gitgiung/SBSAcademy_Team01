@@ -31,7 +31,7 @@ public class PlayerController2D : MonoBehaviour
         joystickDirection = variableJoystick == null
             ? Vector2.zero
             : new Vector2(variableJoystick.Horizontal, variableJoystick.Vertical);
-        rb.linearVelocity = joystickDirection * playerData.speed;
+        rb.linearVelocity = joystickDirection * playerData.MoveSpeed;
     }
 
     public void StopMovement()

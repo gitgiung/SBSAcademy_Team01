@@ -1,5 +1,33 @@
 # 작업 인수인계
 
+## 2026-11-10 이동속도 Inspector 표시와 최대 체력 카드 보정
+
+- `PlayerData` Inspector의 `플레이 중 스탯 > 현재 이동속도`에 키보드·모바일 이동 및 상태창이 쓰는 `MoveSpeed`를 표시한다. 기본 `Speed`는 씬 설정값이다. 단일 Player를 선택한 Play 상태에서 현재값을 읽을 수 있다.
+- 최대 체력 카드 선택 시 증가분만큼 현재 체력도 올리고, 변경된 현재·최대 체력을 한 번 알린다. 예를 들어 80/100에서 첫 카드를 고르면 130/150이 된다. 아래 이전 작업의 현재 체력 유지 동작을 대체한다.
+- 검증: `LevelUpMixedDraftValidation` 수정 전 8/9, 수정 후 **9/9**. Unity 6000.5.0f1 Roslyn 런타임·Editor 컴파일 오류 0, 기존 경고 3개. Unity PlayMode 회귀 소스는 보강했고 실행은 하지 않았다. 다음은 실제 Inspector·HUD 표시 확인이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → `CombatUI > CombatPopupController > 테스트/경험치 13 획득`으로 이동속도 카드 선택 → Player 선택 → Inspector의 `Player Data > 플레이 중 스탯 > 현재 이동속도` 및 일시정지 상태창에서 5.25 확인. 적에게 피해를 입은 상태에서 최대 체력 카드도 선택해 HUD와 상태창의 현재·최대 체력이 같은 양만큼 늘어나는지 본다. 이상하면 Console 첫 오류와 Play 중 선택한 Player가 맞는지 확인한다.
+
+## 2026-11-10 PlayerDatatable 레벨업 스탯 카드 연결
+
+- `feat/player-stat-card` `e807a92`의 사용자 수정 엑셀·기본 이동속도 5·기존 임시 피해량 제거와 미추적 meta를 보존했다. Unity `Tools > Parse Player Stat Table` 또는 `tools/LevelUpMixedDraftValidation/Run.ps1 -Export`에서 `Player_Stats_Card`의 값과 가중치를 키로 검증하고 `Assets/Resources/Data/PlayerStatTable.json`을 생성한다. 배포 JSON은 현재 엑셀에서 생성했다.
+- 카드 후보 13종. 스킬과 스탯이 둘 다 있으면 각 카드 자리의 스탯 비율은 기존안 25%이며, 스킬 안에서는 기존 전략 25%를 유지한다. 표의 가중치로 후보를 뽑고 같은 스탯의 카드가 한 묶음에 반복되지 않는다. 선택 시 해당 스탯만 1단계 오르며 최대 레벨이나 제한치에 도달한 카드는 후보에서 빠진다. 스킬 슬롯이 가득 차도 스탯을 고를 수 있다. 병합에서 빠졌던 지원 강공격 카드 후보와 상태창 수동 장착을 복구했다.
+- 최대 체력 카드는 최대치만 올린다. 이동속도는 씬 기본값에 카드 증가율을 곱하고, 피해량 배율은 스킬 기본값과 계수를 합한 뒤 적용한다. 방어력은 보호막 처리 전 피해를 감소시킨다. 체력·MP 회복, 패시브 쿨다운, 속성 피해, 스킬 투사체 수·크기, 비투사체 기술 범위, 경험치 및 DNA 흡입 반경을 기존 계산에 연결했다. 카드 레벨은 한 판의 PlayerData가 보관한다.
+- 검증: Unity 6000.5.0f1 Roslyn 런타임·Editor 컴파일 성공, 오류 0, 기존 경고 3개. 스탯·혼합 **9/9**, 전투 표 **23/23**, 장착 **6/6**, 흡입 **10/10**, 회피 쿨다운 **8/8**. 격리 PlayMode는 라이선스 초기화 시간 초과 후 재연결 단계에서 멈춰 검증 프로세스만 종료했다. 결과 XML 없음, 실행된 Unity 테스트 0개. 실제 Unity 플레이·렌더링은 미검증이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴에서 `테스트/경험치 13 획득` → `스탯 강화` 카드의 현재→다음 값을 읽고 선택 → 일시정지의 스탯 값 확인. 이동속도 Lv.1은 5→5.25, 최대 체력 Lv.1은 100→150이며 현재 체력은 유지된다. 첫 묶음에 스탯 카드가 없으면 다음 레벨업에서 확인한다. 문제가 있으면 Console 첫 오류, `Resources/Data/PlayerStatTable.json` 임포트, Excel 저장 후 `Tools > Parse Player Stat Table` 결과를 확인한다. 다음은 에디터에서 카드 선택과 실제 전투 체감 확인이다.
+
+## 2026-11-10 MainScene 기본 이동속도 5 반영
+
+- 사용자 지정에 따라 `MainScene`의 Player Data `speed`를 7에서 5로 변경했다. 씬 diff는 이 값 한 줄이다. `git diff --check` 통과, Unity 플레이·테스트 실행 0개.
+- 사용자가 다시 저장한 `Document/PlayerDatatable.xlsx`를 확인했다. 기본 이동속도는 5이고 카드 이동속도 값은 0~0.25, 방어력 감소율은 `DEF/(DEF+33.34)`, 경험치 배율은 2레벨 1.14 및 제한치 1.5다. 카드 키 13개가 기본 스탯에 각각 대응하고 가중치는 모두 1이다. 다음 작업은 엑셀 데이터 내보내기와 레벨업 추첨·스탯 적용 연결이다.
+- 직접 확인: Unity에서 씬 변경을 반영한 뒤 `MainScene`의 Player 선택 → Inspector의 Player Data `Speed`가 5인지 확인한다. `Tools > Play From Title` 해제 후 Play하여 이동을 확인한다. 값이 7이면 현재 열린 씬을 다시 열어 Inspector를 확인하고, 임포트 문제가 있으면 Console의 첫 오류를 확인한다.
+
+## 2026-11-10 PlayerDatatable 스탯 카드 데이터 점검
+
+- `feat/player-stat-card`의 `e807a92`에서 사용자 수정 `Document/PlayerDatatable.xlsx`와 미추적 `TacticalSkillEffect.cs.meta`를 보존했다. 기존 임시 피해량 카드의 등급별 상수와 생성 경로를 제거했고, 혼합 추첨 구조는 입력값을 받도록 남겼다.
+- 새 `Player_Stats`는 기본 스탯 15개, `Player_Stats_Card`는 강화 카드 13종의 0~5레벨 값·제한치·가중치를 담는다. 투사체 개수는 3레벨까지다. 두 시트의 `number`가 중간부터 달라 `Player_Stats` 키를 기준으로 매핑해야 한다. 현재 엑셀을 런타임 데이터로 변환·로드하거나 선택 시 플레이어에게 반영하는 경로는 없다.
+- 다음 작업 전에 확인할 값은 `Player_Stats_Card`의 이동속도 기본 5와 이후 0.05~0.25가 기본 속도에 대한 비율인지, `MainScene` 속도 7과 표의 5 중 어느 것을 기준으로 하는지, 경험치 획득 2레벨 1.04와 제한치 0.5의 의미, `Player_Stats!E7` 방어력 수식의 분모다. 피해량 `ATK`는 표에서 배율이므로 현재 스킬의 ATK 계수 입력과 별도 처리 위치를 정한다. 확인한 값을 기준으로 내보내기·카드 추첨·보상 반영을 연결한다.
+- 검증: 두 시트를 읽기 전용으로 점검했고 `LevelUpMixedDraftValidation` **5/5**. Unity 플레이는 실행하지 않았다. 직접 확인은 Excel에서 `Player_Stats_Card!D6:J6`, `D14:J14`, `Player_Stats!E7`을 열고 `MainScene`의 Player Data `Speed`와 대조한다. `Tools > Play From Title` 해제 후 `MainScene` 레벨업에서는 기존 스킬 카드가 표시된다. 이상하면 Console의 첫 오류와 레벨업 팝업의 스킬 카드 표시를 확인한다.
+
 ## 2026-11-10 야수 좀비 보스 스프라이트 잘림·참조 오류 수정
 
 - 재현: `body-charge/east` 0·1·4, `body-charge/west` 4, `swipe/north-east` 3의 주 Sprite Rect 밖에 각각 17·9·102·149·5픽셀이 있었다. `body-charge-loop_NorthEast`의 8.png 키는 본체 대신 6×7 조각을 참조했고, 레거시 `BossIdle`은 삭제된 임시 Square 스프라이트를 참조했다.

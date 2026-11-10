@@ -87,11 +87,11 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         {
             int index = i;
             var cell = new Cell(Rect(mainRoot.transform, "AttackSlot" + i, 175 + i * 70, 80, 60, 60), font);
-            cell.SetAction(() => ToggleLightSkill(index));
+            cell.SetAction(() => ToggleAttackSkill(index));
             attacks.Add(cell);
         }
         Text(Rect(mainRoot.transform, "AttackEquipHint", 175, 143, 560, 26),
-            "약공격 클릭: 장착 / 다시 클릭: 해제 · 강공격은 추후 연결", font, 17, Color.white, TextAlignmentOptions.Left);
+            "공격 스킬 클릭: 장착 / 다시 클릭: 해제", font, 17, Color.white, TextAlignmentOptions.Left);
         for (int i = 0; i < 5; i++)
         {
             int index = i;
@@ -207,9 +207,10 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < attacks.Count; i++)
         {
             var skill = loadout?.GetAttackSkill(i);
-            bool equipped = skill != null && loadout.GetEquippedSkillId(PlayerSkillButton.Light) == skill.DataId;
+            bool canEquip = TryGetAttackButton(skill, out PlayerSkillButton button);
+            bool equipped = canEquip && loadout.GetEquippedSkillId(button) == skill.DataId;
             attacks[i].Show(skill?.Name, SkillIcon(skill), i >= (loadout?.UnlockedAttackSlots ?? 6), equipped);
-            attacks[i].SetInteractable(skill != null && skill.DataId >= 10000 && skill.DataId < 20000);
+            attacks[i].SetInteractable(canEquip);
         }
         for (int i = 0; i < tacticals.Count; i++)
         {
@@ -221,15 +222,23 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         relicRow.Refresh(loadout?.Relics);
         augmentRow.Refresh(loadout?.Augments);
     }
-    private void ToggleLightSkill(int index)
+    private void ToggleAttackSkill(int index)
     {
         var skill = loadout?.GetAttackSkill(index);
-        // 강공격은 실행 연결 전까지 조회만 허용합니다. 분류별 장착 제한은 Loadout이 검증합니다.
-        if (skill == null || skill.DataId < 10000 || skill.DataId >= 20000) return;
-        if (loadout.GetEquippedSkillId(PlayerSkillButton.Light) == skill.DataId)
-            loadout.TryUnequip(PlayerSkillButton.Light);
+        if (!TryGetAttackButton(skill, out PlayerSkillButton button)) return;
+        if (loadout.GetEquippedSkillId(button) == skill.DataId)
+            loadout.TryUnequip(button);
         else
-            loadout.TryEquip(PlayerSkillButton.Light, skill.DataId);
+            loadout.TryEquip(button, skill.DataId);
+    }
+    private static bool TryGetAttackButton(Data.SkillData skill, out PlayerSkillButton button)
+    {
+        button = PlayerSkillButton.Light;
+        if (skill == null || skill.DataId < 10000 || skill.DataId >= 30000) return false;
+        if (skill.DataId < 20000) return true;
+        button = PlayerSkillButton.Heavy;
+        return CombatSkillTable.TryGet(skill.DataId, out CombatSkillRecord record)
+            && LightSkillCatalog.TryCreateHeavy(record, out _);
     }
     private void ToggleTacticalSkill(int index)
     {
@@ -248,11 +257,21 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         foreach (var label in statValues) label.text = "—";
         if (source == null) return;
         statValues[0].text = $"{source.currentHealth:0.#} / {source.maxHealth:0.#}";
-        statValues[2].text = source.attackDamage.ToString("0.##");
-        statValues[3].text = source.speed.ToString("0.##");
+        var stats = source.StatCards;
+        statValues[1].text = $"{stats.Value(PlayerStat.HP_Regen):P1}/초";
+        statValues[2].text = $"×{source.DamageMultiplier:0.##}";
+        statValues[3].text = $"{source.MoveSpeed:0.##}";
+        statValues[4].text = $"{stats.Value(PlayerStat.DEF):0.##}";
         statValues[5].text = $"{source.CurrentMP:0.#} / {source.maxMP:0.#}";
-        statValues[6].text = source.mpRecoveryPerSecond.ToString("0.##") + "/s";
+        statValues[6].text = $"{source.MPRecovery:0.##}/초";
+        statValues[7].text = $"{stats.Value(PlayerStat.Cooldown):P0}";
+        statValues[8].text = $"{stats.Value(PlayerStat.Elm_All_ATK):P0}";
+        statValues[9].text = $"+{stats.Value(PlayerStat.Projectile_Count):0}";
+        statValues[10].text = $"{stats.Value(PlayerStat.Projectile_Size):P0}";
         statValues[11].text = source.HasShield ? $"{source.CurrentShield:0.#} / {source.MaxShield:0.#}" : "0";
+        statValues[12].text = $"{stats.Value(PlayerStat.Skill_Range):P0}";
+        statValues[13].text = $"×{stats.Value(PlayerStat.XP_Gain, 1f):0.##}";
+        statValues[14].text = $"{source.PickupDistance:0.##}";
     }
     private void OnResourceChanged(float current, float maximum) => RefreshStats();
     private void Subscribe()

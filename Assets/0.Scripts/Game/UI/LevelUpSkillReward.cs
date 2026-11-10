@@ -24,17 +24,13 @@ public static class LevelUpSkillReward
     public static bool TryAcquire(PlayerLoadout loadout, CombatSkillRecord skill)
     {
         if (loadout == null || skill == null || skill.Id < 10000 || skill.Id >= 30000) return false;
-        bool heavy = skill.Id >= 20000;
-        if (heavy && !LightSkillCatalog.TryCreateHeavy(skill, out _)) return false;
-        if (!loadout.TryAddOrUpgradeAttackSkill(new Data.SkillData
+        if (skill.Id >= 20000 && !LightSkillCatalog.TryCreateHeavy(skill, out _)) return false;
+        return loadout.TryAddOrUpgradeAttackSkill(new Data.SkillData
         {
             DataId = skill.Id,
             Name = skill.Name,
             Description = LevelUpSkillDraft.FormatDescription(skill),
             IconLabel = skill.Icon
-        })) return false;
-        if (heavy && loadout.GetEquippedSkillId(PlayerSkillButton.Heavy) != skill.Id)
-            loadout.TryEquip(PlayerSkillButton.Heavy, skill.Id);
-        return true;
+        });
     }
 }

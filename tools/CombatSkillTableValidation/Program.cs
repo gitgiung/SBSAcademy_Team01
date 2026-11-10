@@ -58,7 +58,7 @@ internal static class Program
             Equal(1.5f, loadout.GetAttackSkillDamageMultiplier(10002));
             Equal(false, Acquire(loadout, Skill(10002)));
         });
-        Test("level-up offers supported heavy attacks and equips the selected skill", () =>
+        Test("level-up offers supported heavy attacks without automatically equipping them", () =>
         {
             var loadout = new PlayerLoadout();
             var choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
@@ -66,11 +66,19 @@ internal static class Program
             Equal(false, choices.Any(skill => skill.Id == 20002 || skill.Id == 20012));
             Equal(13, choices.Count(skill => skill.Id >= 20000));
             Equal(true, Acquire(loadout, shipped.skills.Single(skill => skill.Id == 20001)));
+            Equal(1, loadout.GetAttackSkillStack(20001));
+            Equal(0, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            Equal(true, loadout.TryEquip(PlayerSkillButton.Heavy, 20001));
             Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
             Equal(false, Acquire(loadout, shipped.skills.Single(skill => skill.Id == 20002)));
             Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
-            Equal(true, Acquire(loadout, shipped.skills.Single(skill => skill.Id == 20006)));
-            Equal(20006, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            var otherHeavy = shipped.skills.Single(skill => skill.Id == 20006);
+            Equal(true, Acquire(loadout, otherHeavy));
+            Equal(1, loadout.GetAttackSkillStack(20006));
+            Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
+            Equal(true, Acquire(loadout, otherHeavy));
+            Equal(2, loadout.GetAttackSkillStack(20006));
+            Equal(20001, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
         });
         Test("full slots offer owned heavy upgrades and exclude max stacks", () =>
         {

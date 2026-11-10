@@ -9,6 +9,9 @@ internal sealed class PlayerView
     private readonly Slider healthSlider;
     private Slider mpSlider;
     private Slider expSlider;
+    private TMPro.TextMeshProUGUI healthValueText;
+    private TMPro.TextMeshProUGUI mpValueText;
+    private TMPro.TextMeshProUGUI expValueText;
     private readonly PlayerData data;
     private readonly Animator animator;
     private readonly PlayerDefenseVfx defenseVfx;
@@ -43,6 +46,7 @@ internal sealed class PlayerView
         this.data = data;
         this.animator = animator;
         ConfigureDisplayBar(healthSlider);
+        healthValueText = CreateResourceValueText(healthSlider);
         defenseVfx = player.gameObject.AddComponent<PlayerDefenseVfx>();
         defenseVfx.Initialize(player, spriteRenderer);
         data.HealthChanged += OnHealthChanged;
@@ -57,6 +61,8 @@ internal sealed class PlayerView
         expSlider = exp;
         ConfigureDisplayBar(mpSlider);
         ConfigureDisplayBar(expSlider);
+        mpValueText = CreateResourceValueText(mpSlider);
+        expValueText = CreateResourceValueText(expSlider);
         RefreshMP();
         RefreshEXP();
     }
@@ -68,6 +74,37 @@ internal sealed class PlayerView
         slider.transition = UnityEngine.UI.Selectable.Transition.None;
         slider.navigation = new UnityEngine.UI.Navigation { mode = UnityEngine.UI.Navigation.Mode.None };
         slider.interactable = false;
+    }
+
+    private static TMPro.TextMeshProUGUI CreateResourceValueText(UnityEngine.UI.Slider slider)
+    {
+        if (slider == null) return null;
+        Transform existing = slider.transform.Find("ResourceValueText");
+        if (existing != null) return existing.GetComponent<TMPro.TextMeshProUGUI>();
+        var child = new GameObject("ResourceValueText", typeof(RectTransform));
+        child.layer = slider.gameObject.layer;
+        var rect = (RectTransform)child.transform;
+        rect.SetParent(slider.transform, false);
+        rect.anchorMin = new Vector2(0f, 0.25f);
+        rect.anchorMax = new Vector2(1f, 0.75f);
+        rect.offsetMin = new Vector2(8f, 0f);
+        rect.offsetMax = new Vector2(-8f, 0f);
+        var label = child.AddComponent<TMPro.TextMeshProUGUI>();
+        label.font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        label.fontSize = 22f;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 12f;
+        label.fontSizeMax = 22f;
+        label.fontStyle = TMPro.FontStyles.Bold;
+        label.alignment = TMPro.TextAlignmentOptions.Center;
+        label.color = Color.white;
+        label.raycastTarget = false;
+        return label;
+    }
+
+    private static void UpdateResourceValueText(TMPro.TMP_Text label, float current, float maximum)
+    {
+        if (label != null) label.text = $"{current:0.#} / {maximum:0.#}";
     }
 
     private static void UpdateBar(Slider slider, float current, float maximum)
@@ -97,10 +134,20 @@ internal sealed class PlayerView
     public void RefreshHealth()
     {
         UpdateBar(healthSlider, data.currentHealth, data.maxHealth);
+        UpdateResourceValueText(healthValueText, data.currentHealth, data.maxHealth);
     }
 
-    public void RefreshMP() => UpdateBar(mpSlider, data.CurrentMP, data.maxMP);
-    public void RefreshEXP() => UpdateBar(expSlider, data.CurrentEXP, data.maxEXP);
+    public void RefreshMP()
+    {
+        UpdateBar(mpSlider, data.CurrentMP, data.maxMP);
+        UpdateResourceValueText(mpValueText, data.CurrentMP, data.maxMP);
+    }
+
+    public void RefreshEXP()
+    {
+        UpdateBar(expSlider, data.CurrentEXP, data.maxEXP);
+        UpdateResourceValueText(expValueText, data.CurrentEXP, data.maxEXP);
+    }
 
     public void RefreshResources()
     {

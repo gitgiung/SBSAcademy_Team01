@@ -19,7 +19,7 @@ public sealed class BossController : MonoBehaviour
     [SerializeField] private BossPatternSelector patternSelector;
     [SerializeField] private Animator animator;
 
-    [Header("패턴 선택 거리")]
+    [Header("일반 패턴 선택 거리")]
     [SerializeField, Min(0.01f)] private float closeRange = 4f;
     [SerializeField, Min(0.01f)] private float specialPatternDistance = 12f;
 
@@ -29,7 +29,7 @@ public sealed class BossController : MonoBehaviour
     [SerializeField, Min(0f)] private float doubleSlashInterval = 0.5f;
 
     [Header("패턴 데미지 설정")]
-    [SerializeField, Min(0f)] private float damage = 10f;
+    [SerializeField, Min(0f)] private float damage = 30f;
     [Header("2페이지 스텟 배수")]
     [SerializeField, Min(0f)] private float Multiple2 = 1.5f;
 
@@ -37,9 +37,14 @@ public sealed class BossController : MonoBehaviour
     [Tooltip("일반 패턴 순서와 관계없이 원형 특수패턴을 선택하는 거리입니다. 최솟값 초과, 최댓값 이하이며 돌진 조건이 겹치면 돌진이 우선입니다.")]
     [SerializeField] private Vector2 phaseTwoAreaDistance = new Vector2(4f, 14f);
     [SerializeField, Min(0.01f)] private float phaseTwoAreaRadius = 8f;
+    [Tooltip("안쪽 원이 최대 범위까지 커지는 시간입니다. 완전히 차면 공격 모션과 피해가 발생합니다.")]
     [SerializeField, Min(0f)] private float phaseTwoAreaDelay = 0.8f;
     [Tooltip("원형 공격 종료 후 재사용까지의 시간입니다. 일반 패턴 1·2 완료 조건도 함께 적용됩니다.")]
     [SerializeField, Min(0f)] private float phaseTwoAreaCooldown = 3f;
+
+    [Header("등장 원형 공격")]
+    [Tooltip("등장할 때만 사용하는 예고·피해 반경입니다. 피해량은 패턴 Damage를 사용합니다.")]
+    [SerializeField, Min(0.01f)] private float entranceAreaRadius = 3.5f;
 
 
     [Header("전방 할퀴기")]
@@ -47,7 +52,9 @@ public sealed class BossController : MonoBehaviour
     [SerializeField, Range(1f, 360f)] private float slashAngle = 90f;
 
     [Header("특수 돌진 패턴")]
-    [Tooltip("플레이어를 향해 이동하는 기본 진행 시간입니다. 돌진은 이 시간이 지나도 근거리까지 계속 추적합니다.")]
+    [Tooltip("돌진 도착을 판단하는 보스·플레이어 중심 거리입니다. 일반 공격의 Close Range와 독립적입니다.")]
+    [SerializeField, Min(0.01f)] private float dashArrivalDistance = 4f;
+    [Tooltip("돌진 이동의 기본 진행 시간입니다. 2페이즈는 이 값의 절반을 사용하며, 시간이 지나도 도착 거리까지 추적합니다.")]
     [SerializeField, Min(0.01f)] private float dashDuration = 1.5f;
     [SerializeField, Min(0.01f)] private float dashEndDamageRadius = 2f;
     [Tooltip("공격 없이 추격만 이 시간 이상 이어지면 돌진합니다. 근거리 안에서는 돌진하지 않습니다.")]
@@ -76,7 +83,6 @@ public sealed class BossController : MonoBehaviour
     private bool entranceQueued;
     private bool entranceRunning;
     private float chaseOnlyTime;
-    private const float AreaSlamNormalizedTime = 0.5f;
     private SpriteRenderer[] entranceVisuals;
     private bool[] entranceRenderingStates;
     private Collider2D[] entranceColliders;
@@ -360,13 +366,21 @@ public sealed class BossController : MonoBehaviour
         bool wasFollowing = follow.enabled;
         follow.enabled = false;
         UpdateAnimatorLocomotion();
-        float radius = phaseTwoAreaRadius;
+        float radius = entranceRunning ? entranceAreaRadius : phaseTwoAreaRadius;
         try
         {
             if (hitVfx != null) hitVfx.ShowArea(radius);
-            if (phaseTwoAreaDelay > 0f)
-                yield return new WaitForSeconds(phaseTwoAreaDelay);
+            float elapsed = 0f;
+            float chargeDuration = Mathf.Max(0f, phaseTwoAreaDelay);
+            while (elapsed < chargeDuration)
+            {
+                if (!CanAttackTarget()) yield break;
+                yield return null;
+                elapsed += Time.deltaTime;
+                if (hitVfx != null) hitVfx.SetAreaChargeProgress(Mathf.Clamp01(elapsed / chargeDuration));
+            }
             if (!CanAttackTarget()) yield break;
+            if (hitVfx != null) hitVfx.SetAreaChargeProgress(1f);
             activeAreaRadius = radius;
             yield return PlaySlashAnimation(false, true);
         }
@@ -419,15 +433,14 @@ public sealed class BossController : MonoBehaviour
         {
             animator.Play(stateHash, 0, 0f);
             animator.Update(0f);
+            // 예고가 완전히 찬 뒤 공격 모션 시작과 피해를 같은 시점에 적용합니다.
+            if (useArea) AnimationEvent_ApplyAreaDamage();
 
             while (CanAttackTarget() && !attackAnimationFinished)
             {
                 if (animator == null || !animator.isActiveAndEnabled || animator.runtimeAnimatorController == null)
                     break;
                 AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
-                if (useArea && !attackHitApplied && state.fullPathHash == stateHash
-                    && state.normalizedTime >= AreaSlamNormalizedTime)
-                    AnimationEvent_ApplyAreaDamage();
                 if (state.fullPathHash != stateHash || state.normalizedTime >= 1f)
                     break;
                 if (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).fullPathHash != stateHash)
@@ -467,7 +480,7 @@ public sealed class BossController : MonoBehaviour
             if (isEntranceImpact) hitVfx.ShowEntranceBurst(activeAreaRadius);
             else hitVfx.ShowAreaBurst(activeAreaRadius);
         }
-        if (!isEntranceImpact) ApplyCircleDamage(body.position, activeAreaRadius);
+        ApplyCircleDamage(body.position, activeAreaRadius);
     }
 
     /// <summary>Animation Event at the end of each swipe clip.</summary>
@@ -566,12 +579,13 @@ public sealed class BossController : MonoBehaviour
         StartDashAnimation();
         Vector2 dashStartPosition = body.position;
         float elapsed = 0f;
+        float effectiveDashDuration = Mathf.Max(0.0001f, dashDuration * (CurrentPhase >= 2 ? 0.5f : 1f));
 
-        while (CanAttackTarget() && Vector2.Distance(body.position, target.position) > closeRange)
+        while (CanAttackTarget() && Vector2.Distance(body.position, target.position) > dashArrivalDistance)
         {
             yield return new WaitForFixedUpdate();
             elapsed += Time.fixedDeltaTime;
-            float progress = Mathf.Clamp01(elapsed / dashDuration);
+            float progress = Mathf.Clamp01(elapsed / effectiveDashDuration);
             Vector2 trackedTargetPosition = target.position;
             Vector2 nextPosition = Vector2.Lerp(dashStartPosition, trackedTargetPosition, progress);
             if (follow.MoveTo(nextPosition).sqrMagnitude < 0.00000001f)
@@ -580,7 +594,7 @@ public sealed class BossController : MonoBehaviour
 
         // 플레이어와 적의 충돌을 유지한 상태로 마지막 돌진 이동을 처리한다.
         yield return new WaitForFixedUpdate();
-        bool reachedTarget = CanAttackTarget() && Vector2.Distance(body.position, target.position) <= closeRange;
+        bool reachedTarget = CanAttackTarget() && Vector2.Distance(body.position, target.position) <= dashArrivalDistance;
         if (reachedTarget) ApplyDashEndDamage(target.position);
         StopDashAnimation();
 
@@ -593,10 +607,11 @@ public sealed class BossController : MonoBehaviour
         if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
             return;
 
-        int stateHash = Animator.StringToHash("Base Layer.body-charge");
+        string stateName = CurrentPhase >= 2 ? "Base Layer.BossRun" : "Base Layer.body-charge";
+        int stateHash = Animator.StringToHash(stateName);
         if (!animator.HasState(0, stateHash))
         {
-            Debug.LogWarning("Boss Animator Controller is missing the body-charge state.", this);
+            Debug.LogWarning($"Boss Animator Controller is missing state '{stateName}'.", this);
             return;
         }
 
@@ -685,12 +700,14 @@ public sealed class BossController : MonoBehaviour
         phaseTwoAreaDistance.x = Mathf.Max(0f, phaseTwoAreaDistance.x);
         phaseTwoAreaDistance.y = Mathf.Max(phaseTwoAreaDistance.x, phaseTwoAreaDistance.y);
         phaseTwoAreaRadius = Mathf.Max(0.01f, phaseTwoAreaRadius);
+        entranceAreaRadius = Mathf.Max(0.01f, entranceAreaRadius);
         phaseTwoAreaDelay = Mathf.Max(0f, phaseTwoAreaDelay);
         phaseTwoAreaCooldown = Mathf.Max(0f, phaseTwoAreaCooldown);
         slashRange = Mathf.Max(0.01f, slashRange);
         slashAngle = Mathf.Clamp(slashAngle, 1f, 360f);
         damage = Mathf.Max(0f, damage);
         dashDuration = Mathf.Max(0.01f, dashDuration);
+        dashArrivalDistance = Mathf.Max(0.01f, dashArrivalDistance);
         dashEndDamageRadius = Mathf.Max(0.01f, dashEndDamageRadius);
 #if UNITY_EDITOR
         cachedSlashRange = -1f;

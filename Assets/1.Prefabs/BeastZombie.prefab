@@ -37,7 +37,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 4, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 4}
+  m_LocalScale: {x: 6, y: 6, z: 6}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -267,14 +267,17 @@ MonoBehaviour:
   doubleSlashInterval: 0.5
   damage: 30
   Multiple2: 1.5
-  phaseTwoAreaDistance: {x: 5, y: 12}
+  phaseTwoAreaDistance: {x: 6, y: 12}
   phaseTwoAreaRadius: 14
   phaseTwoAreaDelay: 1.5
   phaseTwoAreaCooldown: 3
-  slashRange: 6
+  entranceAreaRadius: 3.5
+  slashRange: 7
   slashAngle: 120
-  dashDuration: 2
-  dashEndDamageRadius: 3
+  dashArrivalDistance: 3
+  dashDuration: 1.5
+  dashEndDamageRadius: 2
+  chaseDashDelay: 4
 --- !u!114 &5106729134211795001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -306,8 +309,8 @@ MonoBehaviour:
   areaBurstSprite: {fileID: 21300000, guid: 8789ccc3532d1e56d7a7698bab599721, type: 3}
   areaBurstColor: {r: 1, g: 0, b: 0, a: 1}
   areaBurstDuration: 0.8
-  entranceBurstMinimumSize: 200
-  entranceAreaBurstDuration: 4
+  entranceBurstMinimumSize: 100
+  entranceAreaBurstDuration: 3
 --- !u!95 &7377102466147333052
 Animator:
   serializedVersion: 7

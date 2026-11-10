@@ -1,5 +1,11 @@
 # 작업 인수인계
 
+## 2026-11-10 일시정지 스킬 레벨과 등급 테두리
+
+- `feat/player-stat-card` `654fc69` 기준. 일시정지 상태창 공격·전략 스킬 칸의 하단에 `Lv.n`을 표시하고, 테두리에 전투 스킬 표의 등급 색을 적용한다. 약·강공격은 보유 스택 1~3, 전략은 1이다. 등급이 비어 있는 전략 스킬은 기존 추첨과 같이 Common을 쓴다. 등급 정보를 찾을 수 없거나 비어 있거나 잠긴 슬롯은 기본 테두리다. 장착은 칸 상단과 기존 녹색 배경으로 표시한다.
+- 검증: Unity 6000.5.0f1 Roslyn 런타임 컴파일 오류 0, 기존 경고 3개. `CombatSkillTableValidation` **23/23**, `PlayerLoadoutValidation` **6/6**. PlayMode 표시 회귀 소스를 추가했고 실행하지 않았다. 변경 파일의 `git diff --check` 통과. 시작부터 있던 `NanumGothic Combat SDF.asset` 변경은 보존했다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 레벨업에서 공격 스킬 선택 → 일시정지의 `공격 스킬`에서 하단 `Lv.1`과 테두리 색 확인. 같은 공격 스킬 카드를 다시 고르면 `Lv.2`, 전략 칸은 `Lv.1`이다. 스킬을 클릭하면 상단에 장착 표시가 나와야 한다. 이상하면 Console 첫 오류, 보유 스택과 `CombatSkillTable.json`의 등급 및 `ColorHex`를 확인한다. 다음은 실제 화면에서 글자와 테두리 가독성 확인이다.
+
 ## 2026-11-10 이동속도 Inspector 표시와 최대 체력 카드 보정
 
 - `PlayerData` Inspector의 `플레이 중 스탯 > 현재 이동속도`에 키보드·모바일 이동 및 상태창이 쓰는 `MoveSpeed`를 표시한다. 기본 `Speed`는 씬 설정값이다. 단일 Player를 선택한 Play 상태에서 현재값을 읽을 수 있다.

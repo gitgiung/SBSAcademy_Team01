@@ -47,6 +47,12 @@ public sealed class CombatSkillRecord
 
     public const float DefaultPassiveScale = 0.2f;
 
+    public string GetRarityId()
+    {
+        string rarity = SkillRarityRecord.NormalizeId(Rarity);
+        return rarity.Length == 0 && Id >= 30000 && Id < 40000 ? "Common" : rarity;
+    }
+
     public bool TryOwnedPassive(out float cooldown, out float scale)
     {
         cooldown = 0f;
@@ -95,6 +101,14 @@ public static class CombatSkillTable
         if (skills != null && skills.TryGetValue(id, out record)) return true;
         record = null;
         return false;
+    }
+
+    public static bool TryGetRarity(string id, out SkillRarityRecord rarity)
+    {
+        EnsureLoaded();
+        rarity = rarities?.Find(value => value != null
+            && string.Equals(SkillRarityRecord.NormalizeId(value.Id), id, StringComparison.OrdinalIgnoreCase));
+        return rarity != null;
     }
 
     public static int Count

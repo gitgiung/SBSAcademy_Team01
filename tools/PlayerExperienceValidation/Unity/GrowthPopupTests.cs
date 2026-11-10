@@ -65,6 +65,38 @@ public class GrowthPopupTests
         Assert.That(Pending(data), Is.Zero);
         yield return null;
     }
+
+    [UnityTest] public IEnumerator PauseShowsSkillLevelAndRarityWithoutChangingEquipState()
+    {
+        yield return null;
+        CombatSkillTable.TryGet(10001, out CombatSkillRecord attack);
+        attack.Rarity = "Rare";
+        var table = (System.Collections.Generic.Dictionary<int, CombatSkillRecord>)typeof(CombatSkillTable)
+            .GetField("skills", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        table[30001] = new CombatSkillRecord { Id = 30001, Name = "치유" };
+        var rarities = (System.Collections.Generic.List<SkillRarityRecord>)typeof(CombatSkillTable)
+            .GetField("rarities", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        rarities[0].ColorHex = "#B8B2C4";
+        rarities.Add(new SkillRarityRecord { Id = "Rare", ColorHex = "#4696FF" });
+        var owned = new Data.SkillData { DataId = 10001, Name = "공격" };
+        data.Loadout.TryAddOrUpgradeAttackSkill(owned);
+        data.Loadout.TryEquip(PlayerSkillButton.Light, 10001);
+        data.Loadout.TryAddTacticalSkill(new Data.SkillData { DataId = 30001, Name = "치유" });
+        controller.ShowPause();
+
+        Transform FindSlot(string name) => pause.GetComponentsInChildren<RectTransform>(true).First(rect => rect.name == name);
+        Transform attackSlot = FindSlot("AttackSlot0");
+        Transform tacticalSlot = FindSlot("TacticalSlot0");
+        TMP_Text Level(Transform slot) => slot.Find("SkillLevel").GetComponent<TMP_Text>();
+        Assert.That(Level(attackSlot).text, Is.EqualTo("Lv.1"));
+        data.Loadout.TryAddOrUpgradeAttackSkill(owned);
+        Assert.That(Level(attackSlot).text, Is.EqualTo("Lv.2"));
+        Assert.That(attackSlot.Find("Equipped").gameObject.activeSelf, Is.True);
+        Assert.That((Color32)attackSlot.GetComponent<Outline>().effectColor, Is.EqualTo(new Color32(70, 150, 255, 255)));
+        Assert.That(Level(tacticalSlot).text, Is.EqualTo("Lv.1"));
+        Assert.That((Color32)tacticalSlot.GetComponent<Outline>().effectColor, Is.EqualTo(new Color32(184, 178, 196, 255)));
+        Assert.That(Level(FindSlot("AttackSlot6")).text, Is.Empty);
+    }
     [UnityTearDown] public IEnumerator Cleanup()
     {
         Object.Destroy(root); Managers.UI.Clear();

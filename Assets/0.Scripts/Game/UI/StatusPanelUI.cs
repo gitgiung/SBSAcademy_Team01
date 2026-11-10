@@ -82,8 +82,11 @@ internal static class StatusPanelUI
     {
         internal readonly RectTransform Rect;
         private readonly Image background;
+        private readonly Outline outline;
         private readonly Image icon;
         private readonly TMP_Text label;
+        private readonly TMP_Text skillLevelLabel;
+        private readonly TMP_Text equippedLabel;
         private Button button;
         internal void SetAction(UnityAction action)
         {
@@ -96,11 +99,11 @@ internal static class StatusPanelUI
         {
             if (button != null) button.interactable = value;
         }
-        internal Cell(RectTransform rect, TMP_FontAsset font)
+        internal Cell(RectTransform rect, TMP_FontAsset font, bool showSkillDetails = false)
         {
             Rect = rect;
             background = Image(rect, new Color32(231, 232, 231, 255));
-            var outline = rect.gameObject.AddComponent<Outline>();
+            outline = rect.gameObject.AddComponent<Outline>();
             outline.effectColor = Ink;
             outline.effectDistance = new Vector2(1, -1);
             icon = Image(StatusPanelUI.Rect(rect, "Icon", 100, 30, 800, 350), Color.white);
@@ -108,15 +111,37 @@ internal static class StatusPanelUI
             icon.preserveAspect = true;
             label = Text(StatusPanelUI.Rect(rect, "Name", 45, 20, 910, 460), "", font, 19);
             label.textWrappingMode = TextWrappingModes.NoWrap;
+            if (showSkillDetails)
+            {
+                icon.rectTransform.anchorMin = new Vector2(.10f, .38f);
+                icon.rectTransform.anchorMax = new Vector2(.90f, .80f);
+                skillLevelLabel = Text(StatusPanelUI.Rect(rect, "SkillLevel", 45, 392, 910, 89), "", font, 16, Ink);
+                skillLevelLabel.fontStyle = FontStyles.Bold;
+                equippedLabel = Text(StatusPanelUI.Rect(rect, "Equipped", 45, 17, 910, 80), "장착", font, 14, Ink);
+                equippedLabel.gameObject.SetActive(false);
+            }
         }
-        internal void Show(string name, Sprite sprite = null, bool locked = false, bool equipped = false)
+        internal void Show(string name, Sprite sprite = null, bool locked = false, bool equipped = false,
+            int skillLevel = 0, Color? rarityColor = null)
         {
             background.color = locked ? new Color32(47, 51, 66, 255)
                 : equipped ? new Color32(119, 238, 186, 255) : new Color32(231, 232, 231, 255);
             icon.sprite = sprite;
             icon.enabled = sprite != null && !locked;
-            label.text = locked ? "잠김" : equipped ? "[장착]\n" + name : name ?? "";
             label.color = locked ? new Color32(158, 166, 182, 255) : Ink;
+            if (skillLevelLabel != null)
+            {
+                bool owned = !locked && skillLevel > 0;
+                outline.effectColor = owned ? rarityColor ?? Ink : Ink;
+                outline.effectDistance = owned && rarityColor.HasValue ? new Vector2(2, -2) : new Vector2(1, -1);
+                skillLevelLabel.text = owned ? $"Lv.{skillLevel}" : "";
+                equippedLabel.gameObject.SetActive(owned && equipped);
+                label.text = locked ? "잠김" : name ?? "";
+                label.rectTransform.anchorMin = new Vector2(.045f, owned ? .22f : .04f);
+                label.rectTransform.anchorMax = new Vector2(.955f, icon.enabled ? .38f : owned && equipped ? .80f : .96f);
+                return;
+            }
+            label.text = locked ? "잠김" : equipped ? "[장착]\n" + name : name ?? "";
             label.rectTransform.anchorMin = new Vector2(.045f, .04f);
             label.rectTransform.anchorMax = new Vector2(.955f, sprite != null ? .25f : .96f);
         }

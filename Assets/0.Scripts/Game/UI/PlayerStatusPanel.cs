@@ -86,7 +86,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < 8; i++)
         {
             int index = i;
-            var cell = new Cell(Rect(mainRoot.transform, "AttackSlot" + i, 175 + i * 70, 80, 60, 60), font);
+            var cell = new Cell(Rect(mainRoot.transform, "AttackSlot" + i, 175 + i * 70, 80, 60, 60), font, true);
             cell.SetAction(() => ToggleAttackSkill(index));
             attacks.Add(cell);
         }
@@ -95,7 +95,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < 5; i++)
         {
             int index = i;
-            var cell = new Cell(Rect(mainRoot.transform, "TacticalSlot" + i, 790 + i % 3 * 72, 200 + i / 3 * 75, 60, 60), font);
+            var cell = new Cell(Rect(mainRoot.transform, "TacticalSlot" + i, 790 + i % 3 * 72, 200 + i / 3 * 75, 60, 60), font, true);
             cell.SetAction(() => ToggleTacticalSkill(index));
             tacticals.Add(cell);
         }
@@ -209,18 +209,30 @@ public sealed class PlayerStatusPanel : MonoBehaviour
             var skill = loadout?.GetAttackSkill(i);
             bool canEquip = TryGetAttackButton(skill, out PlayerSkillButton button);
             bool equipped = canEquip && loadout.GetEquippedSkillId(button) == skill.DataId;
-            attacks[i].Show(skill?.Name, SkillIcon(skill), i >= (loadout?.UnlockedAttackSlots ?? 6), equipped);
+            int level = skill != null ? loadout.GetAttackSkillStack(skill.DataId) : 0;
+            ShowSkill(attacks[i], skill, level, i >= (loadout?.UnlockedAttackSlots ?? 6), equipped);
             attacks[i].SetInteractable(canEquip);
         }
         for (int i = 0; i < tacticals.Count; i++)
         {
             var skill = loadout?.GetTacticalSkill(i);
             bool equipped = skill != null && loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) == skill.DataId;
-            tacticals[i].Show(skill?.Name, SkillIcon(skill), false, equipped);
+            ShowSkill(tacticals[i], skill, skill != null ? 1 : 0, false, equipped);
             tacticals[i].SetInteractable(skill != null && skill.DataId >= 30000 && skill.DataId < 40000);
         }
         relicRow.Refresh(loadout?.Relics);
         augmentRow.Refresh(loadout?.Augments);
+    }
+
+    private static void ShowSkill(Cell cell, Data.SkillData skill, int level, bool locked, bool equipped)
+    {
+        Color? rarityColor = null;
+        if (skill != null && CombatSkillTable.TryGet(skill.DataId, out CombatSkillRecord record)
+            && CombatSkillTable.TryGetRarity(record.GetRarityId(), out SkillRarityRecord rarity)
+            && !string.IsNullOrEmpty(rarity.ColorHex)
+            && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color))
+            rarityColor = color;
+        cell.Show(skill?.Name, SkillIcon(skill), locked, equipped, level, rarityColor);
     }
     private void ToggleAttackSkill(int index)
     {

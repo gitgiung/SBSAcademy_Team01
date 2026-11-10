@@ -5,10 +5,11 @@ using UnityEngine.UI;
 
 public sealed partial class Player
 {
-    [Header("강공격 차징 기반 테스트 (실제 스킬 효과 미연결)")]
+    [Header("강공격 차징")]
     [SerializeField] private Button heavyAttackButton;
     [SerializeField] private PlayerHeavyChargeSettings heavyChargeSettings = new PlayerHeavyChargeSettings();
     private PlayerHeavyCharge heavyCharge;
+    private LightSkillCast chargedSkill;
     private InputAction heavyInput;
     private int keyboardChargeId;
     private bool startingDefense;
@@ -39,13 +40,17 @@ public sealed partial class Player
     {
         if (heavyChargeSettings == null || !heavyChargeSettings.Configured) return;
         heavyInput = inputActions.FindAction("Player/HeavyAttack", false)?.Clone()
-            ?? new InputAction("HeavyChargePreview", InputActionType.Button, "<Keyboard>/q");
+            ?? new InputAction("HeavyCharge", InputActionType.Button, "<Keyboard>/q");
         heavyInput.Enable();
     }
     public bool TryBeginHeavyCharge()
     {
         if (heavyCharge == null || !CanAcceptGameplayInput || !HeavyContextValid()) return false;
-        if (!heavyCharge.TryBegin(heavyChargeSettings, ReadAimDirection())) return false;
+        int skillId = data.Loadout.GetEquippedSkillId(PlayerSkillButton.Heavy);
+        if (!CombatSkillTable.TryGet(skillId, out CombatSkillRecord record)
+            || !LightSkillCatalog.TryCreateHeavy(record, out LightSkillCast skill)
+            || !heavyCharge.TryBegin(heavyChargeSettings, ReadAimDirection(), record)) return false;
+        chargedSkill = skill;
         joystickController?.StopMovement();
         view.SetMovementAnimation(heavyCharge.Direction, false, false, dashDuration);
         RefreshHeavyIndicator(); return true;
@@ -56,17 +61,23 @@ public sealed partial class Player
         if (Time.timeScale <= 0f) { CancelHeavyCharge(chargeId); return false; }
         heavyCharge.Tick(0f, ReadAimDirection());
         if (!heavyCharge.TryRelease(chargeId, out HeavyChargeRelease result)) { RefreshHeavyIndicator(); return false; }
+        LightSkillCast skill = chargedSkill;
+        chargedSkill = default;
         LastHeavyCharge = result; RefreshHeavyIndicator();
+        if (!actions.TryBeginLightAttack(0f, out int actionId)) return false;
+        float damage = skill.Damage(data.attackDamage) * result.Multiplier
+            * data.Loadout.GetAttackSkillDamageMultiplier(skill.Id);
+        StartCoroutine(CastShots(skill, result.Direction, damage, true, actionId));
         HeavyChargeReleased?.Invoke(result); return true;
     }
     public void CancelHeavyCharge(int chargeId)
     {
         if (chargeId == 0 || chargeId != HeavyChargeId) return;
-        heavyCharge.Cancel(); RefreshHeavyIndicator();
+        heavyCharge.Cancel(); chargedSkill = default; RefreshHeavyIndicator();
     }
     private void ResetHeavyCharge()
     {
-        heavyCharge?.Cancel(); keyboardChargeId = 0; RefreshHeavyIndicator();
+        heavyCharge?.Cancel(); chargedSkill = default; keyboardChargeId = 0; RefreshHeavyIndicator();
     }
     private void CancelReleasedHeavyKey()
     {
@@ -77,6 +88,7 @@ public sealed partial class Player
     }
     private void TickHeavyCharge()
     {
+        if (heavyCharge == null) return;
         if (heavyInput != null && heavyInput.WasPressedThisFrame() && TryBeginHeavyCharge()) keyboardChargeId = HeavyChargeId;
         heavyCharge.Tick(Time.deltaTime, ReadAimDirection());
         if (keyboardChargeId != 0)

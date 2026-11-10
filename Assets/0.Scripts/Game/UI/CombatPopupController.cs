@@ -136,35 +136,12 @@ public sealed class CombatPopupController : MonoBehaviour
         }
         PlayerLoadout loadout = statusPlayer.data.Loadout;
         CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
-        var excluded = new HashSet<int>();
-        var upgradeable = new HashSet<int>();
-        for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
-        {
-            if (loadout.GetAttackSkill(i) is not Data.SkillData owned) continue;
-            if (loadout.IsAttackSkillAtMaxStack(owned.DataId)) excluded.Add(owned.DataId);
-            else upgradeable.Add(owned.DataId);
-        }
-        if (!loadout.HasFreeAttackSlot)
-        {
-            // 빈 슬롯이 없으면 보유 스킬 강화만 허용합니다. 강화 여지가 없으면 가득 참 안내입니다.
-            if (upgradeable.Count == 0)
-            {
-                ShowAttackSlotsFull();
-                return true;
-            }
-            if (table?.skills != null)
-            {
-                foreach (CombatSkillRecord skill in table.skills)
-                {
-                    if (skill == null || skill.Id < 10000 || skill.Id >= 20000) continue;
-                    if (!upgradeable.Contains(skill.Id)) excluded.Add(skill.Id);
-                }
-            }
-        }
-        var skills = LevelUpSkillDraft.Draw(table, 3, 10000, 20000, levelUpRandom.NextDouble, excluded);
+        var skills = LevelUpSkillReward.DrawChoices(table, loadout, 3, levelUpRandom.NextDouble);
         if (skills.Count == 0)
         {
-            levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
+            if (loadout.HasFreeAttackSlot)
+                levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
+            else ShowAttackSlotsFull();
             return true;
         }
         var choices = new List<LevelUpCardData>();
@@ -210,6 +187,8 @@ public sealed class CombatPopupController : MonoBehaviour
         Color accent = Color.white;
         if (rarity != null && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color)) accent = color;
         string description = LevelUpSkillDraft.FormatDescription(skill);
+        bool heavy = skill.Id >= 20000;
+        if (heavy && skill.CrowdControl == "Knockback") description += "\n공통 시전에서는 밀치기 효과가 적용되지 않습니다.";
         int currentStack = loadout != null ? loadout.GetAttackSkillStack(skill.Id) : 0;
         if (currentStack > 0 && currentStack < PlayerLoadout.MaxAttackSkillStack)
         {
@@ -221,7 +200,7 @@ public sealed class CombatPopupController : MonoBehaviour
         {
             SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
             Icon = string.IsNullOrEmpty(skill.Icon) ? null : Managers.Resource.Load<Sprite>(skill.Icon),
-            ActiveDescription = description, ActiveButtonLabel = "N",
+            ActiveDescription = description, ActiveButtonLabel = heavy ? "C" : "N",
             FlavorText = skill.Explanation
         };
     }

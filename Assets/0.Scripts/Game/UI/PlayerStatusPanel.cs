@@ -87,11 +87,11 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         {
             int index = i;
             var cell = new Cell(Rect(mainRoot.transform, "AttackSlot" + i, 175 + i * 70, 80, 60, 60), font);
-            cell.SetAction(() => ToggleLightSkill(index));
+            cell.SetAction(() => ToggleAttackSkill(index));
             attacks.Add(cell);
         }
         Text(Rect(mainRoot.transform, "AttackEquipHint", 175, 143, 560, 26),
-            "약공격 클릭: 장착 / 다시 클릭: 해제 · 강공격은 추후 연결", font, 17, Color.white, TextAlignmentOptions.Left);
+            "공격 스킬 클릭: 장착 / 다시 클릭: 해제", font, 17, Color.white, TextAlignmentOptions.Left);
         for (int i = 0; i < 5; i++) tacticals.Add(new Cell(Rect(mainRoot.transform, "TacticalSlot" + i, 790 + i % 3 * 72, 200 + i / 3 * 75, 60, 60), font));
         relicRow = new ItemRow(mainRoot.transform, "Relics", 230, font);
         augmentRow = new ItemRow(mainRoot.transform, "Augments", 390, font);
@@ -199,9 +199,10 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < attacks.Count; i++)
         {
             var skill = loadout?.GetAttackSkill(i);
-            bool equipped = skill != null && loadout.GetEquippedSkillId(PlayerSkillButton.Light) == skill.DataId;
+            bool canEquip = TryGetAttackButton(skill, out PlayerSkillButton button);
+            bool equipped = canEquip && loadout.GetEquippedSkillId(button) == skill.DataId;
             attacks[i].Show(skill?.Name, SkillIcon(skill), i >= (loadout?.UnlockedAttackSlots ?? 6), equipped);
-            attacks[i].SetInteractable(skill != null && skill.DataId >= 10000 && skill.DataId < 20000);
+            attacks[i].SetInteractable(canEquip);
         }
         for (int i = 0; i < tacticals.Count; i++)
         {
@@ -211,15 +212,23 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         relicRow.Refresh(loadout?.Relics);
         augmentRow.Refresh(loadout?.Augments);
     }
-    private void ToggleLightSkill(int index)
+    private void ToggleAttackSkill(int index)
     {
         var skill = loadout?.GetAttackSkill(index);
-        // 강공격은 실행 연결 전까지 조회만 허용합니다. 분류별 장착 제한은 Loadout이 검증합니다.
-        if (skill == null || skill.DataId < 10000 || skill.DataId >= 20000) return;
-        if (loadout.GetEquippedSkillId(PlayerSkillButton.Light) == skill.DataId)
-            loadout.TryUnequip(PlayerSkillButton.Light);
+        if (!TryGetAttackButton(skill, out PlayerSkillButton button)) return;
+        if (loadout.GetEquippedSkillId(button) == skill.DataId)
+            loadout.TryUnequip(button);
         else
-            loadout.TryEquip(PlayerSkillButton.Light, skill.DataId);
+            loadout.TryEquip(button, skill.DataId);
+    }
+    private static bool TryGetAttackButton(Data.SkillData skill, out PlayerSkillButton button)
+    {
+        button = PlayerSkillButton.Light;
+        if (skill == null || skill.DataId < 10000 || skill.DataId >= 30000) return false;
+        if (skill.DataId < 20000) return true;
+        button = PlayerSkillButton.Heavy;
+        return CombatSkillTable.TryGet(skill.DataId, out CombatSkillRecord record)
+            && LightSkillCatalog.TryCreateHeavy(record, out _);
     }
     private static Sprite SkillIcon(Data.SkillData skill) => skill != null && !string.IsNullOrEmpty(skill.IconLabel)
         ? Managers.Resource.Load<Sprite>(skill.IconLabel) : null;

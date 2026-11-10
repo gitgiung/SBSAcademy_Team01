@@ -263,7 +263,7 @@
             "Description": "태양 검기로 전방을 두 번 벤다.",
             "SimpleDescription": "전방 호 범위를 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 벤다.",
             "Explanation": "불속성 융합 검기",
-            "PassiveCooldown": 0.0,
+            "PassiveCooldown": 2.0,
             "PassiveScale": 0.0
         },
         {

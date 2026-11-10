@@ -4,7 +4,7 @@ using UnityEngine;
 [Serializable]
 public sealed class PlayerHeavyChargeSettings
 {
-    [Tooltip("테이블 연결 전 차징 기반 검증에만 사용합니다. 실제 강공격 피해는 적용하지 않습니다.")]
+    [Tooltip("강공격 차징 사용 여부. MP, 최대 차징 시간, 슈퍼아머는 스킬 표를 사용합니다.")]
     public bool Configured;
     [Min(0f)] public float MPCost;
     public float[] StageTimes = new float[0];
@@ -45,7 +45,7 @@ internal sealed class PlayerHeavyCharge
     private static bool Nonnegative(float n) => n >= 0 && !float.IsNaN(n) && !float.IsInfinity(n);
     private static bool Valid(PlayerHeavyChargeSettings s)
     {
-        if (s == null || !s.Configured || !Nonnegative(s.MPCost) || s.StageTimes == null || s.StageBonuses == null
+        if (s == null || !s.Configured || s.StageTimes == null || s.StageBonuses == null
             || s.StageTimes.Length != 3 || s.StageBonuses.Length != 3 || s.StageTimes[0] != 0) return false;
         float total = 1;
         for (int i = 0; i < 3; i++)
@@ -56,14 +56,19 @@ internal sealed class PlayerHeavyCharge
         }
         return Nonnegative(total);
     }
-    public bool TryBegin(PlayerHeavyChargeSettings settings, Vector2 direction)
+    public bool TryBegin(PlayerHeavyChargeSettings settings, Vector2 direction, CombatSkillRecord skill)
     {
-        if (IsStarting || IsCharging || !Valid(settings) || data == null || data.IsDead || Time.timeScale <= 0 || !contextValid()) return false;
+        if (IsStarting || IsCharging || !Valid(settings) || skill == null || data == null || data.IsDead
+            || Time.timeScale <= 0 || !contextValid()) return false;
         // 동기 MP 알림이 설정을 변경해도 승인한 실행의 설정은 바뀌지 않습니다.
-        float cost = settings.MPCost;
+        float cost = skill.CostAmount;
+        float fullChargeTime = skill.CastTime;
+        if (!Nonnegative(cost) || !Nonnegative(fullChargeTime) || fullChargeTime == 0f) return false;
         var capturedTimes = (float[])settings.StageTimes.Clone();
+        capturedTimes[1] = capturedTimes[1] / capturedTimes[2] * fullChargeTime;
+        capturedTimes[2] = fullChargeTime;
         var capturedBonuses = (float[])settings.StageBonuses.Clone();
-        bool armor = settings.SuperArmor;
+        bool armor = skill.SuperArmor;
         int id = NextVersion(); IsStarting = true;
         bool paid = data.TrySpendMP(cost);
         if (!paid || id != version || !IsStarting || data.IsDead || Time.timeScale <= 0 || !contextValid())

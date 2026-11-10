@@ -1299,7 +1299,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 60
+  bossAppearTime: 180
   bossSpawnAnchor: {fileID: 454019995}
   bossHealthSlider: {fileID: 5856254087394751847}
   bossHealthFadeDuration: 0.5
@@ -1822,6 +1822,7 @@ MonoBehaviour:
   expSlider: {fileID: 1801941379}
   inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   lightAttackButton: {fileID: 1415531113}
+  shieldButton: {fileID: 0}
   lightAttackProjectile: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
   passiveProjectiles:
   - Key: FlameBullet
@@ -2087,6 +2088,7 @@ MonoBehaviour:
       PassiveInterval: 0
       PassiveSpeed: 0
       PassiveRange: 0
+    attackSkillStacks: 0000000000000000000000000000000000000000000000000000000000000000
     tacticalSkills:
     - DataId: 0
       Name: 

@@ -33,7 +33,7 @@ internal sealed class PlayerMovement
         if (IsDashing) return;
 
         Vector2 direction = Vector2.ClampMagnitude(inputDirection, 1f);
-        Move(direction * data.speed * speedMultiplier() * Time.deltaTime);
+        Move(direction * data.MoveSpeed * speedMultiplier() * Time.deltaTime);
     }
 
     public bool CanBeginDash(Vector2 direction) =>
@@ -58,7 +58,7 @@ internal sealed class PlayerMovement
         while (IsDashing && elapsed < dashDuration)
         {
             float deltaTime = Time.deltaTime;
-            Move(dashDirection * data.speed * dashSpeedMultiplier * deltaTime);
+            Move(dashDirection * data.MoveSpeed * dashSpeedMultiplier * deltaTime);
             elapsed += deltaTime;
             yield return null;
         }

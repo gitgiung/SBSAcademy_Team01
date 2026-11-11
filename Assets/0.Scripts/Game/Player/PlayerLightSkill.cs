@@ -32,7 +32,7 @@ internal sealed class PlayerLightSkill
             || !Nonnegative(skill.BaseDamage) || !Nonnegative(skill.DamageMultiplier)
             || !Nonnegative(skill.AnimImpactDuration) || !Nonnegative(data.bulletSpeed)
             || !view.CanPlayLightAttack(skill.AnimName) || prefab == null || prefab.GetComponent<Bullet>() == null) return false;
-        float finalDamage = skill.BaseDamage + data.attackDamage * skill.DamageMultiplier;
+        float finalDamage = data.ScaleAttackDamage(skill.BaseDamage + data.attackDamage * skill.DamageMultiplier);
         if (!Nonnegative(finalDamage)) return false;
         float cost = skill.MPCost;
         float castSpeed = data.bulletSpeed;

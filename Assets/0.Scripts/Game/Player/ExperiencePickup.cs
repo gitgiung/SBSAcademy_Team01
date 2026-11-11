@@ -196,7 +196,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
             return;
         }
 
-        float pickupDistance = Mathf.Max(0f, playerData.experiencePickupDistance);
+        float pickupDistance = Mathf.Max(0f, playerData.PickupDistance);
         if (pickupDistance <= 0f)
         {
             attractionElapsedTime = 0f;

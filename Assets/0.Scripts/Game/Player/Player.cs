@@ -167,6 +167,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (hasDied || data.IsDead) return;
         data.TickShield(Time.deltaTime);
         data.TickHealOverTime(Time.deltaTime);
+        data.TickHealthRecovery(Time.deltaTime);
         data.TickInvulnerable(Time.deltaTime);
         data.TickMPRecovery(Time.deltaTime);
         lightSkill?.CheckAnimation();
@@ -267,7 +268,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
         if (aim.sqrMagnitude < 0.0001f)
             aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
-        float stackDamage = skill.Damage(data.attackDamage)
+        float stackDamage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element)
             * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
         StartCoroutine(CastShots(skill, aim.normalized, stackDamage, true, actionId));
         return true;
@@ -275,7 +276,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private IEnumerator CastShots(LightSkillCast skill, Vector2 aim, float damage, bool lockUntilEnd, int actionId)
     {
-        skill = skill.Presented();
+        skill = PrepareSkill(skill);
+        float projectileSize = 1f + data.StatCards.Value(PlayerStat.Projectile_Size);
         int shots = Mathf.Max(1, skill.Projectiles);
         float spacing = skill.ScatterVolley ? 0f : skill.ShotSpacing;
         for (int i = 0; i < shots; i++)
@@ -284,7 +286,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (!lockUntilEnd && Time.timeScale <= 0f) yield break;
             float spread = shots == 1 || skill.StraightRapidFire ? 0f : (i - (shots - 1) * 0.5f) * 8f;
             Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
-            SpawnLightSkill(skill, direction, damage);
+            SpawnLightSkill(skill, direction, damage, projectileSize);
             if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
         }
         if (!lockUntilEnd) yield break;
@@ -292,6 +294,9 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (hold > 0f) yield return new WaitForSeconds(hold);
         CompleteLightAttack(actionId);
     }
+
+    private LightSkillCast PrepareSkill(LightSkillCast skill) => skill.Presented().WithStatUpgrades(
+        (int)data.StatCards.Value(PlayerStat.Projectile_Count), 1f + data.StatCards.Value(PlayerStat.Skill_Range));
 
     /// <summary>보유한 약·강 스킬을 표의 패시브 주기마다 같은 모양으로 발사합니다. MP와 입력 잠금은 쓰지 않습니다.</summary>
     private void TickOwnedPassives(float deltaTime)
@@ -305,26 +310,26 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (!CombatSkillTable.TryGet(id, out CombatSkillRecord record)
                 || !record.TryOwnedPassive(out float cooldown, out float scale)
                 || !LightSkillCast.TryFrom(record, out LightSkillCast skill)) continue;
-            ownedPassiveTimers[i] = Mathf.Max(0f, ownedPassiveTimers[i] - deltaTime);
+            ownedPassiveTimers[i] = Mathf.Max(0f, ownedPassiveTimers[i] - deltaTime / data.PassiveCooldownMultiplier);
             if (ownedPassiveTimers[i] > 0f) continue;
-            if (!combat.TryGetClosestEnemyDirection(skill.Range, out Vector2 direction)) continue;
+            if (!combat.TryGetClosestEnemyDirection(PrepareSkill(skill).Range, out Vector2 direction)) continue;
             ownedPassiveTimers[i] = cooldown;
             float stackMul = data.Loadout.GetAttackSkillDamageMultiplier(id);
-            StartCoroutine(CastShots(skill, direction, skill.Damage(data.attackDamage) * scale * stackMul, false, 0));
+            float damage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element);
+            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul, false, 0));
         }
     }
 
-    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction, float? damageOverride = null)
+    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction, float damage, float projectileSize)
     {
         EnsureLightFxPrototype();
         Vector3 position = transform.position;
         if (skill.Shape == LightSkillShape.Circle || skill.Shape == LightSkillShape.Cone || skill.Shape == LightSkillShape.Arc)
             position += (Vector3)(direction * skill.Range * 0.35f);
-        float damage = damageOverride ?? skill.Damage(data.attackDamage);
         void Arm(GameObject fx)
         {
             if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
-                skillFx.Play(skill, direction, damage, enemyTag);
+                skillFx.Play(skill, direction, damage, enemyTag, projectileSize);
         }
 
         if (Managers.Initialized && Managers.Pool != null)

@@ -44,7 +44,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         hitIds.Clear();
     }
 
-    public void Play(LightSkillCast skill, Vector2 direction, float damage, string enemyTag)
+    public void Play(LightSkillCast skill, Vector2 direction, float damage, string enemyTag, float projectileSize = 1f)
     {
         Cache();
         this.skill = skill;
@@ -117,7 +117,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             transform.rotation = Quaternion.identity;
         else
             transform.right = this.direction;
-        ApplyScale();
+        ApplyScale(projectileSize);
         if (hitCollider != null)
         {
             hitCollider.enabled = projectile;
@@ -133,7 +133,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         if (pooled == null) pooled = GetComponent<PooledObject>();
     }
 
-    private void ApplyScale()
+    private void ApplyScale(float projectileSize)
     {
         if (frames == null || frames.Length == 0) return;
         float width = frames[0].rect.width / LightSkillVisuals.PixelsPerUnit;
@@ -165,7 +165,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
                 break;
             default:
                 float projectileScale = Mathf.Clamp(skill.Width / 0.5f, 0.7f, 1.8f);
-                transform.localScale = Vector3.one * projectileScale;
+                transform.localScale = Vector3.one * (projectileScale * projectileSize);
                 break;
         }
     }

@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace UnityEngine
 {
+    public class MonoBehaviour { }
+    public sealed class HeaderAttribute : Attribute { public HeaderAttribute(string title) { } }
+    public sealed class ContextMenuAttribute : Attribute { public ContextMenuAttribute(string name) { } }
     public class Sprite { }
     public sealed class SerializeField : Attribute { }
     public sealed class TooltipAttribute : Attribute { public TooltipAttribute(string text) { } }
@@ -45,6 +48,7 @@ namespace UnityEngine
         public static T FromJson<T>(string value) => JsonSerializer.Deserialize<T>(value, new JsonSerializerOptions { IncludeFields = true });
     }
 }
+#if !PLAYER_STATS_VALIDATION
 internal sealed class PlayerData
 {
     public float MP { get; private set; } = 20f;
@@ -57,6 +61,7 @@ internal sealed class PlayerData
     }
     public void RestoreMP(float amount) => MP += amount;
 }
+#endif
 public static class Define { public enum EEffectSize { } }
 public interface ILoader<TKey, TValue> { System.Collections.Generic.Dictionary<TKey, TValue> MakeDict(); }
 namespace UnityEditor

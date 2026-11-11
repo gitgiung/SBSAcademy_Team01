@@ -17,6 +17,8 @@ public class GrowthPopupTests
     static void Set(object target,string field,object value) => target.GetType().GetField(field,BindingFlags.Instance|BindingFlags.NonPublic).SetValue(target,value);
     static void Call(object target,string method) => target.GetType().GetMethod(method,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(target,null);
     static int Pending(PlayerData d) => (int)typeof(PlayerData).GetProperty("PendingLevelUps").GetValue(d);
+    static void SetStatCards(params PlayerStatCard[] cards) => typeof(PlayerStatTable)
+        .GetField("loadedCards", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, cards);
     static Button NamedButton(Component owner,string name) => owner.GetComponentsInChildren<Button>(true).First(b=>b.name==name);
     UI_CombatPopup Popup(string name)
     {
@@ -31,6 +33,7 @@ public class GrowthPopupTests
     {
         Time.timeScale=1;
         Managers.UI=new UIManager();
+        SetStatCards();
         // 추첨/획득도 실제 구현을 실행하되 표 입력만 고정합니다.
         var skills=Enumerable.Range(10001,10).ToDictionary(i=>i,i=>new CombatSkillRecord{Id=i,Name="검증 스킬",Rarity="Common"});
         typeof(CombatSkillTable).GetField("skills",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,skills);
@@ -44,6 +47,55 @@ public class GrowthPopupTests
         var pauseButton=new GameObject("PauseButton",typeof(RectTransform),typeof(Button)); pauseButton.transform.SetParent(root.transform);
         Set(controller,"pauseButton",pauseButton.GetComponent<Button>()); Set(controller,"pausePopup",pause); Set(controller,"levelUpPopup",level); Set(controller,"statusPlayer",player);
         root.SetActive(true);
+    }
+
+    [UnityTest] public IEnumerator FullSkillSlotsStillOfferStatAndApplyOnlyOnce()
+    {
+        yield return null;
+        for (int i = 0; i < 6; i++) data.Loadout.TryAddAttackSkill(new Data.SkillData { DataId = 11000 + i });
+        SetStatCards(new PlayerStatCard { Stat = PlayerStat.HP, Name = "체력", Values = new[] { 100f, 150f, 200f }, Weight = 1f });
+        data.ApplyDamage(20f);
+        data.AddEXP(13);
+        var choice = NamedButton(level, "Choice0");
+        choice.onClick.Invoke();
+        choice.onClick.Invoke();
+        Assert.That(data.StatCards.Level(PlayerStat.HP), Is.EqualTo(1));
+        Assert.That(data.maxHealth, Is.EqualTo(150f));
+        Assert.That(data.currentHealth, Is.EqualTo(130f));
+        Assert.That(Pending(data), Is.Zero);
+        yield return null;
+    }
+
+    [UnityTest] public IEnumerator PauseShowsSkillLevelAndRarityWithoutChangingEquipState()
+    {
+        yield return null;
+        CombatSkillTable.TryGet(10001, out CombatSkillRecord attack);
+        attack.Rarity = "Rare";
+        var table = (System.Collections.Generic.Dictionary<int, CombatSkillRecord>)typeof(CombatSkillTable)
+            .GetField("skills", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        table[30001] = new CombatSkillRecord { Id = 30001, Name = "치유" };
+        var rarities = (System.Collections.Generic.List<SkillRarityRecord>)typeof(CombatSkillTable)
+            .GetField("rarities", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        rarities[0].ColorHex = "#B8B2C4";
+        rarities.Add(new SkillRarityRecord { Id = "Rare", ColorHex = "#4696FF" });
+        var owned = new Data.SkillData { DataId = 10001, Name = "공격" };
+        data.Loadout.TryAddOrUpgradeAttackSkill(owned);
+        data.Loadout.TryEquip(PlayerSkillButton.Light, 10001);
+        data.Loadout.TryAddTacticalSkill(new Data.SkillData { DataId = 30001, Name = "치유" });
+        controller.ShowPause();
+
+        Transform FindSlot(string name) => pause.GetComponentsInChildren<RectTransform>(true).First(rect => rect.name == name);
+        Transform attackSlot = FindSlot("AttackSlot0");
+        Transform tacticalSlot = FindSlot("TacticalSlot0");
+        TMP_Text Level(Transform slot) => slot.Find("SkillLevel").GetComponent<TMP_Text>();
+        Assert.That(Level(attackSlot).text, Is.EqualTo("Lv.1"));
+        data.Loadout.TryAddOrUpgradeAttackSkill(owned);
+        Assert.That(Level(attackSlot).text, Is.EqualTo("Lv.2"));
+        Assert.That(attackSlot.Find("Equipped").gameObject.activeSelf, Is.True);
+        Assert.That((Color32)attackSlot.GetComponent<Outline>().effectColor, Is.EqualTo(new Color32(70, 150, 255, 255)));
+        Assert.That(Level(tacticalSlot).text, Is.EqualTo("Lv.1"));
+        Assert.That((Color32)tacticalSlot.GetComponent<Outline>().effectColor, Is.EqualTo(new Color32(184, 178, 196, 255)));
+        Assert.That(Level(FindSlot("AttackSlot6")).text, Is.Empty);
     }
     [UnityTearDown] public IEnumerator Cleanup()
     {

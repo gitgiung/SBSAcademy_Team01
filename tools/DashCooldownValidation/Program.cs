@@ -23,7 +23,7 @@ static class Program
         Console.WriteLine($"{count-failures}/{count} 통과"); return failures==0?0:1;
     }
 }
-public class PlayerData { public float speed=5; }
+public class PlayerData { public float speed=5; public float MoveSpeed => speed; }
 public class CollisionMovement2D { public CollisionMovement2D(UnityEngine.Rigidbody2D body){} public void Move(UnityEngine.Vector2 delta){} }
 namespace UnityEngine
 {

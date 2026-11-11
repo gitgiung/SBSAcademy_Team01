@@ -1,5 +1,51 @@
 # 작업 인수인계
 
+## 2026-11-11 main에 3개 브랜치 로컬 병합
+
+- 시작: main `b6a51d8`, 작업 트리 깨끗함. origin fetch 후 main과 origin/main 일치, 첫 두 브랜치의 로컬/원격 끝점도 일치함을 확인했다.
+- 순서: `origin/Effect,HP,MP,EXP` (`6fa3822`) → `origin/feature/pixelfx-parry-blaze-vfx` (`bad9b50`) → `origin/feat/player-stat-card` (`ffbe211`). 앞의 두 병합 커밋은 `7fd1145`, `2267ad0`. 원격 푸시와 브랜치 삭제는 수행하지 않았다.
+- 충돌: 인수인계는 양쪽의 서로 다른 제목 기록을 모두 보존했다. pixelfx 엑셀은 main과 셀 값·수식이 같아 main 파일을 유지했고, 최종 엑셀은 스탯 카드 데이터·내보내기 코드와 일치하는 stat 브랜치 파일을 채택했다. `TacticalSkillEffect.cs.meta`는 먼저 통합한 pixelfx GUID를 유지했다(두 GUID의 씬·프리팹·asset 직렬화 참조 검색 0건).
+- 카드 선택: 일반 레벨업은 스킬·스탯 혼합 및 개별 적용 액션을 유지하고, 원하는 스킬 카드 테스트 메뉴도 같은 `ApplySkillChoice` 획득 경로로 연결했다. null/전투 진행 가드를 유지했다. MainScene은 전략 버튼 연결과 기본 이동속도 5를 모두 포함한다. Effect 브랜치의 보스 등장 원형 피해·충전 완료 타격·2페이즈 Run 돌진 변경도 함께 들어왔다.
+- 새 검증: `LevelUpMixedDraftValidation` 9/9, `PlayerLoadoutValidation` 6/6, `CombatSkillTableValidation` 23/23, `BossEntranceValidation` 6/6, `PlayerHitFeedbackValidation` 7/7, `DashCooldownValidation` 8/8, `ExperienceAttractionValidation` 10/10. 합계 69/69 통과. Attraction 하네스의 직렬화 필드 미할당 경고 2개가 있었다.
+- C# 검증: Unity 6000.5.0f1 Roslyn으로 Combat.Runtime, Enemy.Runtime, Boss.Runtime, Encounter.Runtime, Assembly-CSharp, Assembly-CSharp-Editor 6개 컴파일 성공, 경고 3개(CS0252 1개, CS0618 2개). 기존 RunCompile.ps1의 캐시 응답 파일에는 신규 소스가 빠져 첫 시도에서 타입 누락이 났다. 임시 응답 생성 스크립트에 새 런타임/에디터 소스와 TacticalSkillEffect를 추가해 재실행했다. Library DLL 및 검증 도구 원본은 변경하지 않았다. `git diff --check` 통과.
+- 검증 제한: PlayerExperienceValidation/Run.ps1은 시작 커밋에도 없던 PlayerExperienceValidation.csproj를 요구해 실행 불가(테스트 실행 0개). Unity Editor 임포트·셰이더 컴파일·Play·EditMode/PlayMode, 실제 번들·Android 빌드·기기는 미검증이다. 임시 컴파일 산출물은 .utmp에 있으며 위 기록이 영속 검증 요약이다.
+- 직접 확인: Play 종료 → Unity 임포트/컴파일 완료 및 Console 확인 → `Tools > Play From Title` 해제 → `Assets/9.Scenes/MainScene.unity` 다시 열기 → Play. HP/MP/EXP의 현재/최댓값 표시와 Skill 버튼을 확인한다. CombatUI의 CombatPopupController 메뉴 `테스트/경험치 13 획득`으로 레벨업 후 스탯 카드 선택·수치 반영, 일시정지 상태창의 Lv.n/등급 테두리를 확인한다. `테스트/원하는 카드 고르기`에서 불 계열 스킬을 획득해 새 이펙트, E 패링 섬광을 확인한다. 보스 등장/2페이즈 충전 원이 다 차면 타격 1회, 2페이즈 원거리 돌진은 Run 모션으로 동작해야 한다.
+- 이상 시: Console 첫 오류·셰이더 오류·Missing Script를 먼저 확인하고 MainScene 재열기, Player Data Speed 5, shieldButton 참조, PlayerStatTable.json 및 ParryAdditive 셰이더를 확인한다. 다음: 위 실제 화면 회귀 확인 후 필요하면 main을 원격에 push한다.
+
+## 2026-11-10 일시정지 스킬 레벨과 등급 테두리
+
+- `feat/player-stat-card` `654fc69` 기준. 일시정지 상태창 공격·전략 스킬 칸의 하단에 `Lv.n`을 표시하고, 테두리에 전투 스킬 표의 등급 색을 적용한다. 약·강공격은 보유 스택 1~3, 전략은 1이다. 등급이 비어 있는 전략 스킬은 기존 추첨과 같이 Common을 쓴다. 등급 정보를 찾을 수 없거나 비어 있거나 잠긴 슬롯은 기본 테두리다. 장착은 칸 상단과 기존 녹색 배경으로 표시한다.
+- 검증: Unity 6000.5.0f1 Roslyn 런타임 컴파일 오류 0, 기존 경고 3개. `CombatSkillTableValidation` **23/23**, `PlayerLoadoutValidation` **6/6**. PlayMode 표시 회귀 소스를 추가했고 실행하지 않았다. 변경 파일의 `git diff --check` 통과. 시작부터 있던 `NanumGothic Combat SDF.asset` 변경은 보존했다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 레벨업에서 공격 스킬 선택 → 일시정지의 `공격 스킬`에서 하단 `Lv.1`과 테두리 색 확인. 같은 공격 스킬 카드를 다시 고르면 `Lv.2`, 전략 칸은 `Lv.1`이다. 스킬을 클릭하면 상단에 장착 표시가 나와야 한다. 이상하면 Console 첫 오류, 보유 스택과 `CombatSkillTable.json`의 등급 및 `ColorHex`를 확인한다. 다음은 실제 화면에서 글자와 테두리 가독성 확인이다.
+
+## 2026-11-10 이동속도 Inspector 표시와 최대 체력 카드 보정
+
+- `PlayerData` Inspector의 `플레이 중 스탯 > 현재 이동속도`에 키보드·모바일 이동 및 상태창이 쓰는 `MoveSpeed`를 표시한다. 기본 `Speed`는 씬 설정값이다. 단일 Player를 선택한 Play 상태에서 현재값을 읽을 수 있다.
+- 최대 체력 카드 선택 시 증가분만큼 현재 체력도 올리고, 변경된 현재·최대 체력을 한 번 알린다. 예를 들어 80/100에서 첫 카드를 고르면 130/150이 된다. 아래 이전 작업의 현재 체력 유지 동작을 대체한다.
+- 검증: `LevelUpMixedDraftValidation` 수정 전 8/9, 수정 후 **9/9**. Unity 6000.5.0f1 Roslyn 런타임·Editor 컴파일 오류 0, 기존 경고 3개. Unity PlayMode 회귀 소스는 보강했고 실행은 하지 않았다. 다음은 실제 Inspector·HUD 표시 확인이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → `CombatUI > CombatPopupController > 테스트/경험치 13 획득`으로 이동속도 카드 선택 → Player 선택 → Inspector의 `Player Data > 플레이 중 스탯 > 현재 이동속도` 및 일시정지 상태창에서 5.25 확인. 적에게 피해를 입은 상태에서 최대 체력 카드도 선택해 HUD와 상태창의 현재·최대 체력이 같은 양만큼 늘어나는지 본다. 이상하면 Console 첫 오류와 Play 중 선택한 Player가 맞는지 확인한다.
+
+## 2026-11-10 PlayerDatatable 레벨업 스탯 카드 연결
+
+- `feat/player-stat-card` `e807a92`의 사용자 수정 엑셀·기본 이동속도 5·기존 임시 피해량 제거와 미추적 meta를 보존했다. Unity `Tools > Parse Player Stat Table` 또는 `tools/LevelUpMixedDraftValidation/Run.ps1 -Export`에서 `Player_Stats_Card`의 값과 가중치를 키로 검증하고 `Assets/Resources/Data/PlayerStatTable.json`을 생성한다. 배포 JSON은 현재 엑셀에서 생성했다.
+- 카드 후보 13종. 스킬과 스탯이 둘 다 있으면 각 카드 자리의 스탯 비율은 기존안 25%이며, 스킬 안에서는 기존 전략 25%를 유지한다. 표의 가중치로 후보를 뽑고 같은 스탯의 카드가 한 묶음에 반복되지 않는다. 선택 시 해당 스탯만 1단계 오르며 최대 레벨이나 제한치에 도달한 카드는 후보에서 빠진다. 스킬 슬롯이 가득 차도 스탯을 고를 수 있다. 병합에서 빠졌던 지원 강공격 카드 후보와 상태창 수동 장착을 복구했다.
+- 최대 체력 카드는 최대치만 올린다. 이동속도는 씬 기본값에 카드 증가율을 곱하고, 피해량 배율은 스킬 기본값과 계수를 합한 뒤 적용한다. 방어력은 보호막 처리 전 피해를 감소시킨다. 체력·MP 회복, 패시브 쿨다운, 속성 피해, 스킬 투사체 수·크기, 비투사체 기술 범위, 경험치 및 DNA 흡입 반경을 기존 계산에 연결했다. 카드 레벨은 한 판의 PlayerData가 보관한다.
+- 검증: Unity 6000.5.0f1 Roslyn 런타임·Editor 컴파일 성공, 오류 0, 기존 경고 3개. 스탯·혼합 **9/9**, 전투 표 **23/23**, 장착 **6/6**, 흡입 **10/10**, 회피 쿨다운 **8/8**. 격리 PlayMode는 라이선스 초기화 시간 초과 후 재연결 단계에서 멈춰 검증 프로세스만 종료했다. 결과 XML 없음, 실행된 Unity 테스트 0개. 실제 Unity 플레이·렌더링은 미검증이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴에서 `테스트/경험치 13 획득` → `스탯 강화` 카드의 현재→다음 값을 읽고 선택 → 일시정지의 스탯 값 확인. 이동속도 Lv.1은 5→5.25, 최대 체력 Lv.1은 100→150이며 현재 체력은 유지된다. 첫 묶음에 스탯 카드가 없으면 다음 레벨업에서 확인한다. 문제가 있으면 Console 첫 오류, `Resources/Data/PlayerStatTable.json` 임포트, Excel 저장 후 `Tools > Parse Player Stat Table` 결과를 확인한다. 다음은 에디터에서 카드 선택과 실제 전투 체감 확인이다.
+
+## 2026-11-10 MainScene 기본 이동속도 5 반영
+
+- 사용자 지정에 따라 `MainScene`의 Player Data `speed`를 7에서 5로 변경했다. 씬 diff는 이 값 한 줄이다. `git diff --check` 통과, Unity 플레이·테스트 실행 0개.
+- 사용자가 다시 저장한 `Document/PlayerDatatable.xlsx`를 확인했다. 기본 이동속도는 5이고 카드 이동속도 값은 0~0.25, 방어력 감소율은 `DEF/(DEF+33.34)`, 경험치 배율은 2레벨 1.14 및 제한치 1.5다. 카드 키 13개가 기본 스탯에 각각 대응하고 가중치는 모두 1이다. 다음 작업은 엑셀 데이터 내보내기와 레벨업 추첨·스탯 적용 연결이다.
+- 직접 확인: Unity에서 씬 변경을 반영한 뒤 `MainScene`의 Player 선택 → Inspector의 Player Data `Speed`가 5인지 확인한다. `Tools > Play From Title` 해제 후 Play하여 이동을 확인한다. 값이 7이면 현재 열린 씬을 다시 열어 Inspector를 확인하고, 임포트 문제가 있으면 Console의 첫 오류를 확인한다.
+
+## 2026-11-10 PlayerDatatable 스탯 카드 데이터 점검
+
+- `feat/player-stat-card`의 `e807a92`에서 사용자 수정 `Document/PlayerDatatable.xlsx`와 미추적 `TacticalSkillEffect.cs.meta`를 보존했다. 기존 임시 피해량 카드의 등급별 상수와 생성 경로를 제거했고, 혼합 추첨 구조는 입력값을 받도록 남겼다.
+- 새 `Player_Stats`는 기본 스탯 15개, `Player_Stats_Card`는 강화 카드 13종의 0~5레벨 값·제한치·가중치를 담는다. 투사체 개수는 3레벨까지다. 두 시트의 `number`가 중간부터 달라 `Player_Stats` 키를 기준으로 매핑해야 한다. 현재 엑셀을 런타임 데이터로 변환·로드하거나 선택 시 플레이어에게 반영하는 경로는 없다.
+- 다음 작업 전에 확인할 값은 `Player_Stats_Card`의 이동속도 기본 5와 이후 0.05~0.25가 기본 속도에 대한 비율인지, `MainScene` 속도 7과 표의 5 중 어느 것을 기준으로 하는지, 경험치 획득 2레벨 1.04와 제한치 0.5의 의미, `Player_Stats!E7` 방어력 수식의 분모다. 피해량 `ATK`는 표에서 배율이므로 현재 스킬의 ATK 계수 입력과 별도 처리 위치를 정한다. 확인한 값을 기준으로 내보내기·카드 추첨·보상 반영을 연결한다.
+- 검증: 두 시트를 읽기 전용으로 점검했고 `LevelUpMixedDraftValidation` **5/5**. Unity 플레이는 실행하지 않았다. 직접 확인은 Excel에서 `Player_Stats_Card!D6:J6`, `D14:J14`, `Player_Stats!E7`을 열고 `MainScene`의 Player Data `Speed`와 대조한다. `Tools > Play From Title` 해제 후 `MainScene` 레벨업에서는 기존 스킬 카드가 표시된다. 이상하면 Console의 첫 오류와 레벨업 팝업의 스킬 카드 표시를 확인한다.
+
 ## 2026-11-10 화염 고리를 pixelfx 불 회오리로 교체
 
 - 요청: 화염 고리(10014)를 히오스 번개 회오리 같은 불 속성 연출로 바꾼다. 같은 pixelfx 방식으로 만든다.

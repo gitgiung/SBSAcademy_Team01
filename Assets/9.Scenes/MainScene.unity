@@ -2240,7 +2240,7 @@ MonoBehaviour:
     lightSkillId: 0
     heavySkillId: 0
     tacticalSkillId: 0
-  speed: 7
+  speed: 5
   maxHealth: 100
   currentHealth: 100
   attackRange: 8

@@ -134,17 +134,10 @@ public sealed class CombatPopupController : MonoBehaviour
             Debug.LogError("레벨업 스킬을 등록할 Player/PlayerData가 없습니다.", this);
             return false;
         }
-        PlayerLoadout loadout = statusPlayer.data.Loadout;
+        PlayerData playerData = statusPlayer.data;
+        PlayerLoadout loadout = playerData.Loadout;
         CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
-        var attackExcluded = new HashSet<int>();
         var tacticalExcluded = new HashSet<int>();
-        var upgradeable = new HashSet<int>();
-        for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
-        {
-            if (loadout.GetAttackSkill(i) is not Data.SkillData owned) continue;
-            if (loadout.IsAttackSkillAtMaxStack(owned.DataId)) attackExcluded.Add(owned.DataId);
-            else upgradeable.Add(owned.DataId);
-        }
         for (int i = 0; i < PlayerLoadout.TacticalCapacity; i++)
         {
             if (loadout.GetTacticalSkill(i) is Data.SkillData owned)
@@ -160,86 +153,71 @@ public sealed class CombatPopupController : MonoBehaviour
                     tacticalExcluded.Add(skill.Id);
             }
         }
-        bool canOfferAttack = loadout.HasFreeAttackSlot || upgradeable.Count > 0;
-        bool canOfferTactical = loadout.HasFreeTacticalSlot
-            && LevelUpSkillDraft.Draw(table, 1, 30000, 40000, () => 0d, tacticalExcluded).Count > 0;
-        if (!canOfferAttack && !canOfferTactical)
+        const int count = LevelUpMixedDraft.DefaultCount;
+        var stats = playerData.StatCards.Draw(PlayerStatTable.LoadCards(), count, levelUpRandom.NextDouble);
+        var attacks = LevelUpSkillReward.DrawChoices(table, loadout, count, levelUpRandom.NextDouble);
+        var tacticals = loadout.HasFreeTacticalSlot
+            ? LevelUpSkillDraft.Draw(table, count, 30000, 40000, levelUpRandom.NextDouble, tacticalExcluded)
+            : new List<CombatSkillRecord>();
+        var skills = DrawLevelUpMix(attacks, tacticals, count);
+        if (skills.Count == 0 && stats.Count == 0)
         {
-            ShowAttackSlotsFull();
+            if (!loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
+            else levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
             return true;
         }
-        if (!loadout.HasFreeAttackSlot && table?.skills != null)
+        var choices = new List<LevelUpCardData>(count);
+        var apply = new List<System.Action>(count);
+        int statIndex = 0;
+        int skillIndex = 0;
+        while (choices.Count < count && (statIndex < stats.Count || skillIndex < skills.Count))
         {
-            // 빈 공격 슬롯이 없으면 강화 가능한 보유 약공격만 남깁니다.
-            foreach (CombatSkillRecord skill in table.skills)
+            if (statIndex < stats.Count && (skillIndex >= skills.Count || levelUpRandom.NextDouble() < LevelUpMixedDraft.DefaultStatShare))
             {
-                if (skill == null || skill.Id < 10000 || skill.Id >= 20000) continue;
-                if (!upgradeable.Contains(skill.Id)) attackExcluded.Add(skill.Id);
+                PlayerStatCard stat = stats[statIndex++];
+                int level = playerData.StatCards.Level(stat.Stat);
+                choices.Add(CreateStatCard(stat, level));
+                apply.Add(() =>
+                {
+                    if (playerData.TryUpgradeStat(stat, level + 1)) CompleteLevelUp();
+                    else levelUpPanel.ShowMessage("스탯 강화 불가", "선택한 스탯을 강화할 수 없습니다.", CompleteLevelUp);
+                });
+            }
+            else
+            {
+                CombatSkillRecord skill = skills[skillIndex++];
+                choices.Add(CreateSkillCard(skill, table.rarities, loadout));
+                apply.Add(() => ApplySkillChoice(loadout, skill));
             }
         }
-        if (!canOfferTactical && table?.skills != null)
-        {
-            foreach (CombatSkillRecord skill in table.skills)
-                if (skill != null && skill.Id >= 30000 && skill.Id < 40000)
-                    tacticalExcluded.Add(skill.Id);
-        }
-        // 임시 혼합 비율: 약공격 0.75 / 전략 0.25. 확정 밸런스가 아닙니다.
-        var skills = DrawLevelUpMix(table, 3, canOfferAttack, canOfferTactical, attackExcluded, tacticalExcluded);
-        if (skills.Count == 0)
-        {
-            levelUpPanel.ShowMessage("카드 없음", "카드가 소진되었습니다.", CompleteLevelUp);
-            return true;
-        }
-        var choices = new List<LevelUpCardData>();
-        foreach (var skill in skills) choices.Add(CreateSkillCard(skill, table.rarities, loadout));
         levelUpPanel.SetChoices(choices, index =>
         {
-            // 열려 있는 동안 보유 상태가 바뀌어도 성공한 획득만 완료합니다.
-            if (index < 0 || index >= skills.Count) return;
-            ApplyLevelUpSelection(skills[index], loadout);
+            if (index >= 0 && index < apply.Count && CanShow()) apply[index]();
         });
         return true;
     }
 
-    private void ApplyLevelUpSelection(CombatSkillRecord selected, PlayerLoadout loadout)
+    private void ApplySkillChoice(PlayerLoadout loadout, CombatSkillRecord selected)
     {
         if (selected == null || loadout == null || !CanShow()) return;
         bool isTactical = selected.Id >= 30000 && selected.Id < 40000;
-        bool alreadyOwned = isTactical ? OwnsTactical(loadout, selected.Id)
-            : loadout.GetAttackSkillStack(selected.Id) > 0;
+        bool alreadyOwned = isTactical ? OwnsTactical(loadout, selected.Id) : loadout.GetAttackSkillStack(selected.Id) > 0;
         if (LevelUpSkillReward.TryAcquire(loadout, selected)) CompleteLevelUp();
-        else if (!alreadyOwned && isTactical && !loadout.HasFreeTacticalSlot) ShowAttackSlotsFull();
-        else if (!alreadyOwned && !isTactical && !loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
+        else if (!alreadyOwned && (isTactical ? !loadout.HasFreeTacticalSlot : !loadout.HasFreeAttackSlot)) ShowAttackSlotsFull();
         else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록하거나 강화할 수 없습니다.", CompleteLevelUp);
     }
 
-    private List<CombatSkillRecord> DrawLevelUpMix(CombatSkillTableFile table, int count,
-        bool canOfferAttack, bool canOfferTactical, HashSet<int> attackExcluded, HashSet<int> tacticalExcluded)
+    private List<CombatSkillRecord> DrawLevelUpMix(List<CombatSkillRecord> attacks, List<CombatSkillRecord> tacticals, int count)
     {
-        var result = new List<CombatSkillRecord>();
-        var drawn = new HashSet<int>();
-        while (result.Count < count)
+        var result = new List<CombatSkillRecord>(count);
+        int attackIndex = 0;
+        int tacticalIndex = 0;
+        while (result.Count < count && (attackIndex < attacks.Count || tacticalIndex < tacticals.Count))
         {
-            bool preferTactical = canOfferTactical && (!canOfferAttack || levelUpRandom.NextDouble() < 0.25);
-            List<CombatSkillRecord> pick = null;
-            if (preferTactical)
-                pick = LevelUpSkillDraft.Draw(table, 1, 30000, 40000, levelUpRandom.NextDouble, Union(tacticalExcluded, drawn));
-            if (pick == null || pick.Count == 0)
-                pick = LevelUpSkillDraft.Draw(table, 1, 10000, 20000, levelUpRandom.NextDouble, Union(attackExcluded, drawn));
-            if ((pick == null || pick.Count == 0) && canOfferTactical)
-                pick = LevelUpSkillDraft.Draw(table, 1, 30000, 40000, levelUpRandom.NextDouble, Union(tacticalExcluded, drawn));
-            if (pick == null || pick.Count == 0) break;
-            result.Add(pick[0]);
-            drawn.Add(pick[0].Id);
+            bool tactical = tacticalIndex < tacticals.Count && (attackIndex >= attacks.Count || levelUpRandom.NextDouble() < 0.25);
+            result.Add(tactical ? tacticals[tacticalIndex++] : attacks[attackIndex++]);
         }
         return result;
-    }
-
-    private static HashSet<int> Union(HashSet<int> left, HashSet<int> right)
-    {
-        var set = new HashSet<int>(left);
-        foreach (int id in right) set.Add(id);
-        return set;
     }
 
     private static bool OwnsTactical(PlayerLoadout loadout, int skillId)
@@ -288,10 +266,19 @@ public sealed class CombatPopupController : MonoBehaviour
         {
             SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
             Icon = string.IsNullOrEmpty(skill.Icon) ? null : Managers.Resource.Load<Sprite>(skill.Icon),
-            ActiveDescription = description, ActiveButtonLabel = "N",
+            ActiveDescription = description, ActiveButtonLabel = skill.Id >= 30000 ? "Skill" : skill.Id >= 20000 ? "C" : "N",
             FlavorText = skill.Explanation
         };
     }
+
+    private static LevelUpCardData CreateStatCard(PlayerStatCard stat, int level) => new LevelUpCardData
+    {
+        SkillId = 91000 + (int)stat.Stat,
+        Name = stat.Name,
+        Rarity = "스탯 강화",
+        Accent = new Color32(146, 222, 191, 255),
+        Description = $"Lv. {level} → {level + 1}\n{stat.FormatValue(level)} → {stat.FormatValue(level + 1)}"
+    };
 
     public UI_CombatPopup ShowLevelUp(IReadOnlyList<LevelUpCardData> choices, System.Action<int> onSelected)
     {
@@ -515,7 +502,7 @@ public sealed class CombatPopupController : MonoBehaviour
             index =>
             {
                 if (index != 0) return;
-                ApplyLevelUpSelection(skill, loadout);
+                ApplySkillChoice(loadout, skill);
             });
         OpenLevelUpPanel();
     }

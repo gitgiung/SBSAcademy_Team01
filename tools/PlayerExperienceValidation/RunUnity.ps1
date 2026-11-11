@@ -5,6 +5,8 @@ $validationRoot = Join-Path $projectRoot '.utmp/GrowthUnity'
 New-Item -ItemType Directory -Force -Path "$validationRoot/Assets/Runtime", "$validationRoot/Assets/Tests", "$validationRoot/Packages", "$validationRoot/ProjectSettings" | Out-Null
 $files = @(
  'Assets/0.Scripts/Game/Player/Data/PlayerData.cs',
+ 'Assets/0.Scripts/Game/Player/Data/PlayerStatProgress.cs',
+ 'Assets/0.Scripts/Game/Player/TacticalSkillEffect.cs',
  'Assets/0.Scripts/Game/Player/PlayerLoadout.cs',
  'Assets/0.Scripts/Game/Player/PlayerView.cs',
  'Assets/0.Scripts/Game/Player/PlayerCombat.cs',
@@ -42,6 +44,7 @@ $files = @(
  'Assets/0.Scripts/Game/UI/StatusPanelUI.cs'
 )
 $files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/Player/Data/PlayerExperience*.cs" | ForEach-Object { $_.FullName }
+$files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/UI/LevelUp/*.cs" | ForEach-Object { $_.FullName }
 $files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/Enemy/NormalEnemy/Survival*.cs" | ForEach-Object { $_.FullName }
 foreach ($file in $files) {
  $source = if ([IO.Path]::IsPathRooted($file)) { $file } else { Join-Path $projectRoot $file }

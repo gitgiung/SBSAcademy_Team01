@@ -183,12 +183,12 @@ public static class CombatSkillWorkbook
         throw new InvalidDataException($"{column}{row}: 슈퍼아머 값을 해석할 수 없습니다: {text}");
     }
 
-    private static string Cell(Dictionary<string, string> cells, string column, int row)
+    internal static string Cell(Dictionary<string, string> cells, string column, int row)
     {
         return cells.TryGetValue(column + row, out string value) ? value : "";
     }
 
-    private static Dictionary<string, string> ReadSheetPaths(ZipArchive zip)
+    internal static Dictionary<string, string> ReadSheetPaths(ZipArchive zip)
     {
         XmlDocument workbook = LoadXml(zip, "xl/workbook.xml");
         XmlDocument rels = LoadXml(zip, "xl/_rels/workbook.xml.rels");
@@ -214,7 +214,7 @@ public static class CombatSkillWorkbook
         return sheets;
     }
 
-    private static List<string> ReadSharedStrings(ZipArchive zip)
+    internal static List<string> ReadSharedStrings(ZipArchive zip)
     {
         var strings = new List<string>();
         ZipArchiveEntry entry = zip.GetEntry("xl/sharedStrings.xml");
@@ -230,7 +230,7 @@ public static class CombatSkillWorkbook
         return strings;
     }
 
-    private static Dictionary<string, string> ReadCells(ZipArchive zip, string sheetPath, List<string> shared)
+    internal static Dictionary<string, string> ReadCells(ZipArchive zip, string sheetPath, List<string> shared)
     {
         XmlDocument document = LoadXml(zip, sheetPath);
         XmlNamespaceManager ns = Namespace(document, "m", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");

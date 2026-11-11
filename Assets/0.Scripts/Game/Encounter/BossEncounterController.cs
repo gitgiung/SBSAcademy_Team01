@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; // Slider ����� ���� �߰�
 
@@ -12,6 +13,9 @@ public enum EncounterPhase
 [DisallowMultipleComponent]
 public sealed class BossEncounterController : MonoBehaviour
 {
+    [Tooltip("지정하면 회차별 프리팹을 생성합니다. 비어 있으면 기존 단일 보스 설정을 사용합니다.")]
+    [SerializeField] private BossEncounterSchedule schedule;
+    [SerializeField] private Transform bossTarget;
     [SerializeField] private BossController boss;
     [SerializeField] private HordeLordBoss hordeLord;
     [SerializeField] private ZombieSlimeBoss zombieSlime;
@@ -37,10 +41,18 @@ public sealed class BossEncounterController : MonoBehaviour
     private EncounterPhase displayedPhase;
     private CanvasGroup bossHealthCanvasGroup;
     private Coroutine bossHealthFadeRoutine;
+    private readonly List<BossEncounterSchedule.Entry> rounds = new List<BossEncounterSchedule.Entry>();
+    private int nextRound;
+    private Transform preparationRoot;
+    private GameObject spawnedBoss;
+    private bool ownsCombatPause;
+
+    private bool HasNextRound => schedule != null ? nextRound < rounds.Count : Phase == EncounterPhase.TimedCombat;
+    private float NextAppearTime => schedule != null ? rounds[nextRound].AppearTime : Mathf.Max(.01f, bossAppearTime);
 
     private void Awake()
     {
-        if (boss == null && hordeLord == null && zombieSlime == null)
+        if (schedule == null && boss == null && hordeLord == null && zombieSlime == null)
         {
             Debug.LogWarning("BossEncounterController requires a boss reference.", this);
             enabled = false;
@@ -57,13 +69,13 @@ public sealed class BossEncounterController : MonoBehaviour
             encounterBoss = boss.transform;
             bossHealth = boss.GetComponent<EnemyHealth>();
         }
-        else
+        else if (zombieSlime != null)
         {
             encounterBoss = zombieSlime.transform;
             bossHealth = zombieSlime.Health;
         }
 
-        if (bossSpawnAnchor != null)
+        if (bossSpawnAnchor != null && encounterBoss != null)
             bossSpawnOffset = encounterBoss.position - bossSpawnAnchor.position;
 
         if (boss != null)
@@ -76,27 +88,82 @@ public sealed class BossEncounterController : MonoBehaviour
         // [�߰�] ���� �� ü�¹� ����
         if (bossHealthSlider != null)
             bossHealthSlider.SetActive(false);
+
+        if (schedule != null)
+        {
+            // 기존 씬 보스는 대기로 남기고, 일정의 프리팹으로만 전투합니다.
+            bossHealth = null;
+            encounterBoss = null;
+            BuildRounds();
+            if (rounds.Count == 0) Phase = EncounterPhase.AfterBoss;
+            preparationRoot = new GameObject("Boss Preparation").transform;
+            preparationRoot.SetParent(transform, false);
+            preparationRoot.gameObject.SetActive(false);
+        }
+    }
+
+    private void BuildRounds()
+    {
+        if (!schedule.TryValidateTimes(out string error))
+        {
+            Debug.LogError(error, this);
+            return;
+        }
+        for (int i = 0; i < schedule.Entries.Count; i++)
+        {
+            var entry = schedule.Entries[i];
+            string location = $"BossEncounter: {i + 1}회차 ({entry.AppearTime}초)";
+            if (entry.BossPrefab == null)
+            {
+                Debug.LogWarning($"{location} 보스 프리팹 미지정: 이 회차를 건너뜁니다.", this);
+                continue;
+            }
+            if (!BossEncounterSchedule.IsSupportedBoss(entry.BossPrefab))
+            {
+                Debug.LogError($"{location} 프리팹의 EnemyHealth·지원 보스 컴포넌트·야수 패턴 선택기를 확인하세요. 이 회차를 건너뜁니다.", this);
+                continue;
+            }
+            if (spawnDirector != null && entry.AppearTime > spawnDirector.Settings.Duration)
+            {
+                Debug.LogError($"{location} 등장 시각이 Director의 진행 시간 한도를 넘습니다. 이 회차를 건너뜁니다.", this);
+                continue;
+            }
+            // 공유 에셋의 Play 중 편집이 진행 중인 판의 정지 경계를 바꾸지 않게 복사합니다.
+            rounds.Add(new BossEncounterSchedule.Entry(entry.AppearTime, entry.BossPrefab, entry.SpawnOffset));
+        }
     }
 
     private void OnEnable()
     {
         if (bossHealth != null) bossHealth.Died += OnBossDied;
+        if (spawnDirector != null) spawnDirector.TimeAdvanced += HandleTimeAdvanced;
         if (Phase == EncounterPhase.BossFight && (bossHealth == null || bossHealth.IsDead))
             OnBossDied();
         if (Phase == EncounterPhase.BossFight && encounterBoss != null)
             ShowBossHealthBar(encounterBoss.GetComponent<BossController>());
-        if (spawnDirector != null)
-        {
-            spawnDirector.TimeAdvanced += HandleTimeAdvanced;
-            if (Phase == EncounterPhase.TimedCombat) spawnDirector.SetPauseBoundary(Mathf.Max(.01f, bossAppearTime));
-            if (Phase == EncounterPhase.TimedCombat && ElapsedTime >= bossAppearTime) BeginBossFight();
-        }
+        ArmNextBoundary();
+        TryBeginDueRound();
         RefreshDisplay(true);
+    }
+
+    private void ArmNextBoundary()
+    {
+        if (spawnDirector == null || Phase == EncounterPhase.BossFight) return;
+        if (HasNextRound) spawnDirector.SetPauseBoundary(NextAppearTime);
+        else spawnDirector.ClearPauseBoundary();
+    }
+
+    private void TryBeginDueRound()
+    {
+        // 비활성화 중 여러 경계가 지났거나 실행 시 설정 오류로 건너뛴 회차도
+        // 모두 처리합니다. 과거 경계를 Director에 남기면 다음 Tick이 진행되지 않습니다.
+        while (Phase == EncounterPhase.TimedCombat && HasNextRound && ElapsedTime >= NextAppearTime)
+            BeginBossFight();
     }
 
     private void HandleTimeAdvanced(float elapsed)
     {
-        if (Phase == EncounterPhase.TimedCombat && elapsed >= Mathf.Max(.01f, bossAppearTime)) BeginBossFight();
+        TryBeginDueRound();
         RefreshDisplay();
     }
 
@@ -105,17 +172,26 @@ public sealed class BossEncounterController : MonoBehaviour
         if (Phase == EncounterPhase.BossFight) return;
         if (spawnDirector != null) { RefreshDisplay(); return; }
         standaloneElapsedTime += Time.deltaTime;
-        if (Phase == EncounterPhase.TimedCombat && ElapsedTime >= Mathf.Max(0.01f, bossAppearTime))
+        if (Phase == EncounterPhase.TimedCombat && HasNextRound && ElapsedTime >= NextAppearTime)
         {
-            standaloneElapsedTime = Mathf.Max(0.01f, bossAppearTime);
-            BeginBossFight();
+            standaloneElapsedTime = NextAppearTime;
+            TryBeginDueRound();
         }
         RefreshDisplay();
     }
 
     private void BeginBossFight()
     {
+        if (schedule != null && !PrepareScheduledBoss())
+        {
+            nextRound++;
+            Phase = HasNextRound ? EncounterPhase.TimedCombat : EncounterPhase.AfterBoss;
+            ArmNextBoundary();
+            RefreshDisplay(true);
+            return;
+        }
         Phase = EncounterPhase.BossFight;
+        ownsCombatPause = true;
 
         if (spawnDirector != null)
         {
@@ -144,7 +220,7 @@ public sealed class BossEncounterController : MonoBehaviour
             }
         }
 
-        if (bossSpawnAnchor != null)
+        if (schedule == null && bossSpawnAnchor != null)
             encounterBoss.position = bossSpawnAnchor.position + bossSpawnOffset;
 
         // 기존 원형 공격의 타격 순간에 모습을 드러내며 전투를 시작합니다.
@@ -160,12 +236,68 @@ public sealed class BossEncounterController : MonoBehaviour
     private void OnBossDied()
     {
         if (Phase != EncounterPhase.BossFight) return;
-        Phase = EncounterPhase.AfterBoss;
         HideBossHealthBar();
-        if (spawnDirector != null) { spawnDirector.ClearPauseBoundary(); spawnDirector.SetPaused(false); }
+        if (bossHealth != null)
+        {
+            bossHealth.Died -= OnBossDied;
+            if (schedule != null) bossHealth.SetHealthSlider(null);
+        }
+        if (schedule != null)
+        {
+            bossHealth = null;
+            encounterBoss = null;
+            spawnedBoss = null;
+            nextRound++;
+        }
+        Phase = schedule != null && HasNextRound ? EncounterPhase.TimedCombat : EncounterPhase.AfterBoss;
+        ArmNextBoundary();
+        ResumeCombat();
+        TryBeginDueRound();
+        RefreshDisplay(true);
+    }
+
+    private bool PrepareScheduledBoss()
+    {
+        var entry = rounds[nextRound];
+        if (!BossEncounterSchedule.IsSupportedBoss(entry.BossPrefab))
+        {
+            Debug.LogError($"BossEncounter: {entry.AppearTime}초 보스 프리팹을 사용할 수 없어 건너뜁니다.", this);
+            return false;
+        }
+        Transform target = bossTarget != null ? bossTarget : boss != null ? boss.Target : null;
+        if (target == null)
+            foreach (var behaviour in FindObjectsByType<MonoBehaviour>())
+                if (behaviour is IContactDamageReceiver && behaviour.gameObject.scene == gameObject.scene)
+                { target = behaviour.transform; break; }
+        if (target == null)
+        {
+            Debug.LogError($"BossEncounter: {entry.AppearTime}초 보스의 Boss Target을 찾을 수 없어 건너뜁니다.", this);
+            return false;
+        }
+
+        // 활성 프리팹도 OnEnable 전에 대상·체력바·등장 대기를 주입합니다.
+        spawnedBoss = Instantiate(entry.BossPrefab, preparationRoot);
+        spawnedBoss.SetActive(false);
+        spawnedBoss.transform.SetParent(transform, true);
+        spawnedBoss.transform.position = (bossSpawnAnchor != null ? bossSpawnAnchor.position : transform.position) + entry.SpawnOffset;
+        encounterBoss = spawnedBoss.transform;
+        bossHealth = spawnedBoss.GetComponent<EnemyHealth>();
+        Slider slider = bossHealthSlider != null ? bossHealthSlider.GetComponentInChildren<Slider>(true) : null;
+        bossHealth.SetHealthSlider(slider);
+        bossHealth.Died += OnBossDied;
+        if (spawnedBoss.TryGetComponent<BossController>(out var beast)) beast.SetTarget(target);
+        if (spawnedBoss.TryGetComponent<HordeLordBoss>(out var horde)) horde.SetTarget(target);
+        if (spawnedBoss.TryGetComponent<ZombieSlimeBoss>(out var slime)) slime.SetTarget(target);
+        return true;
+    }
+
+    private void ResumeCombat()
+    {
+        if (!ownsCombatPause) return;
+        ownsCombatPause = false;
+        if (spawnDirector != null) spawnDirector.SetPaused(false);
         else foreach (var spawner in spawners)
             if (spawner != null) spawner.RestartSpawning();
-        RefreshDisplay(true);
     }
 
     private void RefreshDisplay(bool force = false)
@@ -227,5 +359,16 @@ public sealed class BossEncounterController : MonoBehaviour
             spawnDirector.TimeAdvanced -= HandleTimeAdvanced;
             if (Phase == EncounterPhase.TimedCombat) spawnDirector.ClearPauseBoundary();
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (spawnedBoss != null)
+        {
+            spawnedBoss.SetActive(false);
+            Destroy(spawnedBoss);
+        }
+        if (ownsCombatPause && spawnDirector != null) spawnDirector.ClearPauseBoundary();
+        ResumeCombat();
     }
 }

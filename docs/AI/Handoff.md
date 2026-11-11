@@ -1,5 +1,17 @@
 # 작업 인수인계
 
+## 2026-11-11 보스 6회 일정 구현
+
+- 현재 브랜치 `feature/boss-appear-6-times`, HEAD `28102a9`. 시작 시 코드/씬 변경은 없었고, 앞선 설계 문서와 인수인계 변경을 보존했다. 이번 구현은 미커밋 상태이며 브랜치 전환·커밋·push는 하지 않았다.
+- 사용자 승인 설계: `docs/superpowers/specs/2026-11-11-boss-encounter-schedule-design.md`, 실행 기록: `docs/superpowers/plans/2026-11-11-boss-encounter-schedule.md`, 사용법: `docs/AI/BossEncounterSchedule.md`.
+- `BossEncounterSchedule`에 회차별 등장 시각·보스 프리팹·월드 생성 오프셋을 분리했다. Controller는 기존 Director 단일 시계로 다음 경계를 예약하고, 비활성 상태에서 새 보스의 대상·HP바를 준비한 뒤 등장 연출을 시작한다. 처치 후 다음 회차와 일반 전투를 재개한다. 기존 공개 API/직렬화 필드를 보존했고 Schedule 없는 씬은 기존 단일 등장 경로다. EnemyHealth에 공용 Slider 연결/해제 API, ZombieSlimeBoss에 명시적 SetTarget을 추가했다. Encounter asmdef는 기존 Combat.Runtime을 직접 참조하며 런타임 코드를 다른 asmdef로 옮기지 않았다.
+- MainScene 변경은 Boss Encounter의 schedule/bossTarget 참조 두 줄이다. `Assets/3.Datas/MainBossEncounterSchedule.asset`의 시각은 180/360/540/720/900/1080초이며, 3분에 기존 BeastZombie(오프셋 0,9.26,0)만 연결했다. 나머지 5회차는 사용자 승인대로 미지정이다. 미지정은 경고 후 건너뛰며 다른 보스로 대체하지 않는다. 시각 양수·유한값·오름차순, 프리팹 구성, Director 시간 한도를 검사하며 오류가 시계를 잠그지 않게 했다. 자동 승리·보상·히든 보스는 추가하지 않았다.
+- 실제 Unity 6000.5.0f1 PlayMode: 새 기능 전 **1/17 통과·16 실패**(모두 일정 기능 부재), 구현 후 **17/17**, 확장 후 **22/22**. 독립 코드 리뷰의 여러 회차 경과 후 과거 경계를 예약하는 정지를 새 테스트로 재현(**22/25 통과·3 실패**)하고, 이미 지난 회차를 즉시 순서대로 처리하도록 고쳐 최종 **25/25 통과**, 결과 Passed/프로세스 exit 0. 범위는 서로 다른 프리팹 6회·1080초 경계·타이머 정지/재개·반복 프리팹의 새 체력·누락/오류·활성 프리팹 초기화 순서·3종 대상 연결·공용 HP바·비활성/제거·여러 과거 회차·기존 단일 경로다. 영속 테스트: `Assets/Tests/PlayMode/Encounter/BossEncounterScheduleTests.cs`.
+- 추가 새 실행: `BossEntranceValidation` **6/6**, `PlayerHitFeedbackValidation` **7/7**. 최종 Unity Roslyn으로 Combat.Runtime/Enemy.Runtime/Boss.Runtime/Encounter.Runtime/Assembly-CSharp/Assembly-CSharp-Editor **6개 컴파일 성공**, 기존 경고 3개(CS0252 1, CS0618 2). 변경 diff 공백 검사 및 신규 meta/씬 참조 대조 통과. 프로젝트 전체 Unity 테스트를 실행했다고 주장하지 않는다.
+- 환경: 원본 Unity가 열려 있어 임시 프로젝트에 실제 관련 4개 런타임 소스와 테스트를 복사해 실행했다. 최초 샌드박스 실행은 라이선스 IPC 거부로 테스트를 시작하지 못했으며, 해당 검증 프로세스만 경로/PID 대조 후 종료하고 정상 사용자 권한에서 실행했다. 사용자 에디터·전역 Play From Title 옵션·원본 씬 전체 저장·프리팹·패키지·Project Settings는 건드리지 않았다. 원본 프로젝트 화면, 실제 프리팹별 애니메이션/리소스, 실제 18분 플레이, 카탈로그/번들, Android 빌드/기기는 미검증이다. 임시 결과는 `.utmp/BossSchedule`에 있지만 위 영속 소스·결과 요약이 검증 근거다.
+- 직접 확인: 사용자 씬 변경 보존 → Play 종료/임포트 완료/Console 첫 오류 확인 → `Tools > Play From Title` 해제 → `Assets/9.Scenes/MainScene.unity` 다시 열기 → `Boss Encounter > Boss Encounter Controller > Schedule` 또는 Project의 `MainBossEncounterSchedule.asset` 선택. Entries 0~5의 시각·Boss Prefab·Spawn Offset을 확인하고 미정 회차는 필요 시 직접 지정한다. Play 중 `Enemy Spawn System > EnemySpawnDirector > 테스트/진행시간 30초 앞으로`로 03:00 진입 → 야수 등장/진행 시계·일반 스폰 정지/전투 지속/등장 뒤 HP바 페이드 → 처치 뒤 재개를 확인한다. 기본 설정의 미지정 경고 5개는 예상 결과다. 다른 회차를 지정하면 해당 보스와 HP바, 18:00 마지막 등장까지 확인한다.
+- 이상 시: Console의 회차·시각별 오류, Schedule과 Boss Target/Anchor/HP바 참조, 프리팹 루트 EnemyHealth·지원 보스·야수 패턴 선택기, Director 진행 한도를 확인한다. 다음은 실제 MainScene 화면 회귀 확인과 남은 5회차의 보스/생성 위치 지정이며 순서·수치·승리 조건은 임의 확정하지 않는다.
+
 ## 2026-11-11 main에 3개 브랜치 로컬 병합
 
 - 시작: main `b6a51d8`, 작업 트리 깨끗함. origin fetch 후 main과 origin/main 일치, 첫 두 브랜치의 로컬/원격 끝점도 일치함을 확인했다.

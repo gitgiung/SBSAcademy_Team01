@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85f0e69740c7434a83eeed8f2e755921, type: 3}
+  m_Name: MainBossEncounterSchedule
+  m_EditorClassIdentifier: Encounter.Runtime::BossEncounterSchedule
+  entries:
+  - appearTime: 180
+    bossPrefab: {fileID: 2240792168150154507, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+    spawnOffset: {x: 0, y: 9.26, z: 0}
+  - appearTime: 360
+    bossPrefab: {fileID: 2240792168150154507, guid: 2eea0696d9b2304429073385c23eb457, type: 3}
+    spawnOffset: {x: 0, y: 0, z: 0}
+  - appearTime: 540
+    bossPrefab: {fileID: 2240792168150154507, guid: 67275a63a27563642921516e463baf17, type: 3}
+    spawnOffset: {x: 0, y: 0, z: 0}
+  - appearTime: 720
+    bossPrefab: {fileID: 2240792168150154507, guid: cccc1603132156c4ba93cc76519b8bd1, type: 3}
+    spawnOffset: {x: 0, y: 0, z: 0}
+  - appearTime: 900
+    bossPrefab: {fileID: 2240792168150154507, guid: c7fdbd9d602c4104689c4f7ffb1d7c72, type: 3}
+    spawnOffset: {x: 0, y: 0, z: 0}
+  - appearTime: 1080
+    bossPrefab: {fileID: 2240792168150154507, guid: 85acbc3ec39801b4a992a8d8bd240c25, type: 3}
+    spawnOffset: {x: 0, y: 0, z: 0}

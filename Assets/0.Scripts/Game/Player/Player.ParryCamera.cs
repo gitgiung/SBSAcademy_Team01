@@ -5,7 +5,7 @@ using UnityEngine;
 public sealed partial class Player
 {
     [Header("패링 성공 카메라 줌")]
-    [SerializeField, Range(0f, 0.2f)] private float parryZoomRatio = 0.05f;
+    [SerializeField, Range(0f, 1f)] private float parryZoomRatio = 0.05f;
     [SerializeField, Min(0.01f)] private float parryZoomInDuration = 0.06f;
     [SerializeField, Min(0.01f)] private float parryZoomOutDuration = 0.18f;
     private Coroutine parryZoomRoutine;
@@ -19,7 +19,7 @@ public sealed partial class Player
     private void PlayParryCameraZoom()
     {
         CancelParryCameraZoom();
-        float ratio = Mathf.Clamp(FeedbackValue(parryZoomRatio), 0f, 0.2f);
+        float ratio = Mathf.Clamp(FeedbackValue(parryZoomRatio), 0f, 1f);
         if (ratio <= 0f) return;
         parryZoomCamera = Camera.main;
         if (parryZoomCamera == null) return;

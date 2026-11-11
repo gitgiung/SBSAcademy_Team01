@@ -15,7 +15,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     [SerializeField] private Material rangeMaterial;
     [SerializeField] private Color rangeColor = new Color(1f, 0.35f, 0.08f, 0.4f);
     [SerializeField, Min(0f)] private float dashDisplayDuration = 0.2f;
-    [Header("테스트용 원형 타격 확산")]
+    [Header("원형 패턴")]
     [SerializeField] private Sprite areaBurstSprite;
     [SerializeField] private Color areaBurstColor = Color.red;
     [SerializeField, Min(0.01f)] private float areaBurstDuration = 0.2f;
@@ -28,6 +28,8 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     private SpriteRenderer slashRenderer;
     private SpriteRenderer dashRenderer;
     private SpriteRenderer areaRenderer;
+    private SpriteRenderer areaChargeRenderer;
+    private float areaChargeRadius;
     private SpriteRenderer burstRenderer;
     private Material burstMaterial;
     private float burstTimeRemaining;
@@ -48,8 +50,11 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         slashRenderer = CreateRenderer("Boss Slash Hit VFX", circleSprite);
         dashRenderer = CreateRenderer("Boss Dash Hit VFX", circleSprite);
         areaRenderer = CreateRenderer("Boss Area Hit VFX", circleSprite);
+        areaRenderer.sortingOrder = bossRenderer != null ? bossRenderer.sortingOrder - 2 : -2;
+        areaChargeRenderer = CreateRenderer("Boss Area Charge VFX", circleSprite);
+        areaChargeRenderer.sortingOrder = areaRenderer.sortingOrder + 1;
         burstRenderer = CreateRenderer("Boss Area Burst Test VFX", areaBurstSprite);
-        burstRenderer.sortingOrder = bossRenderer != null ? bossRenderer.sortingOrder + 1 : 1;
+        burstRenderer.sortingOrder = bossRenderer != null ? bossRenderer.sortingOrder - 1 : -1;
         Shader burstShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
         if (burstShader == null) burstShader = Shader.Find("Sprites/Default");
         if (burstShader != null)
@@ -89,11 +94,22 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         areaRenderer.transform.localPosition = Vector3.zero;
         Place(areaRenderer, transform.position, Vector2.right, radius, 360f, rangeColor.a);
         areaRenderer.enabled = true;
+        areaChargeRadius = radius;
+        SetAreaChargeProgress(0f);
+    }
+
+    public void SetAreaChargeProgress(float progress)
+    {
+        if (areaChargeRenderer == null) return;
+        float fill = Mathf.Clamp01(progress);
+        areaChargeRenderer.enabled = fill > 0f;
+        Place(areaChargeRenderer, transform.position, Vector2.right, areaChargeRadius * fill, 360f, rangeColor.a);
     }
 
     public void HideArea()
     {
         if (areaRenderer != null) areaRenderer.enabled = false;
+        if (areaChargeRenderer != null) areaChargeRenderer.enabled = false;
     }
 
     public void ShowAreaBurst(float radius)

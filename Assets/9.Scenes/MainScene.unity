@@ -1822,7 +1822,7 @@ MonoBehaviour:
   expSlider: {fileID: 1801941379}
   inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   lightAttackButton: {fileID: 1415531113}
-  shieldButton: {fileID: 0}
+  shieldButton: {fileID: 1724077529}
   lightAttackProjectile: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
   passiveProjectiles:
   - Key: FlameBullet

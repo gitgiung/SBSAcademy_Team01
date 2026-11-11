@@ -55,6 +55,12 @@ public readonly struct LightSkillCast
     public bool StraightRapidFire => Id == 10013;
     /// <summary>화염구·작열 구체는 맞으면 터집니다. 표에 반경이 없어 가로 폭의 두 배를 임시 반경으로 씁니다.</summary>
     public bool ExplodesOnHit => Id == 10004 || Id == 10015;
+    /// <summary>작열 구체는 원 대신 불줄기가 사방으로 갈라집니다. 가닥 수는 6~8입니다.</summary>
+    public bool ForksOnHit => Id == 10015;
+    /// <summary>절멸의 불은 전방 직선을 가르는 균열에 불이 차오르는 그림(pixelfx sundering-fire)을 씁니다. 대지 파편은 없습니다.</summary>
+    public bool SunderingFire => Id == 10017;
+    /// <summary>화염 고리는 바닥 고리 대신 플레이어 둘레를 도는 불 회오리 그림(pixelfx flame-whirl)을 씁니다. 피해 판정은 기존 고리 그대로입니다.</summary>
+    public bool FlameWhirl => Id == 10014;
     public float SplashRadius => Mathf.Max(0f, Width) * 2f;
 
     public LightSkillCast Presented()

@@ -37,6 +37,50 @@ public static class LightSkillVisuals
         return frames;
     }
 
+    /// <summary>pixelfx로 구워 둔 작열 구체 비행 그림(plasma-shot)입니다.</summary>
+    public const string BlazeOrbPrefix = "PlasmaOrb_";
+    /// <summary>pixelfx로 구워 둔 작열 구체 불줄기 한 가닥(blaze-fork)입니다. 오른쪽을 향하고 피벗이 뿌리입니다.</summary>
+    public const string BlazeForkPrefix = "BlazeFork_";
+    /// <summary>불줄기 그림에서 뿌리부터 끝까지의 픽셀 길이입니다. 굽기 옵션 reach와 같아야 합니다.</summary>
+    public const float BlazeForkReachPixels = 88f;
+    /// <summary>pixelfx로 구워 둔 절멸의 불 균열(sundering-fire)입니다. 오른쪽을 향하고 피벗이 뿌리입니다.</summary>
+    public const string SunderFirePrefix = "SunderFire_";
+    /// <summary>균열 그림에서 뿌리부터 끝까지의 픽셀 길이입니다. 굽기 옵션 reach와 같아야 합니다.</summary>
+    public const float SunderFireReachPixels = 256f;
+    /// <summary>pixelfx로 구워 둔 화염 회오리(flame-whirl)입니다. 피벗이 바닥 고리의 가운데입니다.</summary>
+    public const string FlameWhirlPrefix = "FlameWhirl_";
+    /// <summary>회오리 그림에서 가운데부터 바깥 불 벽까지의 가로 픽셀 길이입니다. 굽기 옵션 reach와 같아야 합니다.</summary>
+    public const float FlameWhirlReachPixels = 80f;
+    public const float BlazeFrameDuration = 1f / 30f;
+
+    private static Sprite[] blazeSprites;
+    private static readonly Dictionary<string, Sprite[]> BlazeClips = new Dictionary<string, Sprite[]>();
+    private static Material blazeMaterial;
+
+    /// <summary>구워 둔 프레임을 이름순으로 돌려줍니다. 없으면 빈 배열이라 호출 쪽이 예전 그림으로 대신합니다.</summary>
+    public static Sprite[] BlazeFrames(string prefix)
+    {
+        if (BlazeClips.TryGetValue(prefix, out Sprite[] cached) && cached != null && cached.Length > 0
+            && cached[0] != null) return cached;
+        if (blazeSprites == null || blazeSprites.Length == 0 || blazeSprites[0] == null)
+            blazeSprites = Resources.LoadAll<Sprite>("LightSkills/Blaze");
+        var list = new List<Sprite>();
+        foreach (Sprite sprite in blazeSprites)
+            if (sprite != null && sprite.name.StartsWith(prefix)) list.Add(sprite);
+        list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+        Sprite[] frames = list.ToArray();
+        BlazeClips[prefix] = frames;
+        return frames;
+    }
+
+    /// <summary>구운 그림의 색을 그대로 보여 주는 재질입니다. 속성 색조 이동을 적용하지 않습니다.</summary>
+    public static Material BlazeMaterial()
+    {
+        if (blazeMaterial != null) return blazeMaterial;
+        blazeMaterial = new Material(Shader.Find("Sprites/Default")) { name = "LightSkill Blaze" };
+        return blazeMaterial;
+    }
+
     public static Material MaterialFor(string element, LightSkillShape shape)
     {
         bool fireArt = shape == LightSkillShape.Projectile || shape == LightSkillShape.Circle || shape == LightSkillShape.Ring;

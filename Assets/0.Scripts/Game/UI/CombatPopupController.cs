@@ -195,17 +195,22 @@ public sealed class CombatPopupController : MonoBehaviour
         levelUpPanel.SetChoices(choices, index =>
         {
             // 열려 있는 동안 보유 상태가 바뀌어도 성공한 획득만 완료합니다.
-            if (index < 0 || index >= skills.Count || !CanShow()) return;
-            CombatSkillRecord selected = skills[index];
-            bool isTactical = selected.Id >= 30000 && selected.Id < 40000;
-            bool alreadyOwned = isTactical ? OwnsTactical(loadout, selected.Id)
-                : loadout.GetAttackSkillStack(selected.Id) > 0;
-            if (LevelUpSkillReward.TryAcquire(loadout, selected)) CompleteLevelUp();
-            else if (!alreadyOwned && isTactical && !loadout.HasFreeTacticalSlot) ShowAttackSlotsFull();
-            else if (!alreadyOwned && !isTactical && !loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
-            else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록하거나 강화할 수 없습니다.", CompleteLevelUp);
+            if (index < 0 || index >= skills.Count) return;
+            ApplyLevelUpSelection(skills[index], loadout);
         });
         return true;
+    }
+
+    private void ApplyLevelUpSelection(CombatSkillRecord selected, PlayerLoadout loadout)
+    {
+        if (selected == null || loadout == null || !CanShow()) return;
+        bool isTactical = selected.Id >= 30000 && selected.Id < 40000;
+        bool alreadyOwned = isTactical ? OwnsTactical(loadout, selected.Id)
+            : loadout.GetAttackSkillStack(selected.Id) > 0;
+        if (LevelUpSkillReward.TryAcquire(loadout, selected)) CompleteLevelUp();
+        else if (!alreadyOwned && isTactical && !loadout.HasFreeTacticalSlot) ShowAttackSlotsFull();
+        else if (!alreadyOwned && !isTactical && !loadout.HasFreeAttackSlot) ShowAttackSlotsFull();
+        else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록하거나 강화할 수 없습니다.", CompleteLevelUp);
     }
 
     private List<CombatSkillRecord> DrawLevelUpMix(CombatSkillTableFile table, int count,
@@ -460,6 +465,59 @@ public sealed class CombatPopupController : MonoBehaviour
     private void PreviewLevelUp()
     {
         if (Application.isPlaying) ShowLevelUp();
+    }
+
+    [ContextMenu("테스트/원하는 카드 고르기")]
+    private void OpenChosenSkillPicker()
+    {
+        CombatSkillCardPicker.Open(this);
+    }
+
+    /// <summary>테스트용. 지정한 스킬 한 장만 레벨업 카드로 열고, 고르면 기존 획득 경로로 등록합니다.</summary>
+    public void ShowChosenSkillCard(int skillId)
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("지정 카드는 Play 중에만 열 수 있습니다.", this);
+            return;
+        }
+        if (!CanShow() || levelUpPopup == null)
+        {
+            Debug.LogWarning("지정 카드는 전투 진행 중에만 열 수 있습니다.", this);
+            return;
+        }
+        if (automaticLevelUp || completionPending)
+        {
+            Debug.LogWarning("자동 레벨업이 진행 중이면 지정 카드를 열 수 없습니다. 레벨업을 마친 뒤 다시 고르세요.", this);
+            return;
+        }
+        if (!CombatSkillTable.TryGet(skillId, out CombatSkillRecord skill) || skill == null)
+        {
+            Debug.LogError($"스킬 {skillId}를 전투 표에서 찾지 못했습니다.", this);
+            return;
+        }
+        ResolveStatusPlayer();
+        if (statusPlayer == null || statusPlayer.data == null)
+        {
+            Debug.LogError("레벨업 스킬을 등록할 Player/PlayerData가 없습니다.", this);
+            return;
+        }
+        EnsureLevelUpPanel();
+        if (levelUpPanel == null)
+        {
+            Debug.LogError("레벨업 카드 패널을 만들 수 없습니다.", this);
+            return;
+        }
+        PlayerLoadout loadout = statusPlayer.data.Loadout;
+        CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
+        levelUpPanel.SetChoices(
+            new List<LevelUpCardData> { CreateSkillCard(skill, table.rarities, loadout) },
+            index =>
+            {
+                if (index != 0) return;
+                ApplyLevelUpSelection(skill, loadout);
+            });
+        OpenLevelUpPanel();
     }
 
     [ContextMenu("테스트/카드 소진 안내")]

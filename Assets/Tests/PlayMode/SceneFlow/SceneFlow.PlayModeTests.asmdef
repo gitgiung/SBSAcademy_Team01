@@ -1,5 +1,5 @@
 {
   "name": "SceneFlow.PlayModeTests",
-  "references": ["UnityEngine.UI", "Unity.TextMeshPro"],
+  "references": ["UnityEngine.UI", "Unity.TextMeshPro", "Unity.InputSystem"],
   "optionalUnityReferences": ["TestAssemblies"]
 }

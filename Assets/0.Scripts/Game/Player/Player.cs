@@ -146,6 +146,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
                 if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);
         lightSkill = new PlayerLightSkill(this, data, view);
         InitializeHeavyCharge();
+        InitializeGuardInput();
         if (lightAttackButton != null)
             Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
         BindTacticalButton();
@@ -163,7 +164,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void Update()
     {
-        if (Time.timeScale <= 0f) { CancelReleasedHeavyKey(); return; }
+        if (Time.timeScale <= 0f) { CancelReleasedHeavyKey(); ReleaseTouchGuard(); return; }
         if (hasDied || data.IsDead) return;
         data.TickShield(Time.deltaTime);
         data.TickHealOverTime(Time.deltaTime);
@@ -409,6 +410,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (!movement.TryBeginDash(direction, dashDuration, dashSpeedMultiplier, dashCooldown)) return false;
             started = true;
             ResetHeavyCharge();
+            guardInput?.Release();
             defense.CancelForDash();
             joystickController?.StopMovement();
             StartCoroutine(movement.DashRoutine());
@@ -426,7 +428,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
         ResetHeavyCharge();
-        StartCoroutine(defense.GuardParryProcess(() => parryInput != null && parryInput.IsPressed()));
+        StartCoroutine(defense.GuardParryProcess(IsGuardHeld));
         return true;
     }
 
@@ -495,6 +497,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         CancelParryFeedback();
         CancelParryCameraZoom();
         StopAllCoroutines();
+        guardInput?.Release();
         Array.Clear(ownedPassiveIds, 0, ownedPassiveIds.Length);
         Array.Clear(ownedPassiveTimers, 0, ownedPassiveTimers.Length);
         lightSkill?.Cancel();

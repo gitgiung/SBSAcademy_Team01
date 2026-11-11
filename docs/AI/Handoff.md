@@ -1,5 +1,29 @@
 # 작업 인수인계
 
+## 2026-11-11 Android 호환 수정 및 종료 인수인계
+
+- 사용자 요청: Android 점검 문제 수정에 이어 컴퓨터 종료 전 진행 사항 정리·커밋·push. 기준 브랜치 `feature/boss-appear-6-times`, 시작 HEAD `fe3b0cf`. 시작 시 Handoff의 앞선 점검 변경만 있었고 보존했다. 브랜치 전환·사용자 Unity 재실행·원본 씬 자동 저장은 하지 않았다.
+- 완료: MainScene Guard 버튼을 새 PlayerGuardButton에 연결했다. 기존 Player.TryParry/PlayerDefense를 재사용해 터치 누름→패링→홀드 가드→소유 손가락 해제로 동작한다. 다른 손가락 해제·정지 중 눌림 예약을 방지하고, 버튼 비활성화·팝업 정지·앱 포커스 손실·앱 일시정지·Player 비활성화·대시 때 터치 방어를 정리한다. 기존 키보드/게임패드 경로·전투 수치 유지.
+- 완료: Active Input Handling을 New(`1`)로 변경하고 BaseScene의 EventSystem 자동 생성도 InputSystemUIInputModule로 맞췄다. 기존 빌드 씬의 UI 입력 모듈은 이미 New였다. MainScene MobileUI/Canvas를 1920×1080·Scale With Screen Size·Expand로 맞추고 CanvasSafeArea를 연결했다. 안전 영역에 기존 자식 앵커를 매핑하며 화면 변경 때 재계산하고 전체 화면 stretch 배경은 유지한다. 계층·기존 버튼/슬라이더·프리팹 GUID는 보존했다. 실제 Android 컷아웃 화면은 미검증이다.
+- 예방 수정/앞선 판단 정정: MissingScriptsRemover의 using UnityEditor를 UNITY_EDITOR로 보호했다. 수정 전 직접 컴파일도 통과하여 기존 using이 실제 빌드를 막는다고 재현하지 못했다. 앞선 점검의 확정적인 빌드 위험 설명은 이 결과로 제한한다. 예방 정리이며 실제 APK 빌드 성공을 뜻하지 않는다.
+- 성능 판단 정정: MainScene은 `Enemy Spawn System` 프리팹을 참조하고 그 안의 Director.poolProvider는 SceneEnemyPool이다. 일반 적/XP는 이미 Managers.Pool 경로를 사용한다. 기존 단독 스포너·드롭의 Instantiate fallback을 무작정 교체하지 않았다. OverlapCircleAll의 배열 할당 및 실제 Android CPU/GPU/GC·발열은 여전히 측정 대상이며 성능 개선 완료라고 주장하지 않는다.
+- 새 검증: Unity 6000.5.0f1 격리 PlayMode `MobileReadinessTests` **수정 전 0/8 통과·8 실패 → 수정 후 8/8 통과**, 실패/생략 0. 터치 패링/홀드/소유 포인터 해제·빠른 해제·정지 중 입력·포커스 손실·버튼 비활성화·팝업 정지 후 복귀·안전 영역 반복 변경 및 전체 화면 배경·New EventSystem 자동 생성/중복 방지를 다룬다. 영속 소스 `Assets/Tests/PlayMode/SceneFlow/MobileReadinessTests.cs`, 실행 도구 `tools/AndroidReadinessValidation/RunUnity.ps1`. 프로젝트 전체 테스트를 실행한 것은 아니다.
+- 새 컴파일: `tools/AndroidReadinessValidation/RunCompile.ps1`로 플러그인 1개(UNITY_EDITOR 제외 조건) 및 Combat.Runtime/Enemy.Runtime/Boss.Runtime/Encounter.Runtime/Assembly-CSharp/Assembly-CSharp-Editor 6개 컴파일 통과. 기존 경고 3개(CS0252 1, CS0618 2). 캐시 응답을 활용한 직접 C# 컴파일이며 Gradle/IL2CPP 전체 Android 빌드와 구분한다. diff 공백 검사 통과.
+- 검증 환경: 원본과 별개인 짧은 임시 프로젝트에서 실제 런타임 소스·기존 데이터 JSON·로컬 패키지 캐시를 사용했다. 샌드박스의 라이선스 IPC 초기화 정체로 임시 검증 PID만 경로 대조 후 종료하고 정상 사용자 권한에서 실행했다. 첫 검증의 필수 데이터/패키지 누락과 새 partial 스크립트 meta GUID 길이 오류를 보완한 뒤 위 최종 결과를 얻었다. 원본 Unity·전역 Play From Title은 변경하지 않았다. 임시 결과 XML은 `%TEMP%/sbs-android-readiness/green-fixed-meta.xml`이며 영속 근거는 위 테스트 소스와 결과 요약이다.
+- 중단 지점/다음 우선순위: 사용자가 종료를 요청해 추가 변경·Android 빌드 시작은 멈췄다. 수정 내용은 구현 및 위 회귀 검증까지이며, 실제 MainScene 화면 회귀·Android APK/AAB 전체 빌드·기기 설치·카탈로그/번들·멀티터치·CPU/GPU/GC·발열 검증은 남아 있다. 다음 세션에서 이미 완료된 보스 일정 작업이나 터치 연결을 처음부터 반복하지 않는다.
+- 직접 확인 순서: Unity 재시작(입력 백엔드 변경 반영) → Console 첫 오류 확인 → `Tools > Play From Title` 해제 → `Assets/9.Scenes/MainScene.unity` Play → Guard를 짧게 누르면 패링, 유지하면 가드, 떼면 종료 확인. 조이스틱 유지 중 다른 손가락으로 약/강공격·Sprint·Skill을 확인하고 팝업/홈 이동 후 복귀에서 가드가 고착되지 않아야 한다. MobileUI/Canvas의 CanvasSafeArea 활성과 CanvasScaler를 확인한 뒤 Game 뷰 16:9·20:9·다른 해상도 및 Device Simulator 컷아웃을 확인한다. 정상은 HUD/버튼이 화면 안전 영역 안에 있고 결과 배경은 전체 화면을 덮는 것이다. 이어 `File > Build Profiles > Android > Development Build > Build And Run`으로 실제 기기 확인. 오류 시 Console 첫 오류/Guard 참조/InputSystemUIInputModule, 기기의 Android Logcat 첫 예외, 화면 크기/Screen.safeArea, Profiler CPU/GPU/GC Alloc부터 확인한다.
+
+## 2026-11-11 Android 빌드 위험 정적 점검
+
+- 기준: `feature/boss-appear-6-times`, HEAD `a89c09e`, Unity `6000.5.0f1`. 시작 시 `docs/AI/Handoff.md`에 기존 변경이 있었으며 보존했다. 코드·씬·프리팹·설정은 수정하지 않았다.
+- 우선순위 1(높음, 코드 확인/빌드 재현 전): `Assets/Plugins/AllIn1SpriteShader/Demo/Scripts/MissingScriptsRemover.cs:1`의 `using UnityEditor;`가 조건부 컴파일 밖에 있다. 상위 AllIn1SpriteShaderAssembly.asmdef는 플랫폼 제한이 없어 플레이어 빌드 컴파일 오류가 예상된다. 메서드 내부의 UNITY_EDITOR만으로 using은 제외되지 않는다. Android 전용 문제가 아니라 플레이어 빌드 공통 위험이다.
+- 우선순위 2(높음, 연결 부재 확인): MainScene Guard 버튼에 패링 호출이 없고 런타임 버튼 연결에서도 패링 경로가 없다. Player/Parry 바인딩은 키보드 E·게임패드 buttonNorth뿐이다. Player.TryParry의 가드 유지 판정도 InputAction.IsPressed에 의존하므로 터치 누름/해제 연결을 함께 다뤄야 한다. 이동·약/강공격·전략 버튼 경로는 이미 존재하므로 모바일 입력 전체를 미구현으로 취급하지 않는다.
+- 우선순위 3(설정 확인, 기기 영향 미검증): ProjectSettings의 activeInputHandler=2(Both). Unity 공식 Android 안내/이슈에서 지원 제한과 입력·성능 위험이 확인된다. New 전환 전 UI 입력 모듈·플러그인 의존성을 확인해야 한다.
+- 우선순위 4(중간, 화면 영향 미검증): MainScene MobileUI 및 Canvas의 CanvasScaler가 Constant Pixel Size/Scale Factor 1이며 자체 코드에 Screen.safeArea 대응이 없다. 고해상도·화면비·컷아웃 기기에서 버튼 크기와 배치를 확인해야 한다.
+- 성능 후보(미측정): EnemySpawner의 Instantiate, EnemyHealth의 경험치 오브젝트 Instantiate, PlayerCombat/LightSkillFx의 OverlapCircleAll 결과 배열 할당이 있다. 다수 적/투사체에서 GC·프레임 저하를 측정할 필요가 있으나 성능 장애로 단정하지 않는다. LightSkillGlow는 Resources 머티리얼과 GLOW_ON/HSV_ON 키워드가 있어 이름 검색만을 근거로 셰이더 누락이라고 판단하지 않았다.
+- 긍정/호환 범위: Android IL2CPP·ARM64, 최소 API 26, Title/Load/Main/Lobby 씬 등록 및 Android 프로필 확인. ARM32·API 25 이하 단말은 현재 설정의 지원 대상 밖이다. SDK/NDK/JDK 설치·Gradle·IL2CPP 실제 컴파일·카탈로그/번들·서명·설치·기기 성능은 확인하지 않았다. 이번 컴파일/자동 테스트/Android 빌드/기기 실행은 모두 0회다.
+- 다음 순서/직접 확인: 위 빌드 컴파일 위험 정리 → File > Build Profiles > Android에서 Development Build로 Build And Run → TitleScene에서 게임 시작 → MainScene에서 조이스틱을 유지하며 약/강공격·Sprint·Skill·Guard 동시 조작 → 레벨업/일시정지·홈 이동 후 복귀·보스전 확인. 정상은 입력 누락 없이 의도한 행동과 HP/MP/UI가 유지되는 것. Guard 터치 경로는 현재 미연결 상태이므로 연결 후 검증한다. 실패 시 Console/Editor.log의 첫 컴파일 오류, 기기 Android Logcat의 첫 예외, Guard 이벤트·입력 모듈, CanvasScaler/안전 영역, Profiler의 GC Alloc/CPU/GPU를 확인한다. 사용자 요청 시 최소 수정 후 실제 Android 빌드·기기 검증으로 이어간다.
+
 ## 2026-11-11 사용자 MainScene 확인 완료 및 현재 상태 정정
 
 - 실제 Git 상태: `feature/boss-appear-6-times`, HEAD `a89c09e` (`보스 3분마다 등장, 3분마다 몬스터와 보스 강해짐`). 이번 기록 시작 시 작업 트리는 깨끗했다. 아래 구현 당시의 미커밋·HEAD 기록은 과거 상태다.

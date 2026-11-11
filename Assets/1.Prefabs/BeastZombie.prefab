@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: 5106729134211795001}
   - component: {fileID: 7341209856123456701}
   - component: {fileID: 7377102466147333052}
+  - component: {fileID: 8918602491005035297}
   m_Layer: 0
   m_Name: BeastZombie
   m_TagString: Enemy
@@ -27,6 +28,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &8918602491005035297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240792168150154507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 896bec55ba0449f099173613cc04aa01, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BossHealthGaugePreview
+  bossHpSpeed: 0.2
+  bossHpDamageMaterial: {fileID: 2100000, guid: 5b910db7a94b48299e3bc64527d28c5e, type: 2}
 --- !u!4 &2801471059774490790
 Transform:
   m_ObjectHideFlags: 0
@@ -230,7 +245,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Enemy.Runtime::EnemyHealth
   maxHealth: 1000
   hitFlashDuration: 0.1
-  hitColor: {r: 1, g: 0.03915451, b: 0, a: 1}
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
   healthSlider: {fileID: 0}
   experiencePickupPrefab: {fileID: 0}
 --- !u!114 &2381133541093242586
@@ -260,8 +275,9 @@ MonoBehaviour:
   target: {fileID: 0}
   patternSelector: {fileID: 2381133541093242586}
   animator: {fileID: 7377102466147333052}
+  phaseTwoOutlineMaterial: {fileID: 2100000, guid: b7039fb1f46344008cdfdbe72dd42c33, type: 2}
   closeRange: 4
-  specialPatternDistance: 14.01
+  specialPatternDistance: 15
   pattern1ToPattern2Delay: 1
   pattern2ToPattern1Delay: 2
   doubleSlashInterval: 0.5

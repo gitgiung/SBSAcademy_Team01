@@ -15,6 +15,7 @@ internal sealed class PlayerView
     private readonly PlayerData data;
     private readonly Animator animator;
     private readonly PlayerDefenseVfx defenseVfx;
+    private readonly Player player;
     private readonly Transform owner;
     private readonly SpriteRenderer playerRenderer;
     private LineRenderer heavyChargeIndicator;
@@ -40,6 +41,7 @@ internal sealed class PlayerView
 
     public PlayerView(Transform player, SpriteRenderer spriteRenderer, Slider healthSlider, PlayerData data, Animator animator)
     {
+        this.player = player.GetComponent<Player>();
         owner = player;
         playerRenderer = spriteRenderer;
         this.healthSlider = healthSlider;
@@ -122,7 +124,8 @@ internal sealed class PlayerView
             animator.SetTrigger(ParryParameter);
     }
 
-    public void PlayParryVfx() => defenseVfx.PlayParry();
+    public void PlayParryVfx() =>
+        defenseVfx.PlayParry(player != null ? player.ParryVfxScale : Player.DefaultParryVfxScale);
 
     public void SetGuardAnimation(bool isGuarding)
     {

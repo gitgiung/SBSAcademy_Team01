@@ -11,6 +11,8 @@ using UnityEngine.UI;
 /// </summary>
 public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 {
+    internal const float DefaultParryVfxScale = 1.75f;
+
     [Header("플레이어 데이터 및 기본 설정")]
     public PlayerData data;
     public GameObject bulletPrefab;
@@ -32,6 +34,11 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField] private SpriteRenderer playerSpriteRenderer;
     [SerializeField] private Animator playerAnimator;
 
+    [Header("패링 이펙트 설정")]
+    [InspectorName("패링 이펙트 크기"), SerializeField, Min(0.01f)]
+    [Tooltip("패링 성공 섬광의 크기입니다. 기본값은 1.75입니다.")]
+    private float parryVfxScale = DefaultParryVfxScale;
+
     [Header("패링 타이밍 설정 (초 단위)")]
     [SerializeField] private float parryStartup = 0.033f;
     [SerializeField] private float parryActive = 0.133f;
@@ -47,7 +54,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField, Range(0f, 1f)] private float parrySpeedRatio = 0.8f;
 
     [Header("대쉬 설정")]
-    [SerializeField, Min(1f)] private float dashSpeedMultiplier = 3f;
+    [SerializeField, Min(1f)] private float dashSpeedMultiplier = 5f;
     [SerializeField, Min(0.01f)] private float dashDuration = 0.15f;
     [SerializeField, Min(0f)] private float dashCooldown = 3f;
 
@@ -81,6 +88,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private int lifecycleVersion;
 
     public bool IsDashing => movement != null && movement.IsDashing;
+    internal float ParryVfxScale => Mathf.Max(0.01f, parryVfxScale);
     public float DashCooldownRemaining => movement != null ? movement.DashCooldownRemaining : 0f;
     public float DashCooldownProgress => movement != null ? movement.DashCooldownProgress : 1f;
 
@@ -135,6 +143,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
         view = new PlayerView(transform, playerSpriteRenderer, healthSlider, data, playerAnimator);
         view.BindResourceSliders(mpSlider, expSlider);
+        GetComponent<ResourceGaugePreview>()?.Bind(data, healthSlider, mpSlider, expSlider);
         defense = new PlayerDefense(view, parryStartup, parryActive, parryRecovery,
             guardTransitionTime, maxGuardDuration, normalGuardCooldown, breakGuardCooldown);
         defense.ParrySucceeded += HandleParrySucceeded;
@@ -239,7 +248,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (shieldButton == null)
         {
-            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include);
             for (int i = 0; i < buttons.Length; i++)
             {
                 if (buttons[i] != null && buttons[i].gameObject.scene == gameObject.scene && buttons[i].name == "Skill")

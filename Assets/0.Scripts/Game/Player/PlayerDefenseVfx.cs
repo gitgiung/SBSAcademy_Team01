@@ -20,7 +20,6 @@ internal sealed class PlayerDefenseVfx : MonoBehaviour
     private bool playingParry;
     private const float GuardFrameDuration = 0.06f;
     private const float ParryFrameDuration = 1f / 30f;
-    private const float ParryScale = 1.75f;
     private const float GuardScale = 1.875f;
     private const float ParryPixelsPerUnit = 100f;
     private const float ParryClashHeight = 30f;
@@ -30,7 +29,6 @@ internal sealed class PlayerDefenseVfx : MonoBehaviour
         // VFX 자식과 프레임 준비
         var child = new GameObject("Defense VFX");
         child.transform.SetParent(player, false);
-        child.transform.localScale = Vector3.one * ParryScale;
         spriteRenderer = child.AddComponent<SpriteRenderer>();
         this.playerRenderer = playerRenderer;
         if (playerRenderer != null) originalPlayerColor = playerRenderer.color;
@@ -44,14 +42,14 @@ internal sealed class PlayerDefenseVfx : MonoBehaviour
         guardFrames = LoadFrames("GuardBarrier_");
     }
 
-    public void PlayParry()
+    public void PlayParry(float scale)
     {
         // 패링 섬광 1회 재생
         if (guardActive || parryFrames.Length == 0) return;
         StopPlayback();
         playingParry = true;
-        spriteRenderer.transform.localScale = Vector3.one * ParryScale;
-        spriteRenderer.transform.localPosition = new Vector3(0f, -ParryClashHeight * ParryScale / ParryPixelsPerUnit, 0f);
+        spriteRenderer.transform.localScale = Vector3.one * scale;
+        spriteRenderer.transform.localPosition = new Vector3(0f, -ParryClashHeight * scale / ParryPixelsPerUnit, 0f);
         spriteRenderer.sortingOrder = playerSortingOrder + 100;
         if (parryMaterial != null) spriteRenderer.sharedMaterial = parryMaterial;
         playback = StartCoroutine(PlayOnce(parryFrames, ParryFrameDuration));

@@ -17,27 +17,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1061523529
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1061523528}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74314f4bfd7745a6b9632af4637de1fa, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::DamageNumberDisplay
-  font: {fileID: 11400000, guid: 42636c5c5498c3c4a8540049d944c907, type: 2}
-  targetCamera: {fileID: 0}
-  enemyColor: {r: 1, g: 0.85, b: 0.2, a: 1}
-  playerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  fontSize: 36
-  lifetime: 0.8
-  riseDistance: 70
-  worldOffset: {x: 0, y: 0.7, z: 0}
-  maxNumbers: 48
 --- !u!4 &1061523530
 Transform:
   m_ObjectHideFlags: 0
@@ -53,3 +32,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1061523529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1061523528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74314f4bfd7745a6b9632af4637de1fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageNumberDisplay
+  font: {fileID: 11400000, guid: 42636c5c5498c3c4a8540049d944c907, type: 2}
+  targetCamera: {fileID: 0}
+  enemyColor: {r: 1, g: 0.85, b: 0.2, a: 1}
+  playerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  fontSize: 42
+  lifetime: 0.8
+  riseDistance: 140
+  worldOffset: {x: 0, y: 0.7, z: 0}
+  maxNumbers: 48

@@ -31661,59 +31661,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1989203161}
   m_CullTransparentMesh: 1
---- !u!1 &2045308043
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2045308045}
-  - component: {fileID: 2045308044}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2045308044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2045308043}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74314f4bfd7745a6b9632af4637de1fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DamageNumberTest
-  font: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  targetCamera: {fileID: 1388604590}
-  enemyColor: {r: 1, g: 0.85, b: 0.2, a: 1}
-  playerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  fontSize: 42
-  lifetime: 0.8
-  riseDistance: 120
-  worldOffset: {x: 0, y: 0.7, z: 0}
-  maxNumbers: 48
---- !u!4 &2045308045
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2045308043}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.8106537, y: 5.273346, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2046483001
 GameObject:
   m_ObjectHideFlags: 0
@@ -32551,4 +32498,3 @@ SceneRoots:
   - {fileID: 1152493170}
   - {fileID: 768851017}
   - {fileID: 447848206}
-  - {fileID: 2045308045}

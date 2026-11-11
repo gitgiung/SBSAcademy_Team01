@@ -9,7 +9,7 @@ public sealed class SoulParryRiposteHint : MonoBehaviour
 
     public static void Show(float seconds = 1.4f)
     {
-        var hint = FindFirstObjectByType<SoulParryRiposteHint>();
+        var hint = FindAnyObjectByType<SoulParryRiposteHint>();
         if (hint == null) return;
         hint.showUntil = Time.unscaledTime + seconds;
     }

@@ -11,8 +11,8 @@ public sealed class SoulArenaDebugOverlay : MonoBehaviour
 
     private void Start()
     {
-        boss = FindFirstObjectByType<SoulBossApproachSlash>();
-        player = FindFirstObjectByType<SoulPipelineAvatar>();
+        boss = FindAnyObjectByType<SoulBossApproachSlash>();
+        player = FindAnyObjectByType<SoulPipelineAvatar>();
         if (boss != null)
             bossHit = boss.GetComponentInChildren<SoulWeaponHitbox3D>(true);
     }
@@ -34,10 +34,10 @@ public sealed class SoulArenaDebugOverlay : MonoBehaviour
             else bossState = "chase/recovery";
         }
 
-        int trash = FindObjectsByType<SoulArenaTrashMob>(FindObjectsSortMode.None).Length;
+        int trash = FindObjectsByType<SoulArenaTrashMob>().Length;
         string armed = bossHit != null && bossHit.IsArmed ? "ARMED" : "safe";
         string text =
-            $"DEBUG F1\nPlayer HP {(player != null ? player.Health : 0):0}\nBoss {bossState} [{armed}]\nTrash active≈{trash}\nGizmo: 공격구/손히트";
+            $"DEBUG F1\nPlayer HP {(player != null ? player.Health : 0):0}\nBoss {bossState} [{armed}]\nTrash active?{trash}\nGizmo: 공격구/손히트";
         GUI.Box(new Rect(14, 90, 340, 110), text);
     }
 

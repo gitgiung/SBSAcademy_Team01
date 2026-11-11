@@ -5,7 +5,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class SoulWeaponHitbox3D : MonoBehaviour
 {
-    private readonly HashSet<int> hitIds = new HashSet<int>();
+    private readonly HashSet<EntityId> hitIds = new HashSet<EntityId>();
     private Collider hitCollider;
     private float damage = 18f;
     private GameObject source;
@@ -57,9 +57,9 @@ public sealed class SoulWeaponHitbox3D : MonoBehaviour
     public void TryHitCollider(Collider other)
     {
         if (!armed || other == null) return;
-        int id = other.attachedRigidbody != null
-            ? other.attachedRigidbody.gameObject.GetInstanceID()
-            : other.gameObject.GetInstanceID();
+        EntityId id = other.attachedRigidbody != null
+            ? other.attachedRigidbody.gameObject.GetEntityId()
+            : other.gameObject.GetEntityId();
         if (!hitIds.Add(id)) return;
 
         var receiver = other.GetComponentInParent<IContactDamageReceiver>();

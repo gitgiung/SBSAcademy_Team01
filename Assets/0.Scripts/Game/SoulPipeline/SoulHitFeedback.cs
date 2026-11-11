@@ -47,8 +47,10 @@ public sealed class SoulHitFeedback : MonoBehaviour
             if (renderers[i] == null) continue;
             var mat = renderers[i].material;
             if (mat == null || !mat.HasProperty("_Color")) continue;
+            // 흰 스프라이트는 흰색으로 섞으면 변화가 없어 붉게 번쩍인다.
+            Color flash = renderers[i] is SpriteRenderer ? new Color(1f, 0.35f, 0.35f) : Color.white;
             mat.color = amount > 0f
-                ? Color.Lerp(baseColors[i], Color.white, amount * 0.7f)
+                ? Color.Lerp(baseColors[i], flash, amount * 0.7f)
                 : baseColors[i];
         }
     }

@@ -8,7 +8,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class MotionBossWeaponHitbox : MonoBehaviour
 {
-    private readonly HashSet<int> hitInstanceIds = new HashSet<int>();
+    private readonly HashSet<EntityId> hitInstanceIds = new HashSet<EntityId>();
     private float damage;
     private GameObject source;
     private Collider2D hitCollider;
@@ -42,9 +42,9 @@ public sealed class MotionBossWeaponHitbox : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!armed || other == null) return;
-        int id = other.attachedRigidbody != null
-            ? other.attachedRigidbody.gameObject.GetInstanceID()
-            : other.gameObject.GetInstanceID();
+        EntityId id = other.attachedRigidbody != null
+            ? other.attachedRigidbody.gameObject.GetEntityId()
+            : other.gameObject.GetEntityId();
         if (!hitInstanceIds.Add(id)) return;
 
         var receiver = other.GetComponentInParent<IContactDamageReceiver>();

@@ -28,6 +28,9 @@ public sealed class SoulPipelineAvatar : MonoBehaviour, IContactDamageReceiver
     public float Health => health;
     public float MaxHealth => maxHealth;
     public bool IsDead => health <= 0f;
+    public bool IsMoving { get; private set; }
+    public float DashSeconds => dashSeconds;
+    public event System.Action LightSwung;
 
     private void Awake()
     {
@@ -63,13 +66,17 @@ public sealed class SoulPipelineAvatar : MonoBehaviour, IContactDamageReceiver
         if (dashCooldownRemaining > 0f) dashCooldownRemaining -= dt;
         if (dashRemaining > 0f) dashRemaining -= dt;
         if (attackLock > 0f) attackLock -= dt;
-        if (IsDead) return;
+        if (IsDead)
+        {
+            IsMoving = false;
+            return;
+        }
 
         if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.JoystickButton3))
         {
             // 보스 윈드업 중 패링 창을 살짝 넓혀 모션 읽기 학습을 돕는다.
             float window = parrySeconds;
-            var boss = FindFirstObjectByType<SoulBossApproachSlash>();
+            var boss = FindAnyObjectByType<SoulBossApproachSlash>();
             if (boss != null && boss.enabled && boss.IsWindup)
                 window = parrySeconds + 0.06f;
             parryRemaining = window;
@@ -84,7 +91,7 @@ public sealed class SoulPipelineAvatar : MonoBehaviour, IContactDamageReceiver
         if (input.sqrMagnitude > 1f) input.Normalize();
 
         // 카메라 yaw에 맞춘 평면 이동(포켓봉크형 뷰).
-        Quaternion yaw = Quaternion.Euler(0f, SoulRenderSpec.CameraYawDegrees, 0f);
+        Quaternion yaw = Quaternion.Euler(0f, SoulCameraRig.ViewYaw, 0f);
         Vector3 world = yaw * input;
         if (world.sqrMagnitude > 0.0001f)
             dashDir = world.normalized;
@@ -111,6 +118,7 @@ public sealed class SoulPipelineAvatar : MonoBehaviour, IContactDamageReceiver
             character.Move(Vector3.zero);
 
         bool moving = world.sqrMagnitude > 0.0001f || dashRemaining > 0f;
+        IsMoving = moving;
         if (animator != null && moving != wasMoving)
         {
             animator.CrossFadeInFixedTime(moving ? walkState : idleState, 0.1f);
@@ -173,13 +181,14 @@ public sealed class SoulPipelineAvatar : MonoBehaviour, IContactDamageReceiver
 
         var arm = GetComponent<SoulFallbackPlayerArm>();
         arm?.Pulse();
+        LightSwung?.Invoke();
     }
 
     private void FaceNearestHostile()
     {
         float best = 4.5f * 4.5f;
         Transform nearest = null;
-        var healths = FindObjectsByType<SoulArenaDummyHealth>(FindObjectsSortMode.None);
+        var healths = FindObjectsByType<SoulArenaDummyHealth>();
         for (int i = 0; i < healths.Length; i++)
         {
             SoulArenaDummyHealth h = healths[i];

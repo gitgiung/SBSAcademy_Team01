@@ -14,6 +14,14 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
     [SerializeField] private SoulBossApproachSlash boss;
     [SerializeField] private SoulCameraRig cameraRig;
     [SerializeField] private bool buildWorldIfEmpty = true;
+    [Tooltip("MainScene 플레이어 스프라이트·애니메이터를 입힌다. 끄면 3D 마네킹 표시.")]
+    [SerializeField] private bool useMainPlayerSprite = true;
+    [Tooltip("플레이어가 화면 정면을 볼 때 2D 뼈대 리깅(+손 소켓 지팡이)을 쓴다. 나머지 방향·대시·패링은 원본 프레임. 끄면 항상 원본. 플레이 중 F5로도 전환.")]
+    [SerializeField] private bool useBoneRigPlayer = true;
+    [Tooltip("MainScene BeastZombie 스프라이트·애니메이터를 보스에 입힌다. 끄면 3D 마네킹 표시.")]
+    [SerializeField] private bool useMainBossSprite = true;
+    [Tooltip("MainScene 일반 좀비 스프라이트·애니메이터를 잡몹에 입힌다. 끄면 구체 표시.")]
+    [SerializeField] private bool useMainZombieSprite = true;
 
     private GUIStyle hudStyle;
     private bool usingFallback;
@@ -22,7 +30,9 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
     private void Awake()
     {
         Time.timeScale = 1f;
-        if (GetComponent<SoulArena3DScene>() == null && FindFirstObjectByType<SoulArena3DScene>() == null)
+        SoulTrashMobSpriteSkin.UseMainZombieSprite = useMainZombieSprite;
+        if (GetComponent<SoulBoneRigPreview>() == null) gameObject.AddComponent<SoulBoneRigPreview>();
+        if (GetComponent<SoulArena3DScene>() == null && FindAnyObjectByType<SoulArena3DScene>() == null)
             gameObject.AddComponent<SoulArena3DScene>();
         if (GetComponent<SoulArenaWinLoseHud>() == null)
             gameObject.AddComponent<SoulArenaWinLoseHud>();
@@ -91,10 +101,10 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
 
     private void EnsureWorld()
     {
-        if (FindFirstObjectByType<SoulCameraRig>() == null)
+        if (FindAnyObjectByType<SoulCameraRig>() == null)
             EnsureCamera();
 
-        if (FindFirstObjectByType<Light>() == null)
+        if (FindAnyObjectByType<Light>() == null)
         {
             var lightGo = new GameObject("Directional Light");
             var light = lightGo.AddComponent<Light>();
@@ -117,7 +127,7 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
             }
         }
 
-        if (FindFirstObjectByType<SoulPipelineAvatar>() == null)
+        if (FindAnyObjectByType<SoulPipelineAvatar>() == null)
         {
             GameObject playerGo = TryInstantiatePrefab(PlayerPrefabPath, new Vector3(-3f, 0f, 0f));
             if (playerGo == null)
@@ -127,7 +137,7 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
             }
         }
 
-        if (FindFirstObjectByType<SoulBossApproachSlash>() == null)
+        if (FindAnyObjectByType<SoulBossApproachSlash>() == null)
         {
             GameObject bossGo = TryInstantiatePrefab(BossPrefabPath, new Vector3(4.5f, 0f, 0f));
             if (bossGo == null)
@@ -137,7 +147,7 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
             }
         }
 
-        if (FindFirstObjectByType<SoulArenaTrashMob>() == null)
+        if (FindAnyObjectByType<SoulArenaTrashMob>() == null)
         {
             Color green = new Color(0.35f, 0.8f, 0.4f);
             for (int i = 0; i < 6; i++)
@@ -177,9 +187,17 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
 
     private void WireReferences()
     {
-        if (player == null) player = FindFirstObjectByType<SoulPipelineAvatar>();
-        if (boss == null) boss = FindFirstObjectByType<SoulBossApproachSlash>();
-        if (cameraRig == null) cameraRig = FindFirstObjectByType<SoulCameraRig>();
+        if (player == null) player = FindAnyObjectByType<SoulPipelineAvatar>();
+        if (boss == null) boss = FindAnyObjectByType<SoulBossApproachSlash>();
+        if (cameraRig == null) cameraRig = FindAnyObjectByType<SoulCameraRig>();
+        if (player != null && useMainPlayerSprite)
+        {
+            var playerSkin = SoulPlayerSpriteSkin.Apply(player);
+            if (playerSkin != null && useBoneRigPlayer)
+                SoulPlayerBoneRigSkin.Apply(playerSkin);
+        }
+        if (boss != null && useMainBossSprite)
+            SoulBossSpriteSkin.Apply(boss);
 
         if (player != null && cameraRig != null)
         {
@@ -206,8 +224,18 @@ public sealed class SoulArenaBootstrap : MonoBehaviour
         string hp = player != null ? $"{player.Health:0}/{player.MaxHealth:0}" : "-";
         string bossHp = bossHealth != null ? $"{bossHealth.Health:0}/{bossHealth.MaxHealth:0}" : "-";
         string mode = usingFallback ? "폴백3D" : "Humanoid/Prefab";
+        if (player != null && player.GetComponent<SoulPlayerSpriteSkin>() != null)
+            mode += "+메인스프라이트";
+        var rigSkin = player != null ? player.GetComponent<SoulPlayerBoneRigSkin>() : null;
+        if (rigSkin != null)
+            mode += rigSkin.Active ? "+뼈대플레이어" : "+뼈대(대기)";
+        if (boss != null && boss.GetComponent<SoulBossSpriteSkin>() != null)
+            mode += "+보스스프라이트";
+        if (SoulTrashMobSpriteSkin.UseMainZombieSprite)
+            mode += "+좀비스프라이트";
+        mode += SoulCameraRig.DepthView ? " | 3D원근뷰(Z/C·우클릭 회전)" : " | 2D직교뷰";
         GUI.Label(new Rect(14, 10, 980, 24),
-            $"SoulArena [{mode}] | P {hp} | B {bossHp} | WASD Shift E 클릭 Esc R | P일시정지 F1디버그", hudStyle);
+            $"SoulArena [{mode}] | P {hp} | B {bossHp} | WASD Shift E 클릭 Esc R | P일시정지 F1디버그 F2 3D뷰 F3 뼈대시험판 F5 뼈대플레이어", hudStyle);
         GUI.Label(new Rect(14, 32, 980, 24),
             "바닥 경고 없음 · 휠 줌 · 잡몹은 단순 접촉 · 진입: 로비F6 / One-Click", hudStyle);
 

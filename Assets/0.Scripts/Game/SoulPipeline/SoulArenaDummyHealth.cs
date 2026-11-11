@@ -42,7 +42,7 @@ public sealed class SoulArenaDummyHealth : MonoBehaviour, IDamageable
 
     private void ApplyHitKnockback()
     {
-        var avatar = FindFirstObjectByType<SoulPipelineAvatar>();
+        var avatar = FindAnyObjectByType<SoulPipelineAvatar>();
         if (avatar == null) return;
         Vector3 dir = transform.position - avatar.transform.position;
         dir.y = 0f;

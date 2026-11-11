@@ -22,11 +22,11 @@ public sealed class SoulArenaWaveDirector : MonoBehaviour
 
     private void Start()
     {
-        boss = FindFirstObjectByType<SoulBossApproachSlash>();
+        boss = FindAnyObjectByType<SoulBossApproachSlash>();
         if (holdBossUntilPrepEnds && boss != null)
             boss.enabled = false;
         respawnTimer = trashRespawnInterval * 0.5f;
-        SoulArenaKillFeed.Push("이완 시작 — 잡몹 정리 또는 대기");
+        SoulArenaKillFeed.Push("이완 시작 ? 잡몹 정리 또는 대기");
     }
 
     private void Update()
@@ -74,7 +74,7 @@ public sealed class SoulArenaWaveDirector : MonoBehaviour
     private static int CountAliveTrash()
     {
         int count = 0;
-        var trash = FindObjectsByType<SoulArenaTrashMob>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        var trash = FindObjectsByType<SoulArenaTrashMob>(FindObjectsInactive.Exclude);
         for (int i = 0; i < trash.Length; i++)
         {
             if (trash[i] == null) continue;

@@ -5,7 +5,7 @@
 
 ## 한 줄 요약
 
-`SoulArena3D` = 평탄 3D 맵 + URP 3D Renderer + 휴머노이드 본 애니 + **다가오며 슬래시(손 히트박스)**.  
+`SoulArena3D` = 평탄 3D 맵 + URP 3D Renderer + **기울인 직교 탑뷰**(yaw0/pitch55) + 휴머노이드 본 애니 + **다가오며 슬래시(손 히트박스)**.  
 `MainScene` = 당분간 기존 2D/도트·뱀서·성장 UI **유지(레거시 플레이 가능)**. 합류는 아래 단계.
 
 ## Prefab 계약 (휴머노이드=폴백 동일)
@@ -21,7 +21,13 @@
    - `Tools > Soul Pipeline > Play Setup` → Play
    - 타이틀→로비 후 **도감 탭** 또는 **F6**
    - MainScene Play 중 CombatUI ⋮ → `테스트/SoulArena3D 로드`
-4. Prefab 없으면 HUD에 `폴백3D`. 본 애니는 메뉴 1→2→3.
+4. Prefab이 있으면 HUD에 Humanoid/Prefab(손 `hand_r` 히트). 없으면 `폴백3D`. 다시 조립은 메뉴 0 또는 1→2→3.
+5. 플레이어는 MainScene 캐릭터 스프라이트로 보인다(HUD `+메인스프라이트`). 마네킹으로 보려면 씬 `SoulArenaBootstrap`의 `Use Main Player Sprite` 해제.
+6. 보스는 MainScene 야수 좀비 스프라이트(HUD `+보스스프라이트`). 윈드업에 주황 틴트, 타격 프레임 = 손 히트 판정 순간. 마네킹은 `Use Main Boss Sprite` 해제.
+6-1. 잡몹은 MainScene 일반 좀비 스프라이트(HUD `+좀비스프라이트`). 플레이어를 보며 걸어오고 맞으면 빨갛게 번쩍. 구체로 보려면 `Use Main Zombie Sprite` 해제.
+6-2. F3: 2D 뼈대 리깅 시험판(왼쪽 원본 프레임 / 오른쪽 뼈대판), F4로 대기·걷기·공격 전환. 시험용이며 판정과 무관.
+6-3. 본게임: 플레이어가 화면 정면을 볼 때만 뼈대 리깅(+손 소켓 지팡이)으로 표시, 나머지 방향·대시·패링은 원본 프레임. F5로 뼈대/원본 전환, 끄려면 SoulArenaBootstrap의 Use Bone Rig Player.
+7. F2: 원근 3D 확인 뷰(Z/C·우클릭 회전, 휠 거리). 다시 F2로 기본 직교.
 5. 조작: WASD · Shift/Space 대시 · E 패링 · 좌클릭/J 공격 · 휠 줌 · Esc 로비 · R 재시작 · P 일시정지 · F1 디버그  
 6. 흐름: 잡몹 이완(~22초/정리) → 보스 Chase→**Windup(다가오며 올림)**→Attack→Recovery  
 7. 학습 루프: 윈드업에 E 패링 → 보스 리커버리 → 클릭 추가타. HUD 안내는 보조.  

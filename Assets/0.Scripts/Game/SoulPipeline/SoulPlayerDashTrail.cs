@@ -20,6 +20,13 @@ public sealed class SoulPlayerDashTrail : MonoBehaviour
 
     private void SpawnGhost()
     {
+        var skin = GetComponent<SoulPlayerSpriteSkin>();
+        if (skin != null && skin.BodyRenderer != null && skin.BodyRenderer.sprite != null)
+        {
+            SpawnSpriteGhost(skin.BodyRenderer);
+            return;
+        }
+
         var ghost = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         ghost.name = "DashGhost";
         Object.DestroyImmediate(ghost.GetComponent<Collider>());
@@ -29,6 +36,20 @@ public sealed class SoulPlayerDashTrail : MonoBehaviour
         var renderer = ghost.GetComponent<MeshRenderer>();
         var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
         renderer.sharedMaterial = new Material(shader) { color = new Color(0.45f, 0.85f, 1f, 0.35f) };
+        Object.Destroy(ghost, 0.22f);
+    }
+
+    private static void SpawnSpriteGhost(SpriteRenderer source)
+    {
+        var ghost = new GameObject("DashGhost");
+        Transform src = source.transform;
+        ghost.transform.SetPositionAndRotation(src.position, src.rotation);
+        ghost.transform.localScale = src.lossyScale;
+        var renderer = ghost.AddComponent<SpriteRenderer>();
+        renderer.sprite = source.sprite;
+        renderer.sharedMaterial = source.sharedMaterial;
+        renderer.flipX = source.flipX;
+        renderer.color = new Color(0.45f, 0.85f, 1f, 0.45f);
         Object.Destroy(ghost, 0.22f);
     }
 }

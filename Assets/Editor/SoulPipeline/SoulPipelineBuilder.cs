@@ -24,9 +24,22 @@ public static class SoulPipelineBuilder
     {
         ConfigureHumanoidFbx();
         BuildAnimatorsAndPrefabs();
-        BuildArenaScene();
+        BuildArenaScene(askToSave: true);
         EnsureBuildSettingsEntry();
         Debug.Log("[SoulPipeline] One-Click Setup 완료. Play From Title 끄고 Play.");
+    }
+
+    /// <summary>배치/검증용. 저장 확인 창 없이 Prefab·씬을 조립한다.</summary>
+    public static void OneClickSetupBatch()
+    {
+        ConfigureHumanoidFbx();
+        BuildAnimatorsAndPrefabs();
+        BuildArenaScene(askToSave: false);
+        EnsureBuildSettingsEntry();
+        string handPath = DescribeBossHandBinding();
+        Debug.Log("[SoulPipeline] Batch One-Click 완료. " + handPath);
+        if (Application.isBatchMode)
+            EditorApplication.Exit(string.IsNullOrEmpty(handPath) ? 1 : 0);
     }
 
     [MenuItem("Tools/Soul Pipeline/1. Configure Humanoid FBX")]
@@ -109,14 +122,16 @@ public static class SoulPipelineBuilder
     }
 
     [MenuItem("Tools/Soul Pipeline/3. Build Arena Scene (SoulArena3D)")]
-    public static void BuildArenaScene()
+    public static void BuildArenaSceneMenu() => BuildArenaScene(askToSave: true);
+
+    public static void BuildArenaScene(bool askToSave)
     {
         EnsureFolders();
         if (!File.Exists($"{PrefabFolder}/SoulPlayerHumanoid.prefab") ||
             !File.Exists($"{PrefabFolder}/SoulBossHumanoid.prefab"))
             BuildAnimatorsAndPrefabs();
 
-        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        if (askToSave && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             return;
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -366,6 +381,44 @@ public static class SoulPipelineBuilder
         Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
         if (hand != null) return hand;
         hand = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
-        return hand;
+        if (hand != null) return hand;
+
+        // Avatar 매핑 전이거나 본 이름이 다른 FBX용 이름 탐색.
+        string[] names =
+        {
+            "RightHand", "Hand_R", "hand_r", "mixamorig:RightHand",
+            "Right_Hand", "R_Hand", "Wrist_R", "RightLowerArm", "mixamorig:RightForeArm"
+        };
+        Transform[] all = animator.GetComponentsInChildren<Transform>(true);
+        for (int n = 0; n < names.Length; n++)
+        {
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] != null && all[i].name == names[n])
+                    return all[i];
+            }
+        }
+
+        for (int i = 0; i < all.Length; i++)
+        {
+            Transform t = all[i];
+            if (t == null) continue;
+            string lower = t.name.ToLowerInvariant();
+            if (lower.Contains("righthand") || lower.Contains("hand_r") || lower.Contains("right_hand"))
+                return t;
+        }
+
+        return null;
+    }
+
+    private static string DescribeBossHandBinding()
+    {
+        string prefabPath = $"{PrefabFolder}/SoulBossHumanoid.prefab";
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (prefab == null) return null;
+        var hitbox = prefab.GetComponentInChildren<SoulWeaponHitbox3D>(true);
+        if (hitbox == null) return null;
+        bool fallback = hitbox.transform.name.Contains("Fallback");
+        return $"손히트={hitbox.transform.name} fallback={fallback}";
     }
 }

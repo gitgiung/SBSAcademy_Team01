@@ -1,5 +1,81 @@
 # 작업 인수인계
 
+## 2026-11-11 본게임(SoulArena) 플레이어에 뼈대 리깅 연결 — 정면만
+
+- 새 `SoulPlayerBoneRigSkin`(Assets/0.Scripts/Game/SoulPipeline): 플레이어가 화면 정면(아래, 8방향 중 South)을 볼 때만 `SoulPlayerBoneRig`(+손 소켓 지팡이)를 보이고 원본 `SpriteRenderer`를 끈다. 이동·패링·피격·대시 판정은 `SoulPipelineAvatar` 그대로이며 표시만 바꾼다.
+- 동작 매핑: 정지=대기, `IsMoving`=걷기, `LightSwung`=공격(원본 LightAttack 0.75초에 맞춰 재생, `SoulPlayerBoneRig.AttackDuration`). 대시·패링 중, 정면이 아닌 7방향은 원본 프레임 애니메이션(Player 컨트롤러)이 계속 담당한다. 원본 Animator는 숨겨진 채로 계속 돌아 이벤트·대시 잔상이 유지된다.
+- `SoulArenaBootstrap.useBoneRigPlayer`(기본 켬)로 켜고 끈다. 플레이 중 **F5**로 뼈대/원본 전환(비교용). 패링·피격 틴트는 `SoulPlayerParryFlash.Rebind`로 뼈대에도 적용된다. 씬·프리팹·원본 PNG는 수정하지 않았다.
+- 보강: `SoulPlayerBoneRig`에 `AttackDuration`, `BottomBelowRoot`(원본 스프라이트와 같은 바닥에 맞추는 높이) 추가. Rig Prototype Sprite가 비면 경고 후 원본만 쓴다.
+- 걷기 재조정(사용자 피드백 "동작이 어색"): 팔 12°·머리카락 7° 회전으로 머리·머리카락 그림이 찌그러지던 것을, 체중 이동 ±1px·출렁임 1px·발 들기 2px·팔 벌어짐 6°·머리카락 3° 지연 흔들림으로 줄임. 찌그러짐은 사라졌으나 원본 걷기 프레임보다 움직임이 작음(추가 튜닝 여지, 수치 미확정). 비교 캡처 `rig-walk-strip.png`(위=뼈대, 아래=원본, 생성물).
+- 알려진 한계: 정면만 뼈대라 방향이 바뀔 때 뼈대/원본 화풍이 순간 전환된다. 다른 방향·걷기/공격 프레임 대응은 방향별 관절·손 소켓 좌표가 필요(미착수). 공격 판정은 swing 시작 순간이고 지팡이는 약 0.17초에 들었다 휘두르므로 판정 타이밍과 시각 타이밍은 다르다(타이밍 튜닝 미정).
+- 검증(복사본 `C:\sv\soul`): Play 프로브 전체 PASS(새 "본게임 뼈대 플레이어" 14항목: 정면 표시·바닥 정렬·빌보드·대기/걷기/공격 전환·공격 후 복귀·오른쪽/위쪽 원본 복귀·F5 전환·제거 시 복구) + 이벤트 오류 0건. Capture PASS(`rig-ingame.png`, 생성물 `.utmp/PixelLabTrial`). CheckFiles 37/37. **실제 에디터에서 사람이 한 플레이, 기기, Android 빌드는 미검증.**
+- 확인: Tools > Soul Pipeline > Play Setup 후 SoulArena Play. 가만히 있으면(정면) 뼈대 숨쉬기, S키로 아래로 걸으면 걷기, 클릭/J로 공격하면 지팡이가 손을 따라 휘둘러진다. 옆/위로 돌면 원본으로 바뀐다. HUD 상단에 `+뼈대플레이어`(뼈대 보이는 중)/`+뼈대(대기)`가 표시된다. F5로 원본과 비교. 안 보이면 Console 경고와 `SoulArenaSpriteSet.asset`의 Rig Prototype Sprite(`south_01_0`), Bootstrap의 Use Bone Rig Player를 확인.
+
+## 2026-11-11 뼈대 시험판: 스프라이트 지팡이 제거 + HandSocket 픽셀 지팡이
+
+- SoulPlayerBoneRig: 런타임 텍스처 복사본에서 south_01 지팡이 끝(8~13, 45~50 영역, 분홍 몸 픽셀 제외) 36픽셀 제거, ArmL 자식 HandSocket(그립 16,41)에 3픽셀 폭 점 필터 픽셀 지팡이(갈색 자루·금색 별) 부착. 원본 PNG·meta 미수정.
+- 공격 휘두름은 팔 35% + 지팡이 소켓 65%로 분담(ArmShareOfSwing). 몸통 픽셀 최대 늘어남 x20.31 -> x5.64.
+- 검증(복사본): Play 프로브 9/9 + 이벤트 오류 0건(제거 픽셀 36, 소켓·지팡이 부착, 공격 시 지팡이 끝 이동 15.2px, 늘어남 x5.64 < 10). 캡처 rig-wand-idle/attach/attack-zoom.png(복사: .utmp/PixelLabTrial, 생성물이라 Git 제외).
+- 확인: SoulArena Play -> F3 -> F4로 대기/걷기/공격. 오른쪽 뼈대판에서 지팡이가 끊기지 않고 손을 따라가며 공격 때 손 소켓 기준으로 휘두르는지 본다.
+- 남음: 정면(south) 1장만 해당. 다른 방향·프레임 애니는 지팡이 위치가 달라 방향별 손 소켓 좌표를 다시 잡아야 함. 본게임 Player 컨트롤러에는 미적용.
+
+## 2026-11-11 PixelLab skeleton-v3 플레이어 정면 시험(걷기·공격)
+
+- 계정에 Pretty Magical Girl(b539e3a3) 이미 있음. Walk_SkeletonTrial south 6f, Attack_SkeletonTrial south 8f 생성(각 3 generations). 프로젝트 PNG는 미교체.
+- 비교: C:\sv\capture\pl-walk-south.png, pl-attack-compare.png, pl-vs-bone-attack.png. 걷기는 자연스럽고 픽셀 늘어남 없음. 공격은 메시 왜곡 없으나 south slash가 숙이는 동작처럼 보일 수 있음 → 사용자 확인 후 방향 확장.
+
+## 2026-11-11 플레이어 2D 뼈대 리깅 시험판(정면 대기 1장)
+
+- 요청: 플레이어에 뼈대·리깅으로 자연스러운 움직임이 가능한지 확인. 사용자 선택은 "정면 대기 1장으로 시험판 → 품질 확인".
+- 새 `SoulPlayerBoneRig`: `Idle/south_01`(64×64 중 47×58)을 픽셀 격자 메시(정점 2832)로 만들고 뼈대 11개(Root·Hips·Spine·Head·Bow·쌍갈래 L/R·팔 L/R·다리 L/R)와 가중치(부위 손 분할 + 경계 평활, 정점당 최대 4)를 심어 `SkinnedMeshRenderer`로 변형. 다리는 Root 자식이라 몸이 출렁여도 발이 고정. 대기·걷기·공격 자세는 코드(사인 곡선)로 구동, 이동량은 1픽셀 단위로 끊음(`pixelSnap`). 원본 그림·meta 미수정, `SoulArenaSpriteSet.rigPrototypeSprite`로 참조.
+- 새 `SoulBoneRigPreview`(부트스트랩이 붙임): SoulArena Play 중 **F3** = 플레이어 왼쪽 원본 프레임 / 오른쪽 뼈대판, **F4** = 대기→걷기→공격. 표시 전용(판정 무관). HUD에 `F3 뼈대시험판`.
+- 검증(복사본): CheckFiles 36/36, Play 프로브 9/9 + 이벤트 오류 0건(뼈대 11개, 가중치 합 오차 0, 기본 자세=원본, 대기 발 이동 0.00px·머리 1.3px·쌍갈래 2.1px, 걷기 발 들기 2px, 공격 지팡이 23.6px, F3/F4 열기·전환·닫기). 캡처 `rig-compare.png`(행: 대기/걷기/공격, 각 칸 왼쪽 원본·오른쪽 뼈대), `rig-attack-zoom.png`, `rig-weights.png`.
+- 결론: 숨쉬기·머리카락 흔들림·작은 걸음은 한 장으로도 쓸 만함. 큰 팔 휘두르기는 팔 뒤에 가려진 몸통 그림이 없어 몸통 픽셀이 최대 약 20배 늘어남(캡처에서 소매가 치마 위로 끌림). 실제 적용하려면 부위별 레이어 원본(가려진 부분까지 그린 PSB/Aseprite)과 방향별(최소 3~5벌) 리깅이 필요 → 아트 담당·범위는 사용자 결정.
+## 2026-11-11 SoulArena 일반 몬스터(잡몹)에 MainScene 좀비 스프라이트 입힘
+
+- 새 `SoulTrashMobSpriteSkin`: MainScene 일반 몬스터(`Enemy` 프리팹)와 같은 `Zombie.controller`·스케일 3으로 빌보드 표시, 구체 렌더러 숨김(콜라이더·체력·AI 그대로). 플레이어 방향 8방향 `FacingX/Y`, 추적=`ZombieMove`, 정지=`ZombieIdle`. 같은 동작으로 보이지 않게 시작 시간을 무작위로 어긋나게 함. 바닥 그림자 추가.
+- `SoulArenaTrashMob.Spawn`이 생성 직후 적용(웨이브 추가 생성 포함). 컨트롤러 참조는 `SoulArenaSpriteSet`에 `zombieController`/`zombieScale` 추가. `SoulHitFeedback`은 스프라이트일 때 빨간 플래시(흰색은 스프라이트에서 안 보임).
+- `SoulArenaBootstrap.useMainZombieSprite`(기본 켜짐, HUD `+좀비스프라이트`). 씬·프리팹·원본 Zombie.controller 미수정.
+- 검증(복사본): CheckFiles 34/34, Play 프로브 8/8 + 이벤트 오류 0건(잡몹 8항목: 구체 숨김, 컨트롤러 Zombie, 스케일 3, 하단 0.00, 플레이어 방향 Facing(0,-1), 추적 ZombieMove, 정지 ZombieIdle, 피격 플래시 g=0.62). 부팅 시 잡몹 6마리 전부 적용 확인. 캡처 `wide-before/after.png`, `zombies-start/chase.png`.
+- 남음: 사용자 에디터 Play 육안 확인. 좀비 공격 모션은 SoulArena 잡몹에 공격 규칙이 없어 연결하지 않음.
+## 2026-11-11 SoulArena 보스에 MainScene BeastZombie 스프라이트 입힘
+
+- 새 `SoulBossSpriteSkin`: BeastZombie와 같은 `Boss.controller`·스케일 4로 빌보드 표시, 3D 마네킹 렌더러 숨김(손 `hand_r` 히트박스·판정은 그대로). 추격=`BossWalk`, 정지=`BossIdle`, 윈드업 시작 시 플레이어 방향 8방향 `Boss_Swipe_{방향}` 재생.
+- 타이밍: 클립 타격 이벤트(0.79s)가 손 히트박스 무장 순간(윈드업 0.48 + 공격 0.8×0.28)에 오도록 재생 속도 x1.12 자동 계산. 사망 시 애니 정지. 윈드업 틴트(`SoulBossWindupFlash.Rebind`)가 스프라이트에 적용.
+- 컨트롤러가 Resources 밖이라 `Assets/Resources/SoulPipeline/SoulArenaSpriteSet.asset`(새 ScriptableObject `SoulArenaSpriteSet`)이 직렬화 참조. 클립 이벤트 수신은 `SoulSpriteAnimationEventSink`(아무 판정 안 함). 공용 빌보드 처리 `SoulSpriteBillboard`(플레이어 스킨도 사용, 피벗 높이 1회 고정).
+- `SoulArenaBootstrap.useMainBossSprite`(기본 켜짐). 씬·프리팹·원본 Boss.controller 미수정.
+- 검증(복사본): CheckFiles 33/33, Play 프로브 7/7 + 이벤트 수신 오류 0건(보스 12항목: 추격 BossWalk, Boss_Swipe_West x1.12, 틴트 b=0.69, 히트박스↔타격 프레임 차 0.01s, 사망 정지). 캡처 `boss-strip.png`(추격·윈드업·타격·회복), `wide-before/after.png`.
+- 주의: 스프라이트(약 5.8 프레임)가 3D 히트박스(손 리치 약 1m)보다 커서 시각 리치와 판정 리치가 다를 수 있음 → 스케일/히트박스 조정은 사용자 확인 후.
+
+## 2026-11-11 SoulArena 플레이어에 MainScene 캐릭터(스프라이트·애니메이터) 입힘
+
+- 새 `SoulPlayerSpriteSkin`: MainScene Player와 같은 `Resources/PlayerAnimator/Player` 컨트롤러·스케일 3을 자식 SpriteRenderer(`Sprites/Default`)로 빌보드(카메라 회전) 표시. 스프라이트 하단을 바닥에 맞춤, 바닥 원형 그림자 추가, 3D 마네킹 렌더러는 숨김(판정·CharacterController 그대로).
+- 파라미터 구동: 이동 방향을 화면 기준 8방향으로 바꿔 `FacingX/FacingY`, `IsMoving`, `IsDashing`(+`ChargeAnimationSpeed`), 패링 시작 시 `Parry` 트리거, 공격 시 `LightAttack` 상태. 판정·규칙은 `SoulPipelineAvatar` 소유 유지(표시만 추가: `IsMoving`, `DashSeconds`, `LightSwung` 이벤트).
+- `SoulArenaBootstrap.useMainPlayerSprite`(기본 켜짐)로 Start에서 적용. 씬·프리팹은 재저장하지 않음. 끄면 이전 마네킹 표시.
+- 피격/패링 틴트(`SoulPlayerParryFlash.Rebind`)와 대시 잔상(스프라이트 잔상)도 스킨에 맞춤.
+- 인코딩: 직전 세션 일괄 치환으로 CP949가 된 SoulPipeline 스크립트 11개를 UTF-8로 복구(한글 주석·문자열 원문 유지).
+- 검증(복사본 `C:\sv\soul`): CheckFiles 28/28, Play 프로브 **5/5**(기존 4 + 스킨 18항목: 4방향 Facing·서로 다른 스프라이트, Move/Idle/Charge/Parry/LightAttack, 하단 0.00, 틴트, 스프라이트 잔상). 그래픽 캡처 `RunPlayProbe.ps1 -Capture` → `C:\sv\capture\sheet.png`, `wide-before.png`, `wide-after.png`(임시 산출물).
+- 남음: 사용자 에디터 Play 육안 확인, Guard 상태 연결(SoulArena에 가드 입력 없음), 실기기.
+- 3D 증명 뷰: 기본은 직교(2D 느낌) 유지, **F2**로 원근(FOV40·pitch38) 전환, Z/C·우클릭 드래그로 회전, 휠 거리. WASD는 `SoulCameraRig.ViewYaw` 기준. 프로브 6/6(직교 1m 근/원 비 1.00, 원근 1.21, 회전·복귀), 캡처 `view-2d/3d/3d-orbit.png`.
+
+## 2026-11-11 SoulArena 카메라 — Main과 비슷한 기울인 탑뷰
+
+- MainScene은 직교·정면(회전 0, ortho 10). SoulArena는 3D라 완전 정면은 불가.
+- `SoulRenderSpec`: yaw 0 / pitch **55** / ortho **10**. 탑뷰에서 살짝 기울여 캐릭이 읽히게.
+- WASD는 yaw 0(화면 위=+Z). URP renderer index 1·평탄 XZ 유지. Main 2D 렌더러 변경 없음.
+
+## 2026-11-11 Soul Pipeline 안정화 이어하기 (컴파일·Prefab·프로브)
+
+- 브랜치 `feature/soul-pipeline-3d`. 사용자 Unity는 열지 않고 `C:\sv\soul`에서 배치 검증.
+- 컴파일 수정: meta GUID 6개 32자리, `GetInstanceID`→`GetEntityId`, SoulPipeline `FindFirstObjectByType`→`FindAnyObjectByType`.
+- Prefab 조립: Batch One-Click으로 `SoulPlayerHumanoid`/`SoulBossHumanoid` 생성, 보스 손 **`hand_r`**에 `SoulWeaponHitbox3D`(fallback 아님). Resources·Generated·SoulArena3D 씬을 본 저장소에 반영.
+- 검증: CheckFiles 통과. Play 프로브 **4/4** — 접근 슬래시[Humanoid/Prefab] travel 0.38, 패링, 히트 1회, 리커버리/사망. 도구: `tools/SoulPipelineValidation/RunBatchSetup.ps1`, `RunPlayProbe.ps1`.
+- 화면 렌더·실기기·Mixamo/야수좀비 교체·BossEncounter 치환은 남음. 커밋은 요청 전.
+
+## 2026-11-11 Soul Pipeline 배치 검증과 컴파일 수정
+
+- 첫 배치에서 GUID 31자리·`GetInstanceID`로 컴파일 실패를 재현한 뒤 수정. 이후 Prefab 조립까지 이어짐(위 절).
+
 ## 2026-11-11 사용자 요청으로 즉시 커밋·푸시 (완료)
 
 - 브랜치: `feature/soul-pipeline-3d` → `e2886c0` / `36a6b58` 푸시됨. 08:00 마감 루프는 **사용자에 의해 중단**.
@@ -15,7 +91,7 @@
 - **팀 안내**: `docs/AI/SoulPipeline-TeamGuide.md` (Play 절차·레거시·Main 합류·성능)
 - **설계**: `docs/superpowers/specs/2026-11-11-motion-readable-boss-pipeline.md`
 - **URP**: `UniversalRenderer` 추가, `UniversalRP` renderer list index **1**. 기본 index 0은 기존 `Renderer2D` 유지 → MainScene 2D 깨지지 않게.
-- **표시 규격**: `SoulRenderSpec` — 평탄 XZ, yaw45/pitch35 직교, 캐릭 스케일 1. (포켓봉크는 렌더만)
+- **표시 규격**: `SoulRenderSpec` — 평탄 XZ, 기울인 탑뷰(yaw0/pitch55, ortho10), 캐릭 스케일 1.
 - **휴머노이드(임시/CC0)**: `Assets/2.Resources/Art/SoulPipeline/Humanoid/` — KinemIQ 마네킹 + Idle/Walk/Sword_slash 등. 최종 Mixamo·야수좀비로 교체 가능.
 - **런타임**: `Assets/0.Scripts/Game/SoulPipeline/` — CameraRig, Avatar, BossApproachSlash, WeaponHitbox3D, ArenaBootstrap
 - **조립 메뉴**: `Tools > Soul Pipeline > 1~3` → Prefab/`SoulArena3D` 생성. **MainScene 미덮어씀**.
@@ -52,9 +128,9 @@
 
 ### 마감 전 남은 일 (우선)
 
-1. SoulArena3D Play 안정화(임포트·Animator Humanoid·손 본 바인딩)  
+1. 팀 Unity에서 SoulArena3D Play로 손 모션·패링 가독성 확인(Prefab·`hand_r` 반영됨)  
 2. 팀 Mixamo/야수좀비 아트를 Prefab 계약으로 교체  
-3. 로비/디버그에서 SoulArena 진입 연결 → 이후 BossEncounter 치환  
+3. BossEncounter 치환(로비/디버그 진입은 이미 연결)  
 4. 페이즈2 한 기믹은 기획 확정 후  
 5. pixelfx는 본선 아님(별도 정리/커밋 요청 시)
 

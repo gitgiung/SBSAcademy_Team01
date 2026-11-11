@@ -10,7 +10,10 @@ public sealed class SoulPlayerParryFlash : MonoBehaviour
     private float hurtLeft;
     private bool reflecting;
 
-    private void Awake()
+    private void Awake() => Rebind();
+
+    /// <summary>스킨 교체 등으로 자식 렌더러가 바뀐 뒤 다시 수집한다.</summary>
+    public void Rebind()
     {
         renderers = GetComponentsInChildren<Renderer>();
         baseColors = new Color[renderers.Length];

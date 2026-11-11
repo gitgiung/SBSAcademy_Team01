@@ -3,56 +3,45 @@
 노션에는 이 내용을 **한 페이지**에만 올린다. 분산 금지.
 
 ## 브랜치
-`feature/soul-pipeline-3d` — 커밋 `e2886c0` 푸시 완료 (사용자 즉시 요청)
+`feature/soul-pipeline-3d` — 검증·컴파일 수정·Humanoid Prefab 조립 반영(커밋 요청 전)
 
 ## 완료된 구현
 - URP `UniversalRenderer` (index1), 기본 2D Renderer 유지
+- 카메라: Main과 비슷하게 기울인 탑뷰(yaw 0 / pitch 55, ortho 10)
 - `SoulArena3D` 씬 + Build Settings 등록
 - 런타임: CameraRig, Avatar, BossApproachSlash, WeaponHitbox3D, Bootstrap, FallbackFactory, GroundGravity, DummyHealth, TrashMob
-- KinemIQ CC0 휴머노이드 FBX (Idle/Walk/Slash 등)
-- 에디터: One-Click Setup, Prefab→Resources 복사
+- KinemIQ CC0 휴머노이드 FBX (Idle/Walk/Slash 등) Humanoid Rig
+- Prefab: `SoulPlayerHumanoid` / `SoulBossHumanoid` (+ Resources 복사), 보스 손 `hand_r`에 `SoulWeaponHitbox3D`
+- 에디터: One-Click Setup, Batch One-Click(`SoulPipelineBuilder.OneClickSetupBatch`)
 - 진입: 로비 도감탭/F6, Esc→로비, CombatUI `테스트/SoulArena3D 로드`
-- 폴백 3D로 Prefab 없이 Play 가능
+- 폴백 3D로 Prefab 없이도 Play 가능(지금은 Prefab 우선)
 - 플레이어: 좌클릭/J 공격, Shift/Space 대시, E 패링
-- 보스: 다가오며 손 히트 / 사망 시 AI 정지
-- 잡몹 3: 단순 접근 접촉(정밀 판정 아님)
-- 피격 스케일 피드백, 맵 경계 클램프, R 재시작, 휠 줌
-- 승패 HUD (보스 처치 / 플레이어 사망)
-- WaveDirector: ~25초/잡몹 정리 후 보스 + 이완 중 잡몹 보충(최대 8)
-- 보스 패턴: Chase → Windup(다가오며 올림) → Attack(히트) → Recovery(뒤로 물러남)
-- 윈드업 시 카메라가 보스를 살짝 따라가 모션 가독성 보조
-- 보스 사망 시 AI·히트박스 즉시 정지
-- 폴백 팔: 윈드업 올림 → 내려찍기, 플레이어 Pulse 스윙
-- 패링/피격/승패 KillFeed, P 일시정지, F1(윈드업·armed·trash)
-- 윈드업 HUD 보조(`↑ 휘두르기!`) — 바닥 VFX 아님
-- 카메라 쉐이크, 잡몹 6, 보스 몸 틴트(윈드업 노랑/공격 빨강)
-- 근접 타격 최대 3대상, 피격 넉백, 패링/피격 틴트
-- Esc/R 시 timeScale 복구, Validate/파일 체크 19항
-- 대시 잔상(`SoulPlayerDashTrail`), 보스 윈드업 0.48s / 리커버리 0.7s / 개시거리 2.85
-- 보스 윈드업 진입 시 측면 커밋(직선 추격과 구분), 피격 화이트 틴트
-- 손 `SoulWeaponArmedPulse`(armed 스케일), 폴백 팔 Yaw 스윙
-- 잡몹: 측면 접근·분리·보스 공격 중 감속
-- 보스: 리커버리 후 `postRecoveryGap`으로 즉시 재윈드업 방지
-- 윈드업 중 패링 창 +0.06, 대시→패링 캔슬, 리커버리 타격 18
-- 패링 성공 시 `StunFromParry`→리커버리 + 리포스트 힌트
-- HUD: 윈드업/반격 창 안내
-- Prefab 빌더: Bounds/WindupFlash/CameraShake + boss Bind, TeamGuide 계약 절
-- KillFeed 페이드, 잡몹 Separation 0.2s 캐시, SoulArena3DScene.Clear timeScale=1
-- HUD DASH/PARRY 표시
-- 입력 힌트 15초, 3분 work-continue 웨이크로 턴 사이 재개
-- 노션 기록은 작업 DB 해당 페이지 **한곳만**
+- 보스: Chase→Windup(다가오며)→Attack(손 히트)→Recovery
+- 잡몹 이완·보충, 승패 HUD, 패링 리포스트, KillFeed, P/F1
+- 컴파일: meta GUID 32자리 수정, `GetEntityId` 교체, FindAnyObjectByType
+- 플레이어 표시: MainScene 캐릭터 스프라이트·애니메이터(`PlayerAnimator/Player`, 스케일 3) 빌보드 스킨 `SoulPlayerSpriteSkin` — 8방향·이동·대시·패링·공격 상태 연동. Bootstrap `useMainPlayerSprite`로 끄면 마네킹
+- 잡몹 표시: MainScene 일반 좀비(`Enemy`) 스프라이트·`Zombie.controller`(스케일 3) `SoulTrashMobSpriteSkin` — 플레이어 방향 8방향, 추적 ZombieMove/정지 ZombieIdle, 피격 빨간 플래시- 2D 뼈대 리깅 시험판: `SoulPlayerBoneRig`(정면 대기 1장, 뼈대 11개) + F3 비교 `SoulBoneRigPreview`. 작은 동작은 가능, 큰 동작은 레이어 원본 필요- 보스 표시: MainScene BeastZombie 스프라이트·`Boss.controller`(스케일 4) `SoulBossSpriteSkin` — 추격/정지/8방향 휘두르기, 타격 프레임을 손 히트박스 무장 순간에 맞춤. 참조 에셋 `Resources/SoulPipeline/SoulArenaSpriteSet`
+- F2 원근 확인 뷰(기본 직교 유지)
 
 ## Play
 1. Play From Title 끄기
-2. `Tools > Soul Pipeline > 0. One-Click Setup` 또는 Play Setup
+2. `Tools > Soul Pipeline > Play Setup` 또는 로비 F6/도감
 3. WASD / Shift대시 / E / 좌클릭 / Esc / R / 휠 / F1 디버그
+4. Prefab이 있으면 HUD에 Humanoid/Prefab, 없으면 폴백3D
+
+## 검증(이번)
+- `tools/SoulPipelineValidation/CheckFiles.ps1` 파일+GUID 통과
+- 격리 복사본 `C:\sv\soul`에서 Batch One-Click: 손히트=`hand_r` fallback=False
+- Play 프로브 7/7 + 애니 이벤트 오류 0: 접근슬래시(+메인·보스 스프라이트)·패링·히트1회·리커버리/사망·플레이어 스킨·F2 원근 뷰·보스 스킨(히트박스↔타격 프레임 0.01s)
+- 화면 캡처: `RunPlayProbe.ps1 -Capture` → 적용 전/후 PNG(복사본 그래픽 렌더)
+- 실기기·Mixamo 교체는 미실시
 
 ## 레거시
 MainScene·BeastZombie 2D+바닥 VFX 유지. MotionBossPrototype=조기토이. pixelfx=비핵.
 
 ## 남은 일
-1. Humanoid Prefab Play 안정화(팀 Unity에서 메뉴 0 실행)
-2. Mixamo/야수좀비 교체
+1. 팀 Unity에서 Play로 손 모션·패링 가독성 확인
+2. Mixamo/야수좀비 교체(같은 Prefab 계약)
 3. BossEncounter 치환
 4. 페이즈2 기믹(기획 후)
 

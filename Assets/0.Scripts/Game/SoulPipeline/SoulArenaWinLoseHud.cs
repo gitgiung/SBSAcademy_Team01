@@ -12,8 +12,8 @@ public sealed class SoulArenaWinLoseHud : MonoBehaviour
 
     private void Start()
     {
-        player = FindFirstObjectByType<SoulPipelineAvatar>();
-        var bossAi = FindFirstObjectByType<SoulBossApproachSlash>();
+        player = FindAnyObjectByType<SoulPipelineAvatar>();
+        var bossAi = FindAnyObjectByType<SoulBossApproachSlash>();
         if (bossAi != null) boss = bossAi.GetComponent<SoulArenaDummyHealth>();
     }
 
@@ -24,7 +24,7 @@ public sealed class SoulArenaWinLoseHud : MonoBehaviour
 
         if (player != null && player.IsDead)
         {
-            banner = "패배 — R 재시작 / Esc 로비";
+            banner = "패배 ? R 재시작 / Esc 로비";
             bannerTime = 999f;
             signaled = true;
             SoulCameraShake.Punch(0.7f);
@@ -32,7 +32,7 @@ public sealed class SoulArenaWinLoseHud : MonoBehaviour
         }
         else if (boss != null && boss.IsDead)
         {
-            banner = "보스 처치 — 파이프라인 검증 통과 후보 / R 재시작";
+            banner = "보스 처치 ? 파이프라인 검증 통과 후보 / R 재시작";
             bannerTime = 999f;
             signaled = true;
             SoulCameraShake.Punch(0.55f);

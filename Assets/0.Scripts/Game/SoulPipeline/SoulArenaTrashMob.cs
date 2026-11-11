@@ -50,7 +50,7 @@ public sealed class SoulArenaTrashMob : MonoBehaviour
         if (cooldown > 0f) cooldown -= Time.deltaTime;
         if (target == null)
         {
-            var avatar = FindFirstObjectByType<SoulPipelineAvatar>();
+            var avatar = FindAnyObjectByType<SoulPipelineAvatar>();
             if (avatar == null || avatar.IsDead) return;
             target = avatar.transform;
         }
@@ -71,7 +71,7 @@ public sealed class SoulArenaTrashMob : MonoBehaviour
         bossCacheTimer -= Time.deltaTime;
         if (cachedBoss == null || bossCacheTimer <= 0f)
         {
-            cachedBoss = FindFirstObjectByType<SoulBossApproachSlash>();
+            cachedBoss = FindAnyObjectByType<SoulBossApproachSlash>();
             bossCacheTimer = 0.75f;
         }
         if (cachedBoss != null && cachedBoss.enabled && cachedBoss.IsAttacking)
@@ -101,7 +101,7 @@ public sealed class SoulArenaTrashMob : MonoBehaviour
     private Vector3 Separation()
     {
         Vector3 push = Vector3.zero;
-        var others = FindObjectsByType<SoulArenaTrashMob>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        var others = FindObjectsByType<SoulArenaTrashMob>(FindObjectsInactive.Exclude);
         for (int i = 0; i < others.Length; i++)
         {
             SoulArenaTrashMob o = others[i];
@@ -128,7 +128,9 @@ public sealed class SoulArenaTrashMob : MonoBehaviour
         var renderer = body.GetComponent<MeshRenderer>();
         var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
         renderer.sharedMaterial = new Material(shader) { color = color };
-        root.AddComponent<SoulArenaTrashMob>();
+        var mob = root.AddComponent<SoulArenaTrashMob>();
+        if (SoulTrashMobSpriteSkin.UseMainZombieSprite)
+            SoulTrashMobSpriteSkin.Apply(mob);
         return root;
     }
 }

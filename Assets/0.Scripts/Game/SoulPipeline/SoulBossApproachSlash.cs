@@ -36,6 +36,9 @@ public sealed class SoulBossApproachSlash : MonoBehaviour
     public bool IsAttacking => phase == Phase.Attack || phase == Phase.Windup;
     public bool IsWindup => phase == Phase.Windup;
     public bool IsRecovering => phase == Phase.Recovery;
+    public float WindupSeconds => windupSeconds;
+    public float AttackSeconds => attackSeconds;
+    public float HitArmedStart => hitArmedStart;
     public float AttackNormalizedTime
     {
         get
@@ -167,7 +170,7 @@ public sealed class SoulBossApproachSlash : MonoBehaviour
     {
         if (target == null)
         {
-            var avatar = FindFirstObjectByType<SoulPipelineAvatar>();
+            var avatar = FindAnyObjectByType<SoulPipelineAvatar>();
             if (avatar == null || avatar.IsDead) return false;
             target = avatar.transform;
             return true;

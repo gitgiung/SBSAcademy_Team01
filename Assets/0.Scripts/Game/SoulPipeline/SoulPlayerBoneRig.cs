@@ -36,6 +36,27 @@ public sealed class SoulPlayerBoneRig : MonoBehaviour
     [SerializeField] private bool pixelSnap = true;
     [Tooltip("스프라이트 지팡이를 지우고 손 소켓에 3D 지팡이를 붙인다")]
     [SerializeField] private bool attachWandProp = true;
+    [Header("Walk (정면, 픽셀·도)")]
+    [Tooltip("한 걸음 주기(초). 작을수록 빠름")]
+    [SerializeField] private float walkCycleSeconds = 0.7f;
+    [Tooltip("체중 좌우 이동(픽셀). 이전 소진폭=1")]
+    [SerializeField] private float walkHipSwayPx = 1.5f;
+    [Tooltip("발 디딜 때 몸 출렁임 깊이(픽셀). 이전 소진폭=1")]
+    [SerializeField] private float walkHipBobPx = 1.25f;
+    [Tooltip("체중 이동에 따른 엉덩이 기울기(도). 이전 소진폭=1")]
+    [SerializeField] private float walkHipTiltDeg = 1.5f;
+    [Tooltip("든 발의 들림 높이(픽셀). 이전 소진폭=2")]
+    [SerializeField] private float walkFootLiftPx = 3f;
+    [Tooltip("팔 앞뒤 상하 이동(픽셀). 이전 소진폭=1")]
+    [SerializeField] private float walkArmBobPx = 1.25f;
+    [Tooltip("발 디딜 때 팔이 바깥으로 벌어지는 각도(도). 이전 소진폭=6, 찌그러짐≈12")]
+    [SerializeField] private float walkArmSpreadDeg = 7.5f;
+    [Tooltip("체중 쪽으로 팔이 살짝 쏠리는 각도(도). 이전 소진폭=2")]
+    [SerializeField] private float walkArmBiasDeg = 2.5f;
+    [Tooltip("머리 좌우 기울기(도). 이전 소진폭=1")]
+    [SerializeField] private float walkHeadTiltDeg = 1.5f;
+    [Tooltip("리본·쌍갈래 지연 흔들림(도). 이전 소진폭=3, 찌그러짐≈7")]
+    [SerializeField] private float walkHairLagDeg = 3.5f;
 
     Transform[] bones;
     Vector3[] restPositions;
@@ -458,25 +479,28 @@ public sealed class SoulPlayerBoneRig : MonoBehaviour
             }
             case Motion.Walk:
             {
-                // 정면 걷기: 큰 회전 대신 체중 이동·발걸음 출렁임·머리카락 뒤늦은 흔들림만 작게 쓴다(그림이 찌그러지지 않게).
-                float p = t * Mathf.PI * 2f / 0.7f;
+                // 정면 걷기: 큰 회전 대신 체중 이동·발걸음·팔·머리카락 지연 흔들림.
+                // 기본값은 이전 소진폭(팔6°·머리1°)과 찌그러짐(팔12°·머리7°) 사이. Inspector Walk 항목으로 조정.
+                float cycle = Mathf.Max(0.05f, walkCycleSeconds);
+                float p = t * Mathf.PI * 2f / cycle;
                 float s = Mathf.Sin(p);
                 float step = 0.5f - 0.5f * Mathf.Cos(2f * p);
-                Move(Bone.Hips, 1f * s, -1f * step);
-                Turn(Bone.Hips, 1f * s);
-                Move(Bone.LegL, 0f, 2f * Mathf.Max(0f, s));
-                Move(Bone.LegR, 0f, 2f * Mathf.Max(0f, -s));
-                Move(Bone.ArmL, 0f, 1f * s);
-                Move(Bone.ArmR, 0f, -1f * s);
-                // 발을 디딜 때(step 최대) 두 팔이 바깥으로 살짝 벌어지고, 체중 이동 쪽으로 약간 쏠린다.
-                Turn(Bone.ArmL, -6f * step - 2f * s);
-                Turn(Bone.ArmR, 6f * step - 2f * s);
-                Turn(Bone.Head, -1f * s);
-                Turn(Bone.Bow, 3f * Mathf.Sin(p - 0.9f));
-                Turn(Bone.HairL, 3f * Mathf.Sin(p - 1.1f));
-                Turn(Bone.HairR, 3f * Mathf.Sin(p - 1.3f));
+                Move(Bone.Hips, walkHipSwayPx * s, -walkHipBobPx * step);
+                Turn(Bone.Hips, walkHipTiltDeg * s);
+                Move(Bone.LegL, 0f, walkFootLiftPx * Mathf.Max(0f, s));
+                Move(Bone.LegR, 0f, walkFootLiftPx * Mathf.Max(0f, -s));
+                Move(Bone.ArmL, 0f, walkArmBobPx * s);
+                Move(Bone.ArmR, 0f, -walkArmBobPx * s);
+                // 발을 디딜 때(step 최대) 두 팔이 바깥으로 벌어지고, 체중 이동 쪽으로 살짝 쏠린다.
+                Turn(Bone.ArmL, -walkArmSpreadDeg * step - walkArmBiasDeg * s);
+                Turn(Bone.ArmR, walkArmSpreadDeg * step - walkArmBiasDeg * s);
+                Turn(Bone.Head, -walkHeadTiltDeg * s);
+                Turn(Bone.Bow, walkHairLagDeg * Mathf.Sin(p - 0.9f));
+                Turn(Bone.HairL, walkHairLagDeg * Mathf.Sin(p - 1.1f));
+                Turn(Bone.HairR, walkHairLagDeg * Mathf.Sin(p - 1.3f));
                 break;
-            }            case Motion.Attack:
+            }
+            case Motion.Attack:
             {
                 float a = Mathf.Repeat(t, AttackCycleSeconds);
                 float arm = AttackArmAngle(a);

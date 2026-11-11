@@ -1,0 +1,10 @@
+---
+description: Cursor와 Codex의 Unity 프로젝트 협업 및 인계 지침
+alwaysApply: true
+---
+
+# Cursor와 Codex 협업
+
+- 작업을 시작할 때 루트의 `AGENTS.md`와 그 문서가 지정한 인수인계 및 협업 기록을 읽는다. 사용자가 역할이나 범위를 지정하면 그 지시를 우선한다.
+- 기본적으로 Cursor는 구현을 맡는다. `docs/AI/design.md`에서 Codex의 디자인 방향과 완료 기준을 확인하고, `docs/AI/codex.md`에서 최신 요청과 파일 담당을 확인한다.
+- 구현 결과와 실제 검증 결과, 시각 자료 경로, 다음 요청은 `docs/AI/cursor.md`에 남긴다. 파일 담당을 넘길 때는 변경을 저장한 뒤 인계 가능 상태를 기록한다.

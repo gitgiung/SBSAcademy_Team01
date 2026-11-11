@@ -1,5 +1,30 @@
 # 작업 인수인계
 
+## 다음 할 일 (우선)
+
+1. **육안 확인**: SoulArena Play — 정면 뼈대 걷기(F5 비교), 비스트 보스 Idle 좌·우 배 실루엣. 필요하면 대각(남동/남서) Idle도 같은 방식으로 집어넣기.
+2. **뼈대 다방향**: 정면 외 방향은 관절·HandSocket 좌표 + 스프라이트 필요(아트 범위 확정 후).
+3. **Mixamo/야수좀비 3D**: Prefab 계약(Idle/Walk/Slash + 손 `SoulWeaponHitbox3D`)으로 교체. 현재 Mixamo FBX 없음.
+4. **BossEncounter 치환**: Main 타이머 보스전을 Soul 보스로 바꾸기(바닥 텔레그래프 비활성). Main 직접 덮기 금지, 합류 범위 합의 후.
+5. **미정 보류**: 공격 판정↔지팡이 시각 타이밍, 페이즈2 기믹(기획 확정 전 미구현).
+
+## 2026-11-11 비스트 보스 Idle 좌·우 배 실루엣 정리
+
+- 요청: 아이들 상태에서 좌우(east/west)로 볼 때만 배가 나온 것처럼 보이는 문제.
+- 수정: `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/idle/east|west`의 `0~3.png` 8장만. 팔이 끝나는 행 기준으로 복부 앞쪽 실루엣이 숨쉬며 2~5px 앞으로 부풀던 부분을 집어넣고, 새 가장자리는 검정 아웃라인으로 맞춤. 캔버스·meta GUID·다른 방향·이동/공격 애니는 미수정. 원본 백업 `.utmp/belly_backup`(생성물).
+- 수치: east 복부 앞 max x 예) 64→60, west 복부 앞 min x 예) 31→35 (프레임별 22~49픽셀 변경).
+- 검증: PNG 전후 비교 시트 `.utmp/belly_before_after.png`(생성물). Unity 임포트·Play·기기는 미실행.
+- 확인: Unity 임포트 후 Play From Title 끄고 MainScene 또는 SoulArena Play → 보스가 정지한 채 플레이어가 왼쪽/오른쪽에 있으면 Idle 배가 이전보다 덜 볼록한지 본다. 대각(남동/남서)은 이번 범위 밖. 이상하면 해당 PNG Reimport와 Console 첫 오류 확인.
+
+## 2026-11-11 정면 뼈대 걷기 진폭 튜닝(Inspector 노출)
+
+- 요청 맥락: 직전 소진폭 걷기는 찌그러짐은 없으나 원본 프레임보다 움직임이 작다는 피드백. 아트·다방향·BossEncounter 치환은 팀 아트/합류 설계에 묶여 미착수.
+- `SoulPlayerBoneRig` Walk 자세 상수를 `[SerializeField]`로 노출(주기·엉덩이 sway/bob/tilt·발 들기·팔 bob/spread/bias·머리·머리카락 지연). 기본값은 소진폭(팔6°·발2px)과 찌그러짐(팔12°·머리7°) 사이: 발 3px, 팔 spread 7.5°, 머리카락 3.5°, sway 1.5px 등.
+- Play 프로브: 걷기 발/머리카락/엉덩이 하한 + 몸통 중심 늘어남 `<4`(팔12°급 회귀 방지) 추가.
+- 검증(복사본 `C:\sv\soul` ← `.utmp\sv` 정션, `0.Scripts` 동기화): Play 프로브 **전체 PASS**(걷기 발 3.0px·머리카락 2.2px·엉덩이 1.4px, 몸통 늘어남 x3.79) + 이벤트 오류 0건. CheckFiles 37/37. Capture·에디터 육안·기기는 미실행.
+- 확인: SoulArena Play → 정면 S 걷기 → F5로 원본과 비교. 더 키우거나 줄이려면 Hierarchy의 `BoneRigBody` Inspector Walk 항목을 조정(12°/7° 근처는 소매·머리 찌그러짐 주의). 안 보이면 Bootstrap `Use Bone Rig Player`와 F5 상태 확인.
+- 남음: 다방향 리깅(아트·손 소켓), Mixamo 교체, BossEncounter 치환, 공격 판정↔지팡이 시각 타이밍(미정).
+
 ## 2026-11-11 본게임(SoulArena) 플레이어에 뼈대 리깅 연결 — 정면만
 
 - 새 `SoulPlayerBoneRigSkin`(Assets/0.Scripts/Game/SoulPipeline): 플레이어가 화면 정면(아래, 8방향 중 South)을 볼 때만 `SoulPlayerBoneRig`(+손 소켓 지팡이)를 보이고 원본 `SpriteRenderer`를 끈다. 이동·패링·피격·대시 판정은 `SoulPipelineAvatar` 그대로이며 표시만 바꾼다.

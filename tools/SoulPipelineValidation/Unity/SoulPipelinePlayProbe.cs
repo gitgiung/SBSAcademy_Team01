@@ -697,7 +697,25 @@ public sealed class SoulPipelinePlayProbe : MonoBehaviour
         Expect(headIdle >= 0.5f && hairIdle >= 0.5f, "대기: 숨쉬기 머리 " + headIdle.ToString("0.0") + "px, 쌍갈래 끝 " + hairIdle.ToString("0.0") + "px");
         float legLift = MaxMove(SoulPlayerBoneRig.Motion.Walk, 0.7f, 26, 57, true);
         float hairWalk = MaxMove(SoulPlayerBoneRig.Motion.Walk, 0.7f, 14, 40, false);
-        Expect(legLift >= 1.5f, "걷기: 발 들기 " + legLift.ToString("0.0") + "px, 머리카락 흔들림 " + hairWalk.ToString("0.0") + "px");
+        float hipWalk = MaxMove(SoulPlayerBoneRig.Motion.Walk, 0.7f, 32, 42, false);
+        Expect(legLift >= 2.2f && hairWalk >= 1.8f && hipWalk >= 1.2f,
+            "걷기: 발 들기 " + legLift.ToString("0.0") + "px, 머리카락 " + hairWalk.ToString("0.0") + "px, 엉덩이 " + hipWalk.ToString("0.0") + "px (소진폭 대비 상향)");
+        // 몸통 중심만 본다(팔·소매 경계는 작은 회전에도 국소 늘어남이 큼). 머리·치마 끌림 회귀 방지.
+        float walkStretch = 0f;
+        for (float t = 0f; t <= 0.7f; t += 0.05f)
+        {
+            rig.Pose(SoulPlayerBoneRig.Motion.Walk, t);
+            Vector3[] pose = Bake();
+            for (int row = 18; row < 44; row++)
+            for (int col = 22; col < 42; col++)
+            {
+                int a = rig.VertexAt(col, row), b = rig.VertexAt(col + 1, row);
+                float restLen = Vector3.Distance(rest[a], rest[b]);
+                if (restLen < px * 0.01f) continue;
+                walkStretch = Mathf.Max(walkStretch, Vector3.Distance(pose[a], pose[b]) / restLen);
+            }
+        }
+        Expect(walkStretch < 4f, "걷기 몸통 중심 픽셀 최대 늘어남 x" + walkStretch.ToString("0.00") + " (<4, 팔12°급 찌그러짐 회귀 방지)");
         Expect(rig.ErasedWandPixels >= 8, "스프라이트 지팡이 픽셀 제거 " + rig.ErasedWandPixels + "개");
         Expect(rig.HandSocket != null && rig.WandRoot != null && rig.WandTip != null, "HandSocket + 3D 지팡이 부착");
 

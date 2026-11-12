@@ -73,6 +73,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private GameObject lightFxPrototype;
     private PlayerShieldBar shieldBar;
     private float nextTacticalReadyTime;
+    private float tacticalCooldownDuration;
     private const int FallbackTacticalId = 30009;
     private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
     private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];
@@ -83,6 +84,9 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     public bool IsDashing => movement != null && movement.IsDashing;
     public float DashCooldownRemaining => movement != null ? movement.DashCooldownRemaining : 0f;
     public float DashCooldownProgress => movement != null ? movement.DashCooldownProgress : 1f;
+    public float TacticalCooldownRemaining => Mathf.Max(0f, nextTacticalReadyTime - Time.time);
+    public float TacticalCooldownProgress => tacticalCooldownDuration > 0f
+        ? Mathf.Clamp01(1f - TacticalCooldownRemaining / tacticalCooldownDuration) : 1f;
 
     /// <summary>모바일 Sprint 버튼도 기존 입력과 같은 조준 방향·MP·대시 규칙을 사용합니다.</summary>
     public bool TryUseDash() => TryDash(CurrentAim());
@@ -229,7 +233,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (id == 0) id = FallbackTacticalId;
         if (!CombatSkillTable.TryGet(id, out CombatSkillRecord record)) return false;
         if (!TacticalSkillEffect.TryApply(data, record)) return false;
-        nextTacticalReadyTime = Time.time + Mathf.Max(0f, record.Cooldown);
+        tacticalCooldownDuration = Mathf.Max(0f, record.Cooldown);
+        nextTacticalReadyTime = Time.time + tacticalCooldownDuration;
         return true;
     }
 
@@ -254,6 +259,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         // 약공격과 같이 포인터 다운에서 바로 시전합니다. Inspector 영구 이벤트와 무관합니다.
         shieldButton.onClick.RemoveListener(TryUseShieldSkill);
         Util.GetOrAddComponent<PlayerTacticalSkillButton>(shieldButton.gameObject).Bind(this);
+        Util.GetOrAddComponent<SprintCooldownUI>(shieldButton.gameObject).BindTactical(this);
     }
 
     public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);

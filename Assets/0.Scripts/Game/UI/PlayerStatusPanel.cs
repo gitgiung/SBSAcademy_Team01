@@ -27,6 +27,9 @@ public sealed class PlayerStatusPanel : MonoBehaviour
     private TMP_Text masterValue;
     private TMP_Text bgmValue;
     private TMP_Text effectValue;
+    private MobileControlLayout controlLayout;
+    private Button swapControlsButton;
+    private TMP_Text swapControlsLabel;
     public int AttackSlotCount => attacks.Count;
     public int TacticalSlotCount => tacticals.Count;
     public bool OptionsVisible => optionsRoot != null && optionsRoot.activeSelf;
@@ -143,13 +146,18 @@ public sealed class PlayerStatusPanel : MonoBehaviour
     {
         optionsRoot = Stretch(parent, "AudioOptions").gameObject;
         Image((RectTransform)optionsRoot.transform, Navy, true);
-        Text(Rect(optionsRoot.transform, "Title", 200, 45, 600, 55), "음량 설정", font, 44, Color.white);
-        master = VolumeRow("MasterVolume", "전체 음량", 155, font, out masterValue);
-        bgm = VolumeRow("BgmVolume", "배경 음악", 245, font, out bgmValue);
-        effect = VolumeRow("EffectVolume", "효과음", 335, font, out effectValue);
+        Text(Rect(optionsRoot.transform, "Title", 200, 35, 600, 55), "설정", font, 44, Color.white);
+        master = VolumeRow("MasterVolume", "전체 음량", 125, font, out masterValue);
+        bgm = VolumeRow("BgmVolume", "배경 음악", 205, font, out bgmValue);
+        effect = VolumeRow("EffectVolume", "효과음", 285, font, out effectValue);
         master.onValueChanged.AddListener(value => { Managers.Sound.MasterVolume = value; masterValue.text = Percent(value); });
         bgm.onValueChanged.AddListener(value => { Managers.Sound.SetVolume(Define.ESound.Bgm, value); bgmValue.text = Percent(value); });
         effect.onValueChanged.AddListener(value => { Managers.Sound.SetVolume(Define.ESound.Effect, value); effectValue.text = Percent(value); });
+        Text(Rect(optionsRoot.transform, "ControlLayoutLabel", 145, 365, 185, 45), "조작 위치", font, 30, Color.white, TextAlignmentOptions.Left);
+        swapControlsButton = Button(Rect(optionsRoot.transform, "SwapControls", 340, 365, 480, 45),
+            "", font, new Color32(55, 232, 184, 255), SwapControls);
+        swapControlsLabel = swapControlsButton.GetComponentInChildren<TMP_Text>();
+        swapControlsLabel.fontSize = 24;
         Button(Rect(optionsRoot.transform, "BackToStatus", 810, 435, 155, 40), "뒤로가기", font,
             new Color32(255, 116, 132, 255), HideOptions);
         optionsRoot.SetActive(false);
@@ -179,6 +187,23 @@ public sealed class PlayerStatusPanel : MonoBehaviour
     }
 
     private static string Percent(float value) => Mathf.RoundToInt(value * 100) + "%";
+    private void RefreshControlLayout()
+    {
+        if (controlLayout == null)
+            foreach (var candidate in FindObjectsByType<MobileControlLayout>(FindObjectsInactive.Include))
+                if (candidate.gameObject.scene == gameObject.scene) { controlLayout = candidate; break; }
+        swapControlsButton.interactable = controlLayout != null && controlLayout.isActiveAndEnabled;
+        swapControlsLabel.text = controlLayout != null && controlLayout.ControlsSwapped
+            ? "이동 왼쪽 · 버튼 오른쪽" : "버튼 왼쪽 · 이동 오른쪽";
+    }
+
+    private void SwapControls()
+    {
+        if (controlLayout == null) return;
+        controlLayout.SetControlsSwapped(!controlLayout.ControlsSwapped);
+        RefreshControlLayout();
+    }
+
     public void ShowOptions()
     {
         if (optionsRoot == null) return;
@@ -186,6 +211,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         master.SetValueWithoutNotify(sound.MasterVolume); masterValue.text = Percent(master.value);
         bgm.SetValueWithoutNotify(sound.GetVolume(Define.ESound.Bgm)); bgmValue.text = Percent(bgm.value);
         effect.SetValueWithoutNotify(sound.GetVolume(Define.ESound.Effect)); effectValue.text = Percent(effect.value);
+        RefreshControlLayout();
         mainRoot.SetActive(false);
         backButton.gameObject.SetActive(false);
         optionsRoot.SetActive(true);

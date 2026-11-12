@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Collections;
 using System.Reflection;
 using NUnit.Framework;
@@ -36,3 +37,4 @@ public sealed class HitFlashExclusionTests
         finally { Object.DestroyImmediate(root); }
     }
 }
+#endif

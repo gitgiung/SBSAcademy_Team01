@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using NUnit.Framework;
 using UnityEngine;
 
@@ -49,3 +50,4 @@ public sealed class HordeLordRulesTests
         Assert.Greater(centerOrb.y, 0.9f);
     }
 }
+#endif

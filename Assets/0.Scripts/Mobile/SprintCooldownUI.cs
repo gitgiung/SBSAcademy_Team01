@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Sprint 버튼과 시계방향 Image를 실제 플레이어 대시 쿨타임에 연결합니다.</summary>
+/// <summary>기존 Sprint 및 전략 버튼의 원형/초 표시를 실제 플레이어 쿨타임에 연결합니다.</summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(UnityEngine.UI.Button))]
 public sealed class SprintCooldownUI : MonoBehaviour
@@ -13,13 +13,45 @@ public sealed class SprintCooldownUI : MonoBehaviour
 
     private UnityEngine.UI.Button sprintButton;
     private GameObject generatedText;
+    private GameObject generatedOverlay;
+    private bool tactical;
+    private bool initialized;
 
-    private void Awake()
+    public void BindTactical(Player source)
     {
+        Initialize();
+        if (tactical && player == source) return;
+        player = source;
+        if (tactical) { Refresh(); return; }
+        tactical = true;
+        // 전략 입력은 기존 PointerDown이 소유합니다. 클릭 해제 때 다시 시전하지 않습니다.
+        sprintButton.onClick.RemoveListener(OnSprintClicked);
+        generatedOverlay = new GameObject("Tactical Cooldown", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        generatedOverlay.transform.SetParent(transform, false);
+        cooldownImage = generatedOverlay.GetComponent<UnityEngine.UI.Image>();
+        cooldownImage.sprite = GetComponent<UnityEngine.UI.Image>()?.sprite;
+        cooldownImage.color = new Color(0f, 0f, 0f, .65f);
+        cooldownImage.rectTransform.anchorMin = Vector2.zero;
+        cooldownImage.rectTransform.anchorMax = Vector2.one;
+        cooldownImage.rectTransform.offsetMin = cooldownImage.rectTransform.offsetMax = Vector2.zero;
+        ConfigureImage();
+        // 전략 버튼의 원본 아이콘은 항상 온전히 표시합니다.
+        var icon = GetComponent<UnityEngine.UI.Image>();
+        if (icon != null) { icon.type = UnityEngine.UI.Image.Type.Simple; icon.fillAmount = 1f; }
+        if (cooldownText != null) cooldownText.transform.SetAsLastSibling();
+        Refresh();
+    }
+
+    private void Awake() => Initialize();
+
+    private void Initialize()
+    {
+        if (initialized) return;
         sprintButton = GetComponent<UnityEngine.UI.Button>();
         if (cooldownImage == null) cooldownImage = GetComponent<UnityEngine.UI.Image>();
         ConfigureImage();
         ConfigureText();
+        initialized = true;
     }
 
     private void ConfigureText()
@@ -55,7 +87,7 @@ public sealed class SprintCooldownUI : MonoBehaviour
     private void OnEnable()
     {
         if (sprintButton == null) sprintButton = GetComponent<UnityEngine.UI.Button>();
-        sprintButton.onClick.AddListener(OnSprintClicked);
+        if (!tactical) sprintButton.onClick.AddListener(OnSprintClicked);
         Refresh();
     }
 
@@ -71,11 +103,12 @@ public sealed class SprintCooldownUI : MonoBehaviour
     private void Refresh()
     {
         ResolvePlayer();
-        float remaining = player != null ? player.DashCooldownRemaining : 0f;
+        float remaining = player != null ? (tactical ? player.TacticalCooldownRemaining : player.DashCooldownRemaining) : 0f;
         bool visible = remaining > 0f;
         if (cooldownImage != null)
         {
-            cooldownImage.fillAmount = player != null ? player.DashCooldownProgress : 1f;
+            cooldownImage.fillAmount = player != null
+                ? (tactical ? 1f - player.TacticalCooldownProgress : player.DashCooldownProgress) : 1f;
         }
         SetCooldownVisible(visible);
         if (cooldownText != null)
@@ -123,5 +156,6 @@ public sealed class SprintCooldownUI : MonoBehaviour
     private void OnDestroy()
     {
         if (generatedText != null) Destroy(generatedText);
+        if (generatedOverlay != null) Destroy(generatedOverlay);
     }
 }

@@ -1,5 +1,56 @@
 # 작업 인수인계
 
+## 2026-11-12 전략 버튼 통합·쿨타임 표시·좌우 조작 설정
+
+- 사용자 요구 3개 완료: 전략 버튼을 강공격 위로 합치기, 대시와 같은 쿨타임 표시, 일시정지 톱니바퀴 설정에서 이동/버튼 묶음 좌우 변경. 사용자가 좌우 설정은 앱 재실행 후에도 유지하도록 저장을 선택했다. 기준 브랜치 `feature/boss-appear-6-times`, HEAD `00f4c85`이며 앞선 세션/사용자/Unity 변경을 보존하고 현재 작업 트리에 구현했다. 설계/실행: `docs/superpowers/specs/2026-11-12-mobile-controls-design.md`, `docs/superpowers/plans/2026-11-12-mobile-controls.md`.
+- MainScene: Skill의 GUID/버튼 참조를 보존하며 MobileUI/Button의 첫 자식으로 재배치했다. 위부터 전략/강공격/약공격/가드/대시 5개이며 기존120 크기를 유지한다. 묶음은 왼쪽 중앙 (85,-80),120×712, 간격28로 화면 안에 들어가고 기존 HUD 아래에 위치한다. 기존 조이스틱 오른쪽 중심 여백은 유지한다. MobileUI에 MobileControlLayout을 연결하고 조이스틱 Background의 stripped 참조만 추가했다. 프리팹 원본·입력 액션·전투 수치는 변경하지 않았다.
+- 쿨타임: Player의 기존 nextTacticalReadyTime 규칙을 유지하고 성공 시전 당시 표의 기간을 저장해 TacticalCooldownRemaining/Progress를 노출한다. 기존 SprintCooldownUI에 전략 바인딩을 추가해 원본 아이콘 위 원형 어두운 덮개와 남은 초를 표시한다. 실패는 타이머를 시작하지 않고 게임 시간 정지 중 유지한다. 전략 입력은 기존 PointerDown/Submit만 소유하며 Click 해제 때 중복 시전하지 않는다. 매 프레임 재연결/소유자 변경/비활성 버튼 초기화에서 표시가 중복되지 않는다. 전략 미장착 시 기존 물의 방패30009 대체 동작과 표의6초를 유지했으며 새 수치를 정하지 않았다.
+- 좌우 설정: PlayerStatusPanel의 기존 음량 설정 안에 `조작 위치` 버튼을 추가하고 제목을 `설정`으로 바꿨다. 기본 `버튼 왼쪽 · 이동 오른쪽`, 반전 `이동 왼쪽 · 버튼 오른쪽`을 표시하고 즉시 적용한다. MobileControlLayout이 씬 내부 배치와 PlayerPrefs `MobileControls.Swapped` 저장을 소유한다. CanvasSafeArea는 원본 앵커/위치/pivot 기준 반전 API를 제공해 inset 누적 없이 대응한다. 조이스틱 Background 위치도 반전하지만 아이콘/텍스트/버튼 순서는 뒤집지 않는다. 변경 시 기존 조이스틱 입력을 초기화하고 팝업/Time.timeScale 소유권은 바꾸지 않는다.
+- 새 검증: 실제 Unity6000.5.0f1 격리 PlayMode MobileReadinessTests는 최초8/12(4개 기능 부재)→12/12. 확장 시 headless TMP의 그래픽 장치 오류1건을 환경 문제로 분류하고 `RunUnity.ps1 -Graphics`의 그래픽 포함 배치 실행으로 검증했다. 재연결 덮개 중복 및 독립 리뷰의 비활성 버튼 Awake 이전 null/CanvasSafeArea 단독 재활성화 반전 유실을 회귀로 재현(13/16,3실패) 후 수정해 **최종16/16 통과·실패/생략0**. 회귀는 실제 전략 시전/재사용 거절/정지·실패/표시/중복 방지, 설정 버튼 클릭/재열기/저장·새 객체 복원, 반복 반전/컷아웃/루트·안전 영역 단독 재활성화, 실제 VariableJoystick 입력 초기화, 기존 대시 표시를 포함한다. 원본 프로젝트 전체 테스트 수가 아니다.
+- 별도 새 검증: DashCooldownValidation **8/8 통과**. CheckMobileLayout.mjs는 실제 씬의 5개 순서·새 컴포넌트 참조와6개 화면 조건의 정적 좌표 **30/30 통과**. RunPlayerCompile.ps1로 실제 원본 캐시 Android 조건의 Assembly-CSharp 직접 컴파일 성공(exit0), 기존 경고3개(CS0252 1·CS0618 2), 생성 DLL의 NUnit 참조/EnemyPhysics 테스트 타입0 확인. 새 Mobile 소스의 캐시 누락을 보완했다. Editor 조건 컴파일은 격리 Unity가 실제 수행했다. 변경 코드/테스트/문서 공백 검사 통과이며 원본 씬의 기존 CanvasSafeArea 빈 문자열 후행 공백4곳은 그대로다.
+- 환경/검토: 첫 샌드박스 임시 Unity의 라이선스 IPC 정체를 확인해 직접 띄운 검증 PID만 종료하고 정상 권한으로 실행했다. Dash 도구의 NuGet 사용자 설정 접근 제한도 정상 권한에서 해소했다. 원본 에디터/전역 Play From Title·원본 Library DLL을 변경하지 않았다. 코드 리뷰의 두 지적을 수정하고 재검토에서 중요한 추가 문제 없음. 임시 결과 `%TEMP%/sbs-android-readiness/mobile-controls-final.xml`; 영속 근거는 위 테스트/실행 도구와 기록이다.
+- 남은 검증/직접 확인: Play 종료 후 수정된 MainScene을 재로드 → `Tools > Play From Title` 해제 → MainScene Play → 버튼 순서 확인 → 전략 시전 후 원형 덮개/남은 초·쿨타임 중 재사용 거절 확인 → 일시정지 → 설정(톱니바퀴) → `조작 위치` 클릭 → 이동 왼쪽/버튼 오른쪽 전환 확인 → 뒤로가기/재개 후 동시 조작 → 다시 설정에서 복원 및 게임/앱 재시작 후 선택 유지 확인. `File > Build Profiles > Android > Build And Run`으로 새 APK를 설치해 좌우 가로 회전/컷아웃/홈 복귀도 확인한다. 정상은5개 버튼 순서·표시·저장된 좌우 배치가 유지되고, 일시정지 중 쿨타임과 게임이 진행되지 않으며 전환 후 이전 이동 입력이 남지 않는 것이다. 이상 시 Console/Logcat 첫 예외, MobileUI의 새 컴포넌트와 Button/Joystick/Background 참조, 씬 재로드·새 APK 설치, PlayerPrefs 선택과 설정 문구를 확인한다. 이번 새 전체 Android 빌드/원본 MainScene 렌더링/실기기 조작감은 미검증이다.
+
+## 2026-11-12 Android 실기기 모바일 조작 UI 위치 수정
+
+- 사용자 사진/보고: 왼쪽 스킬 버튼이 화면 끝에 붙지 않고, 오른쪽 이동 컨트롤러가 모서리에 몰려 조작이 어려우며, 전략기 위치도 어색하다. 사진은 촬영 방향이 세로인 가로 게임 화면이다. 앞선 가로 방향 재빌드 이후 실제 UI 배치 피드백으로 취급한다.
+- 원인: MainScene MobileUI/Button(4개 버튼 묶음)이 중앙 앵커에 X=-875, 전략기 Skill도 중앙 앵커에 (916,-200) 고정 좌표라 와이드 화면에서 가장자리 기준 간격이 변한다. 조이스틱은 오른쪽 아래 앵커의 root와 Background 오프셋 합으로 오른쪽에서 약179·아래186(기준 좌표)에 위치해 256 크기 컨트롤의 바깥 여백이 작았다. CanvasSafeArea 자체를 변경하지 않고 잘못된 기준점과 오프셋을 바로잡았다.
+- 수정: 버튼 묶음은 왼쪽 중앙 앵커, (85,80)으로 변경해 기존 버튼 순서·크기·세로 배치를 유지했다. 조이스틱 root는 오른쪽 아래 (-960,0), Background는 (660,280)으로 변경해 중심을 안전 영역 오른쪽에서300·아래에서280 위치에 둔다. 전략기는 오른쪽 아래 (-300,500), 120×120으로 조이스틱 위 중앙에 정렬했다. 조이스틱 바깥 여백은 오른쪽172·아래152, 전략기와 컨트롤 사이 간격은32(1920×1080 기준)다. 좌우 역할·프리팹 원본·기존 GUID·입력 참조·쿨다운/전투 동작은 보존했다.
+- 새 영속 회귀: `node tools/AndroidReadinessValidation/CheckMobileLayout.mjs`가 실제 MainScene/조이스틱 프리팹의 직렬화 좌표를 읽어 CanvasSafeArea/Expand의 안전 영역 스케일과 VerticalLayoutGroup 배치를 계산한다. 16:9·20:9·좌 컷아웃·우 컷아웃+하단 제스처 영역·4:3 태블릿·720p의 6조건에서 왼쪽 밀착/4개 버튼 수직 범위/조이스틱 여백/전략기 정렬·겹침·크기를 검사한다. 수정 전 **9/30 통과·21 실패 → 수정 후 30/30 통과**. 정적 좌표 회귀이며 Unity 렌더링·터치·실기기 검증이 아니다. 기존 PlayMode 8/8을 재실행하지 않았고 새 컴파일/Unity 자동 테스트/Android 빌드는 **0회**다.
+- 변경 보존: 시작 시 MainScene의 Guard 직렬화 순서·PlayerController 활성화 및 CanvasSafeArea 빈 문자열 공백 등 사용자/Unity 변경이 있었고 그대로 보존했다. ProjectSettings·셰이더·기타 기존 수정과 생성 파일도 건드리지 않았다. 전체 scene diff 공백 검사는 시작 시 존재하던 CanvasSafeArea 빈 문자열의 후행 공백 4곳을 계속 보고하며 이번 UI 좌표 변경의 추가 공백 문제는 없다.
+- 직접 확인: Play 종료 후 외부 씬 변경을 재로드하고 `Assets/9.Scenes/MainScene.unity` 열기 → `Tools > Play From Title` 해제 → Game 뷰 16:9/20:9 및 Device Simulator 컷아웃에서 Play → `File > Build Profiles > Android > Build And Run`. 정상은 스킬 4개가 왼쪽 안전 영역 가장자리를 따라 유지되고 오른쪽 이동 컨트롤러가 모서리에서 떨어지며, 전략기가 그 위에 겹침 없이 표시되는 것이다. 조이스틱을 누른 채 반대 손가락으로 공격·Guard·Sprint·전략기 입력, 기기 좌우 회전·홈 복귀도 확인한다. 전략기 발동은 기존 획득 조건을 따르며 새 보상/스킬을 자동 부여하지 않았다. 이상 시 씬 재로드 여부, MobileUI/Button·Skill 앵커/좌표, Variable Joystick의 씬 override와 CanvasSafeArea 활성, 새 APK 설치 여부 및 Logcat 첫 예외를 확인한다. 다음은 실기기 배치·엄지 도달 범위 확인이며 실제 편안함은 좌표 검사로 확정하지 않는다.
+
+## 2026-11-12 Android 기기 실행 후 가로 방향 설정 수정
+
+- 사용자가 Android 빌드 및 기기 실행 완료를 보고했다. 이는 앞선 NUnit 링크 수정 이후 사용자 확인 결과이며 에이전트가 전체 빌드를 실행한 결과로 확대하지 않는다. 실행 화면이 세로로 나온다는 추가 문제가 있다.
+- 원인 근거: 현재 PlayerSettings가 Auto Rotation(`defaultScreenOrientation: 4`), 세로 정방향/역방향 및 가로 양방향 모두 허용, OS 회전 설정 따름(`useOSAutorotation: 1`)이었다. 직전 생성 Android Manifest의 activity도 `screenOrientation="fullUser"`였다. 런타임 소스에서 Screen.orientation/autorotate를 덮어쓰는 코드는 발견되지 않았고 Android 프로필의 PlayerSettings override는 비어 있다.
+- 최소 수정: ProjectSettings의 Portrait/Portrait Upside Down 허용만 `0`으로, useOSAutorotation을 `0`으로 변경했다. Auto Rotation과 가로 좌/우 허용은 유지하므로 센서 기준 가로 양방향을 지원한다. 기존 회사명/제품명·입력 preloadedAssets·Android 배칭/압축 등 사용자 변경은 보존했다. 런타임·씬·프리팹·생성 Manifest는 수정하지 않았다.
+- 검증: 직렬화 설정 및 변경 diff 정적 확인만 수행했다. 이번 수정 후 새 컴파일·자동 테스트·Android 빌드·기기 실행은 **0회**다. 직전 빌드 Manifest는 원인 근거이며 수정 후 산출물이 아니다.
+- 직접 확인: Unity `Edit > Project Settings > Player > Android > Resolution and Presentation`에서 Default Orientation=Auto Rotation, Portrait/Portrait Upside Down 해제, Landscape Left/Right 선택, Auto Rotation Behavior=Sensor를 확인 → `File > Build Profiles > Android > Build And Run`으로 재빌드/재설치 → 휴대전화를 세로로 잡고 앱 시작 및 홈 복귀, 좌/우 가로 회전, Title/MainScene 확인. 정상은 게임이 가로를 유지하고 양쪽 가로 방향에서 버튼/HUD가 안전 영역 안에 표시되는 것이다. OS 회전 잠금 켜짐/꺼짐도 확인한다. 이상 시 설치된 APK가 새 빌드인지, 위 PlayerSettings 및 프로필 override, 새 생성 Manifest의 screenOrientation, Logcat 첫 예외를 확인한다.
+
+## 2026-11-12 Android UnityLinker NUnit 누출 수정
+
+- 사용자 실제 빌드 로그: 11:00:06~11:03:08 Android 빌드가 ManagedStripped 단계에서 실패했다. `Assembly-CSharp.dll` 안의 `BossAreaFollowupTests` 처리 중 `nunit.framework` 해석 실패(IL1005)가 직접 원인이다. 앞선 USB 기기 검출 문제와 별개이며 기기 연결 해결 여부는 미확인이다.
+- `Assets/Tests/EnemyPhysics`의 테스트 5개가 별도 테스트 asmdef나 에디터 조건 없이 기본 게임 어셈블리에 포함되어 있었다. 각 파일 전체에 `UNITY_EDITOR` 조건만 추가해 에디터 테스트 소스와 GUID·기존 런타임 구조를 보존했다. NUnit을 앱에 추가하거나 stripping 수준을 낮추지 않았다. 기존 사용자/Unity의 씬·셰이더·프로필·ProjectSettings 변경과 생성 파일은 보존했다.
+- 영속 회귀 도구 `tools/AndroidReadinessValidation/RunPlayerCompile.ps1` 추가: 실제 Android player 캐시 응답을 사용하되 NUnit 참조를 제거하고 게임 어셈블리를 별도 임시 경로로 컴파일한다. 수정 전에는 위 5개 테스트의 NUnit/테스트 특성 누락으로 실패(exit 1), 수정 후에는 성공(exit 0, 기존 경고 3개: CS0252 1·CS0618 2). 에디터 조건의 Assembly-CSharp 직접 컴파일도 성공(exit 0, 같은 경고 3개).
+- Unity.Cecil로 새 DLL 검사: Android 조건은 NUnit 참조 **0**, 해당 테스트 타입 **0**; 에디터 조건은 NUnit 참조 **1**, 해당 테스트 타입 **5**. Android 도구에 NUnit 참조·테스트 타입 부재 검사를 포함했다. 이번 자동 검증은 컴파일/어셈블리 구성 검사이며 NUnit 테스트 실행 수는 **0**이다. 원본 Library DLL을 덮어쓰거나 두 번째 Unity를 열지 않았다.
+- 남은 검증/직접 확인: 원본 Unity가 임포트·컴파일를 마칠 때까지 기다린 뒤 `File > Build Profiles > Android`에서 동일 Development Build를 재시도한다. 정상은 `ManagedStripped`에서 위 NUnit/IL1005 오류가 사라지고 빌드가 다음 단계로 진행하는 것이다. 전체 Gradle/IL2CPP/APK 및 기기 실행은 이번에 재실행하지 않았다. 실패하면 Console/Editor.log의 **새 빌드 첫 오류**를 확인하고, 기기 오류가 다시 나오면 Run Device Refresh·USB 디버깅/승인 상태를 확인한다. 에디터 테스트 목록 보존은 `Window > General > Test Runner`에서 해당 클래스 이름으로 확인할 수 있으며 실제 테스트 성공은 별도 실행이 필요하다.
+
+## 2026-11-12 USB 연결 후 Android 기기 미인식 조사
+
+- 사용자 보고: USB 연결 상태에서도 Unity가 기기 연결/USB 드라이버 확인 오류를 표시한다. Unity 6000.5.0f1 내장 SDK의 `adb devices -l`을 실제 실행했으며 `List of devices attached` 아래 기기 목록이 비어 있었다. 따라서 현재 이 ADB에서는 배포 대상이 검출되지 않는다. APK 컴파일 성공/실패 여부는 이 결과로 판단하지 않는다.
+- Windows 현재 장치의 WPD 및 Android/ADB/주요 휴대전화 이름 필터에서도 항목이 나오지 않았다. 이 필터 결과만으로 드라이버 문제라고 확정하지 않는다. 휴대전화 USB 디버깅·승인, 데이터 지원 케이블·직결 포트, 제조사 드라이버를 순서대로 확인해야 한다. Unity에서 실제 선택한 SDK 경로는 아직 미확인이다.
+- 이번 조사 중 씬·셰이더·렌더링 설정·Android 프로필·ProjectSettings 등의 수정 및 Addressables/PerformanceTestRun 생성 파일이 관찰되었다. 기존 사용자/Unity 변경으로 보존하고 변경·되돌리기·스테이징하지 않았다. 이번 수정은 이 인수인계 기록뿐이다. 새 컴파일/테스트/빌드/기기 실행은 0회다.
+- 직접 확인: 휴대전화 잠금 해제 → 개발자 옵션의 USB 디버깅 활성 → USB 재연결 후 디버깅 허용 → Unity `File > Build Profiles > Android > Run Device > Refresh`. 정상은 기기 이름이 나타나 선택 가능하고 ADB 상태가 `device`인 것이다. 계속 비어 있으면 데이터 케이블/다른 포트와 장치 관리자를 확인하고, `unauthorized`면 휴대전화 승인 팝업을 확인한다. 기종 확인 후 제조사 공식 드라이버 경로를 안내한다.
+
+## 2026-11-12 Android 작업 재개 전 상태 확인
+
+- 사용자 요청은 어제 Android 빌드 준비 작업의 상태 확인이다. 실제 시작 상태는 `feature/boss-appear-6-times`, HEAD `00f4c85` (`fix: Android 입력 및 화면 안전 영역 대응`), 작업 트리 깨끗함. 로컬에 기록된 upstream과 ahead/behind `0/0`이며 이번에 원격 fetch는 하지 않았다.
+- 어제 완료된 터치 Guard 연결·취소 처리, New 입력 모듈, MainScene 두 Canvas의 1920×1080/Expand 및 CanvasSafeArea 연결, 플러그인 UNITY_EDITOR 보호가 현재 코드·씬·설정에 존재함을 정적으로 대조했다. 기존 구현을 반복하거나 씬·설정·런타임 코드를 수정하지 않았다.
+- Android 설정은 IL2CPP/ARM64, 최소 API 26, Target SDK 자동(`0`), activeInputHandler `1`이다. Android 프로필은 전역 씬 목록을 사용하며 현재 Development Build와 App Bundle은 모두 꺼져 있다. 전역 활성 씬은 Title/Load/Main/Giung/Lobby 순서다. GiungScene 포함은 현 상태 기록이며 임의로 제외하지 않았다.
+- 이번 실행은 정적 대조와 diff 공백 검사뿐이다. 새 컴파일·자동 테스트·Play·APK/AAB 빌드·기기 실행은 **0회**다. 아래 8/8 및 컴파일 성공은 11월 11일 결과이며 오늘 재실행 결과가 아니다. SDK/NDK/JDK 설치, 실제 카탈로그·번들, 기기 성능은 이번에 확인하지 않았다.
+- 다음 우선순위/직접 확인: Unity 재시작 후 Console 첫 오류 확인 → `Tools > Play From Title` 해제 → `Assets/9.Scenes/MainScene.unity` Play에서 Guard 짧게 누름/유지/해제 및 화면비·안전 영역 확인 → `File > Build Profiles > Android`에서 Development Build를 켜고 연결 기기로 `Build And Run`. 정상은 패링→홀드 가드→해제, 조이스틱과 다른 버튼의 동시 조작, 팝업/홈 복귀 후 고착 없음, HUD/버튼의 안전 영역 유지다. 실패 시 Console/빌드 로그의 첫 오류, Guard 참조와 InputSystemUIInputModule, Android Logcat 첫 예외, Screen.safeArea 및 Profiler CPU/GPU/GC Alloc을 확인한다.
+
 ## 2026-11-11 Android 호환 수정 및 종료 인수인계
 
 - 사용자 요청: Android 점검 문제 수정에 이어 컴퓨터 종료 전 진행 사항 정리·커밋·push. 기준 브랜치 `feature/boss-appear-6-times`, 시작 HEAD `fe3b0cf`. 시작 시 Handoff의 앞선 점검 변경만 있었고 보존했다. 브랜치 전환·사용자 Unity 재실행·원본 씬 자동 저장은 하지 않았다.

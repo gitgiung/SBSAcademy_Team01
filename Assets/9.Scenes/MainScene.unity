@@ -3130,6 +3130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5b649f83919c8644aace3832ce73178, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
+  guardButton: {fileID: 1437309640}
   heavyAttackButton: {fileID: 452539071}
   heavyChargeSettings:
     Configured: 1
@@ -3157,7 +3158,6 @@ MonoBehaviour:
   inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   lightAttackButton: {fileID: 1415531113}
   shieldButton: {fileID: 1724077529}
-  guardButton: {fileID: 1437309640}
   lightAttackProjectile: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
   passiveProjectiles:
   - Key: FlameBullet
@@ -3601,7 +3601,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 454019994}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
   m_Name: 
@@ -4223,6 +4223,7 @@ GameObject:
   - component: {fileID: 742152523}
   - component: {fileID: 742152522}
   - component: {fileID: 742152526}
+  - component: {fileID: 742152530}
   m_Layer: 5
   m_Name: MobileUI
   m_TagString: Untagged
@@ -4307,7 +4308,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1269801975}
-  - {fileID: 1724077528}
   - {fileID: 1865912158}
   - {fileID: 419091036}
   m_Father: {fileID: 0}
@@ -4327,9 +4327,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5695266036b4a09ad1c9cc3c7318d4e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   referenceResolution: {x: 1920, y: 1080}
+--- !u!114 &742152530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 742152521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93f9f5a22a1e49b7ad102d562b9aec30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buttonGroup: {fileID: 1865912158}
+  joystickRoot: {fileID: 1269801975}
+  joystickBackground: {fileID: 1276861302}
 --- !u!1 &748540422
 GameObject:
   m_ObjectHideFlags: 0
@@ -30601,11 +30616,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3881087803549984436, guid: ec536a7718376554185e4a856d5ae230, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -969
+      value: -960
       objectReference: {fileID: 0}
     - target: {fileID: 3881087803549984436, guid: ec536a7718376554185e4a856d5ae230, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 5.8310547
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3881087803549984436, guid: ec536a7718376554185e4a856d5ae230, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -30633,11 +30648,11 @@ PrefabInstance:
       objectReference: {fileID: 6209729913160420150, guid: 4e751e2e4180d2144a85a61fbb74d26a, type: 3}
     - target: {fileID: 3881087803815115471, guid: ec536a7718376554185e4a856d5ae230, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 790
+      value: 660
       objectReference: {fileID: 0}
     - target: {fileID: 3881087803815115471, guid: ec536a7718376554185e4a856d5ae230, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 180
+      value: 280
       objectReference: {fileID: 0}
     - target: {fileID: 3881087804030458057, guid: ec536a7718376554185e4a856d5ae230, type: 3}
       propertyPath: m_Sprite
@@ -30660,6 +30675,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ec536a7718376554185e4a856d5ae230, type: 3}
+--- !u!224 &1276861302 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 3881087803815115471, guid: ec536a7718376554185e4a856d5ae230, type: 3}
+  m_PrefabInstance: {fileID: 1276861301}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1330545913
 GameObject:
   m_ObjectHideFlags: 0
@@ -31362,8 +31382,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5695266036b4a09ad1c9cc3c7318d4e, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   referenceResolution: {x: 1920, y: 1080}
 --- !u!1 &1395659082
 GameObject:
@@ -32469,12 +32489,12 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 742152525}
+  m_Father: {fileID: 1865912158}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 916, y: -200}
-  m_SizeDelta: {x: 80, y: 80}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 120, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1724077529
 MonoBehaviour:
@@ -32847,19 +32867,20 @@ RectTransform:
   m_GameObject: {fileID: 1865912157}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.0375, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1724077528}
   - {fileID: 452539070}
   - {fileID: 1415531112}
   - {fileID: 1437309639}
   - {fileID: 1125569979}
   m_Father: {fileID: 742152525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -875, y: 80}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchorMin: {x: 0, y: 0.5}
+  m_AnchorMax: {x: 0, y: 0.5}
+  m_AnchoredPosition: {x: 85, y: -100}
+  m_SizeDelta: {x: 120, y: 712}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1865912159
 MonoBehaviour:
@@ -32879,7 +32900,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 0
-  m_Spacing: 50
+  m_Spacing: 28
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0

@@ -1,4 +1,4 @@
-param([string]$ResultName = 'result')
+param([string]$ResultName = 'result', [switch]$Graphics)
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path "$PSScriptRoot/../..").Path
 $validationRoot = Join-Path $env:TEMP 'sbs-android-readiness'
@@ -33,7 +33,8 @@ foreach ($module in @('animation','audio','imgui','jsonserialize','particlesyste
 $log = "$validationRoot/$ResultName.log"
 $xml = "$validationRoot/$ResultName.xml"
 $unity = 'C:/Program Files/Unity/Hub/Editor/6000.5.0f1/Editor/Unity.exe'
-$process = Start-Process -FilePath $unity -ArgumentList "-batchmode -nographics -projectPath `"$validationRoot`" -runTests -testPlatform PlayMode -testFilter MobileReadinessTests -testResults `"$xml`" -logFile `"$log`"" -WindowStyle Hidden -PassThru
+$graphicsOption = if ($Graphics) { '' } else { '-nographics' }
+$process = Start-Process -FilePath $unity -ArgumentList "-batchmode $graphicsOption -projectPath `"$validationRoot`" -runTests -testPlatform PlayMode -testFilter MobileReadinessTests -testResults `"$xml`" -logFile `"$log`"" -WindowStyle Hidden -PassThru
 Write-Output "Validation PID=$($process.Id), project=$validationRoot"
 $process.WaitForExit()
 if (Test-Path $xml) {

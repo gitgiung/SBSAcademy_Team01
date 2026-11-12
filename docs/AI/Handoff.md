@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 2026-11-12 3D를 제외한 브랜치를 메인에 합침
+
+- `feature/boss-appear-6-times`와 `iOS-Build-Test`는 같은 커밋이라 한 번에 합쳤다. 3분마다 보스 등장, 시간별 강화, 화면 안전 영역, 모바일 조작 위치, 전략 쿨타임 표시가 들어왔다.
+- `Test`의 보스 2페이즈 붉은 테두리, 체력·자원 게이지 연출, 보스 공격이 잠깐 보였다가 사라지는 연출을 합쳤다.
+- `feature/gameplay-feel-polish`는 이미 메인에 들어 있어 다시 합치지 않았다.
+- `feature/soul-pipeline-3d`는 제외했다.
+- 대시 시간과 배율은 메인의 0.25초·3배를 유지했다. 전투 폰트는 글자를 실행 중에 만드는 쪽을 유지했다. 전략 남은 횟수와 쿨타임 표시, 스크린샷 버튼과 조작 위치는 같이 남겼다.
+- 이번 병합 후 Unity 컴파일과 Play는 실행하지 않았다.
+
 ## 2026-11-12 미커밋 작업을 main에 반영
 
 - 사용자 요청으로 로컬 main에 커밋한 뒤 `origin/main`에 푸시했다. `origin/main`은 `5109a21`. 공격 스킬 이펙트는 `eedcf4f`, 몬스터 속도·패링 진동·사망 보스 체력·레벨업 리롤은 `7ed28a0`. 이전에 로컬에만 있던 필드 아이템 그림 `a395a7f`·`5ed80d0`도 같이 올라갔다.
@@ -217,6 +226,78 @@
 - 환경: 원본 Unity가 열려 있어 임시 프로젝트에 실제 관련 4개 런타임 소스와 테스트를 복사해 실행했다. 최초 샌드박스 실행은 라이선스 IPC 거부로 테스트를 시작하지 못했으며, 해당 검증 프로세스만 경로/PID 대조 후 종료하고 정상 사용자 권한에서 실행했다. 사용자 에디터·전역 Play From Title 옵션·원본 씬 전체 저장·프리팹·패키지·Project Settings는 건드리지 않았다. 원본 프로젝트 화면, 실제 프리팹별 애니메이션/리소스, 실제 18분 플레이, 카탈로그/번들, Android 빌드/기기는 미검증이다. 임시 결과는 `.utmp/BossSchedule`에 있지만 위 영속 소스·결과 요약이 검증 근거다.
 - 직접 확인: 사용자 씬 변경 보존 → Play 종료/임포트 완료/Console 첫 오류 확인 → `Tools > Play From Title` 해제 → `Assets/9.Scenes/MainScene.unity` 다시 열기 → `Boss Encounter > Boss Encounter Controller > Schedule` 또는 Project의 `MainBossEncounterSchedule.asset` 선택. Entries 0~5의 시각·Boss Prefab·Spawn Offset을 확인하고 미정 회차는 필요 시 직접 지정한다. Play 중 `Enemy Spawn System > EnemySpawnDirector > 테스트/진행시간 30초 앞으로`로 03:00 진입 → 야수 등장/진행 시계·일반 스폰 정지/전투 지속/등장 뒤 HP바 페이드 → 처치 뒤 재개를 확인한다. 기본 설정의 미지정 경고 5개는 예상 결과다. 다른 회차를 지정하면 해당 보스와 HP바, 18:00 마지막 등장까지 확인한다.
 - 이상 시: Console의 회차·시각별 오류, Schedule과 Boss Target/Anchor/HP바 참조, 프리팹 루트 EnemyHealth·지원 보스·야수 패턴 선택기, Director 진행 한도를 확인한다. 다음은 실제 MainScene 화면 회귀 확인과 남은 5회차의 보스/생성 위치 지정이며 순서·수치·승리 조건은 임의 확정하지 않는다.
+
+## 2026-11-12 보스 타격 직전 빨간 섬광
+
+- 후속 요청으로 타격 직전 빨간 섬광 연출과 관련 Inspector 설정·프리팹 참조를 제거했다. 기존 공격 범위 표시와 원형 확산은 유지한다. MainScene에서 할퀴기·돌진 전에 빨간 섬광이 나오지 않는지 확인한다. 이상 시 Console 첫 오류 및 해당 보스의 활성 VFX를 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 빨간 섬광이 표시 초반에 작아졌다가 최대 밝기까지 커지도록 했다. `Pre Hit Flash Width`는 최대 너비다. `Tools > Play From Title` 해제 → `MainScene` Play → 할퀴기·돌진 직전 크기와 밝기 변화를 확인한다. 짧아서 구분이 어려우면 예고 시간을 0.5초로 늘리고, 이상 시 Console 첫 오류와 Width를 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 빨간 `ParryFlash_00`에도 투명 → 최대 밝기 → 투명 사이클을 추가했다. `Range Fade In Duration`과 `Range Fade Out Duration`의 비율을 타격 전 남은 예고 시간에 맞춰 적용한다. `MainScene`에서 할퀴기·돌진 직전 한 번 반짝이는지 확인한다. 이상 시 Console 첫 오류와 `Pre Hit Flash Lead Time` 및 페이드 값을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 후속 요청으로 BeastZombie의 `Pre Hit Flash Textures`에 `MagicBarrier/ParryFlash_00`만 남겼다. MainScene에서 할퀴기·돌진 직전 빨간 이미지 한 장이 유지되다가 타격 때 사라지는지 확인한다. 이상 시 Console 첫 오류와 Inspector의 배열 항목을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 프레임 소스를 `Art/Pretty_Magical_Girl/VFX/MagicBarrier`의 원본 PNG `ParryFlash_00`~`04` 다섯 장으로 수정했다. BeastZombie의 `Pre Hit Flash Textures`가 순서를 지정한다. 03·04의 분리된 불꽃 조각이 함께 나오도록 PNG 전체를 한 프레임으로 사용한다. Unity 컴파일·Play·자동 테스트 미실행(0개). MainScene에서 할퀴기·돌진 직전에 다섯 장의 빨간 애니메이션을 확인한다. 이상 시 Console 첫 오류와 Inspector 배열 순서를 확인한다.
+
+- 후속 요청으로 등장·2페이즈 원형 공격에서 빨간 섬광을 제외했다. 할퀴기·돌진은 `ParryFlash_00`~`16`을 이름순으로 남은 예고 시간에 맞춰 한 번 재생한다. Inspector의 예고 시간과 너비는 기존 필드를 유지한다. `Tools > Play From Title` 해제 → `MainScene` Play → 등장·2페이즈 원형은 기존 연출만, 할퀴기·돌진은 타격 직전 빨간 애니메이션을 확인한다. 이상 시 Console 첫 오류, 예고 시간(예: 0.5초)과 프레임 Sprite 임포트를 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- BeastZombie의 할퀴기·원형(등장 포함)·돌진에 기존 `Resources/PlayerDefenseVfx/ParryFlash_00` 한 장을 빨간색으로 표시한다. `Boss Attack Hit Vfx > 타격 직전 빨간 섬광`의 `Pre Hit Flash Lead Time` 기본 0.25초(0이면 끔), `Pre Hit Flash Width` 기본 1.5 월드 단위다. 할퀴기는 피해 애니메이션 이벤트, 원형은 충전 완료 시각, 돌진은 추적 대상의 현재 위치로 예측한 도착 시점을 기준으로 한다. 기존 피해 판정과 타이밍을 유지한다.
+- `git diff --check` 통과. Unity 컴파일·Play·자동 테스트 미실행(0개). `Tools > Play From Title` 해제 → `MainScene` Play → 보스 패턴 직전 보스 위치에 빨간 섬광이 표시되고 타격 순간 사라지는지 확인한다. 이상 시 Console 첫 오류, VFX Inspector의 예고 시간, ParryFlash_00의 Sprite 임포트 및 할퀴기 클립의 피해 이벤트를 확인한다.
+
+## 2026-11-12 보스 범위 깜빡임과 등장 섬광
+
+- 추가 요청으로 등장 원형 예고와 타격 순간의 흰색 범위 깜빡임도 제외했다. 기존 등장 확산 VFX와 원형 충전은 유지한다. 현재 깜빡임은 할퀴기·돌진 착지에 적용한다. `Tools > Play From Title` 해제 → `MainScene` Play → 30초 등장 때 원형 예고가 유지되고 안쪽 원이 차오른 뒤 기존 확산이 재생되는지 확인한다. 이상 시 Console 첫 오류와 `Range Material`을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 후속 요청으로 2페이즈 원형 패턴(진입 직후와 반복)을 깜빡임에서 제외했다. 기존처럼 바깥 원이 유지되고 안쪽 원이 차오른다. 보스 등장 예고·타격 섬광, 할퀴기, 돌진의 깜빡임은 유지했다. 직접 확인은 `MainScene` Play → 보스 HP 50% 이하 → 원형 예고가 계속 보이고 안쪽 원이 차오르는지 확인한다. 이상 시 Console 첫 오류와 `Boss Attack Hit Vfx > Range Material`을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- `BossAttackHitVfx`의 할퀴기·원형 예고와 돌진 착지 범위가 투명에서 최대 밝기까지 올라갔다가 투명해진다. Inspector의 `공격 범위 깜빡임`에서 `Range Fade In Duration`(기본 0.07초), `Range Fade Out Duration`(기본 0.23초)을 조절한다. 돌진은 기존 `Dash Display Duration`을 전체 길이로 쓰고 같은 페이드 비율을 적용한다.
+- 등장 원형 타격 프레임에 실제 피해 반경으로 흰색 범위 깜빡임을 시작하고 기존 확산 VFX를 함께 재생한다. 공격 판정과 타이밍은 그대로다. “팅–쾅”은 시각 연출로 적용했다.
+- 정적 코드 확인 및 diff 공백 검사. Unity 컴파일·Play·자동 테스트 미실행(0개). 직접 확인은 `Tools > Play From Title` 해제 → `MainScene` Play → 30초 등장 전 주황색 범위 깜빡임과 등장 타격 때 흰색 섬광 확인 → BeastZombie Inspector에서 페이드 시간 조정 후 재시작이다. 이상 시 Console 첫 오류, `Range Material` 및 `Range Color`의 Alpha를 확인한다.
+
+## 2026-11-11 Player 컴파일 경고 정리
+
+- 전략 버튼 자동 검색의 구버전 `FindObjectsSortMode` 인자를 제거하고, 패링 줌 중 활성 카메라 비교에 `ReferenceEquals`를 사용했다. 기존 보호막 버튼 호환 메서드 `TryUseShieldSkill`은 유지했다.
+- Assembly-CSharp 재컴파일 오류 0, 경고 0. Unity Play 및 자동 테스트 미실행(0개).
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → `Skill` 버튼으로 장착 전략 스킬 사용 → 적 공격 직전에 E로 패링해 카메라 줌 복귀 확인. 이상 시 Console 첫 오류, `Shield Button` 연결과 Cinemachine의 활성 카메라를 확인한다.
+
+## 2026-11-11 보스 HP 피해 잔량 표시
+
+- GameManager에서 `Boss Health Gauge Preview`를 빼고 `BeastZombie` 프리팹에 옮겼다. 보스 컴포넌트는 자신의 `EnemyHealth`에 이미 연결된 Slider를 사용한다. 플레이어 HP·MP·EXP는 Player의 `Resource Gauge Preview`에서 갱신한다. 피해로 줄어든 보스 HP는 AllIn1SpriteShader UI Mask Hit Effect의 흰색으로 잠시 남았다가 줄어든다. `Boss Hp Speed` 기본값은 0.2다.
+- Enemy.Runtime과 Assembly-CSharp 컴파일 성공(기존 경고 3개). Unity Play·셰이더 렌더링·자동 테스트 미실행(0개).
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 보스를 공격한다. 빨간 바가 먼저 줄고 흰색 잔량이 뒤따라 줄어야 한다. 안 보이면 보스의 `Enemy Health > Health Slider`, `Boss Health Gauge Preview > Boss Hp Damage Material`, Console 첫 오류를 확인한다.
+
+## 2026-11-11 2페이즈 진입 원형 패턴 무적
+
+- BeastZombie가 2페이즈에 진입할 때 예약하는 첫 원형 패턴의 예고 시작부터 공격 모션이 끝날 때까지 보스 피해를 차단한다. 등장 원형 공격과 이후 반복 원형에는 적용하지 않는다. 패턴 종료·중단, 비활성화 및 재스폰 때 무적을 정리한다.
+- Enemy.Runtime·Boss.Runtime C# 컴파일과 변경 파일 공백 검사 통과. Unity Play 및 자동 테스트 미실행(0개). 다음은 타격을 계속 넣으며 보스 HP 변화를 확인하는 것이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 보스 HP를 50% 이하로 낮춘 뒤 첫 원형 예고·공격 중 공격한다. 보스 HP가 유지되다가 모션 종료 후 다시 줄어야 하고, 이후 반복 원형에서는 공격 중에도 HP가 줄어야 한다. 이상 시 Console 첫 오류와 `2페이지 돌입!` 로그, 최초 원형 여부를 확인한다.
+
+## 2026-11-11 BeastZombie 2페이즈 붉은 테두리
+
+- 최종: 흰 테두리와 붉은 몸체 제보에 따라 몸체 머티리얼 교체와 안쪽 발광을 제거했다. AllIn1SpriteShader `Only render outline?` 머티리얼을 몸체 뒤의 별도 렌더러에 연결해 붉은 바깥 테두리만 표시한다. BeastZombie 프리팹의 피격 색상도 기존 붉은색에서 흰색으로 바꿨다. Boss.Runtime 컴파일 통과, Unity Play·셰이더 렌더링 및 자동 테스트 미실행(0개). `MainScene`에서 HP 50% 이하로 낮춰 몸의 원래 색과 붉은 테두리를 함께 확인한다. 안 보이면 2페이즈 진입 로그, `Phase Two Outline` 자식 렌더러의 머티리얼 및 Console 첫 오류를 확인한다.
+
+- 후속: 별도 `Only Inner Outline` 렌더러 적용 후 보스 몸 전체가 붉게 보인다는 제보로 해당 변경을 되돌렸다. 아래의 기존 URP 2D 테두리 머티리얼 교체 방식을 복원했다. 기존 방식에서 제보된 진입 순간의 파란색은 Unity 화면에서 추가 확인이 필요하다.
+
+- `Test` `556ff93` 기준. `BeastZombie` 프리팹의 `BossController > 2페이즈 테두리`에 AllIn1SpriteShader URP 2D 머티리얼을 연결했다. HP 50% 이하 진입 시 몸체에 2픽셀 붉은 바깥 테두리와 약한 안쪽 발광을 적용한다. 비활성화·재스폰 시 원래 몸체 머티리얼을 복원한다. 공격 예고와 피격 코드 변경 없음.
+- Boss.Runtime C# 컴파일과 변경 파일 공백 검사 통과. Unity 임포트·셰이더 렌더링·Play·자동 테스트는 실행하지 않았다(0개). 다음은 애니메이션 방향별 테두리 두께와 실제 피격 화면 확인이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → BeastZombie HP를 50% 이하로 낮춘다. 2페이즈 진입 때 붉은 테두리가 생기고 이후 이동·공격 중 유지되어야 한다. 이상하면 Console 첫 오류, `2페이지 돌입!` 로그, `Phase Two Outline Material` 참조를 확인한다. 색·두께·밝기는 `BeastZombiePhaseTwoOutline.mat`에서 조절한다.
+
+## 2026-11-11 HP·MP·EXP 게이지 변화 연출
+
+- EXP 레벨업 점멸의 흰색 구간에만 `ExpLevelUpFlash.mat`의 AllIn1SpriteShader UI Mask `Hit Effect`를 연결했다. `MainScene` Player의 `Resource Gauge Preview > Exp Level Up Flash Material`에서 참조한다. 타이밍은 카드 선택 완료 후 기존 3회다. Assembly-CSharp 재컴파일 성공, 기존 경고 3개. Unity 임포트·셰이더·Play 및 자동 테스트는 미실행(0개). 직접 확인 시 카드 선택 후 흰색 점멸을 보고, 이상 시 Console의 셰이더 오류와 머티리얼 참조 및 Hit Effect 활성 상태를 확인한다.
+
+- 추가: 실제 레벨 증가를 감지하면 EXP 바 점멸을 예약한다. 카드 선택 창이 전투를 멈춘 동안 점멸 시간을 소비하지 않으며, 전투가 재개되면 EXP 바 전체가 0.1초 간격으로 흰색과 기존 색을 번갈아 총 3회 점멸한다. 이후 이월 EXP까지 기존 `Exp Speed`로 돌아간다. `CombatUI > CombatPopupController > 테스트/경험치 13 획득`으로 창을 띄우고 1초 이상 기다린 뒤 카드를 선택해 확인한다. 이상 시 실제 레벨 증가, `Resource Gauge Preview` 활성 상태, 전투 재개 여부와 Console 첫 오류를 확인한다. Assembly-CSharp 컴파일 성공, 기존 경고 3개, Unity Play 및 테스트 실행 0개.
+
+- `Test` `556ff93` 기준. `MainScene`의 Player에 실험용 `ResourceGaugePreview` 컴포넌트를 연결했다. 증가 시 흰색이 새 목표까지 먼저 표시되고 컬러가 뒤따라 채워진다. 감소 시 빠진 영역이 흰색으로 남았다가 목표값까지 줄어든다. HUD 수치와 Slider 값은 즉시 갱신되고, 흰색·컬러 연출은 별도 이미지로 재생한다. 레벨업 팝업이 시간을 멈춰도 UI 연출은 진행한다.
+- Player Inspector의 `Resource Gauge Preview`에서 `Hp Speed`, `Mp Speed`, `Exp Speed`를 각각 조절한다. 1은 초당 게이지 전체 길이이며 기본값은 각각 1.5다. 컴포넌트를 끄면 기존 즉시 표시를 사용한다.
+- Unity 6000.5.0f1의 캐시 응답 파일에 신규 소스를 포함해 Assembly-CSharp 컴파일 성공, 기존 경고 3개. Unity Play 및 자동 테스트는 실행하지 않았다(0개). 다음 검증은 실제 HUD의 위치, 흰색 구간, 레벨업 시 EXP 표시다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → Player의 속도를 0.5로 낮춘다. 피격과 복원 치유로 HP, 강공격과 패링으로 MP, 경험치 구슬로 EXP를 확인한다. 이상 시 Console 첫 오류, 컴포넌트 활성 상태와 Player의 각 Slider 및 Fill Rect 참조를 확인한다.
+
+## 2026-11-11 패링 성공 이펙트 크기 조절
+
+- `Test` `556ff93` 기준. Player Inspector의 `패링 이펙트 설정 > 패링 이펙트 크기`를 추가했다. 기존 크기 1.75가 기본값이며, 패링 성공 섬광 재생 시마다 값을 읽고 섬광 중심이 같은 위치에 오도록 세로 오프셋에도 적용한다. 일반 가드 크기는 기존 값을 사용한다.
+- Unity 6000.5.0f1의 캐시 응답 파일로 C# 어셈블리 6개 컴파일 성공, 기존 경고 3개. Unity Play 및 자동 테스트는 실행하지 않았다(0개). 기존 피해 숫자 프리팹과 셰이더 두 파일 변경을 보존했다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → Player의 해당 값을 1.75와 2.5로 바꿔 각각 적 공격 직전에 E로 패링 성공. 두 번째 섬광이 같은 중심에서 더 크게 보여야 한다. 이상 시 Console 첫 오류, 패링 성공 로그 및 선택한 Player의 Inspector 값을 확인한다. 다음 검증은 Unity 화면에서 크기와 위치를 비교하는 것이다.
 
 ## 2026-11-11 main에 3개 브랜치 로컬 병합
 

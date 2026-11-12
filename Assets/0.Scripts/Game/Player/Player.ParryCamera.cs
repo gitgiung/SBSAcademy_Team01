@@ -53,7 +53,7 @@ public sealed partial class Player
         while (elapsed < duration && parryZoomCamera != null)
         {
             if (parryZoomBrain != null && parryZoomVirtualCamera != null &&
-                parryZoomBrain.ActiveVirtualCamera != parryZoomVirtualCamera) yield break;
+                !ReferenceEquals(parryZoomBrain.ActiveVirtualCamera, parryZoomVirtualCamera)) yield break;
             elapsed += Time.unscaledDeltaTime;
             float progress = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
             SetParryZoomLens(Mathf.Lerp(from, to, progress));

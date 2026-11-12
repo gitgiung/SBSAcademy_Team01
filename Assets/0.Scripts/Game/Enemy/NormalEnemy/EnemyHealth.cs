@@ -20,6 +20,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
     public float CurrentHealth { get; private set; }
     public float MaxHealth => Mathf.Max(1f, maxHealth);
+    public Slider HealthSlider => healthSlider;
     public bool IsDead { get; private set; }
     public int SpawnGeneration { get; private set; }
     public event System.Action Died;
@@ -40,6 +41,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     private EnemyFollow follow;
     private bool followEnabled;
     private bool initialized;
+    private bool invulnerable;
     private IEnemySpawnPool spawnPool;
     private IEnemyExperienceDropper experienceDropper;
     public float SpawnRawExperience { get; private set; } = -1f;
@@ -101,6 +103,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         SpawnGeneration++;
         CurrentHealth = Mathf.Max(1f, maxHealth);
         IsDead = false;
+        invulnerable = false;
         StopHitFlash();
         for (int i = 0; i < colliders.Length; i++)
             if (colliders[i] != null) colliders[i].enabled = colliderStates[i];
@@ -123,6 +126,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         EnsureInitialized();
         UpdateHealthUI();
     }
+
+    public void SetInvulnerable(bool active) => invulnerable = active;
 
     /// <summary>보스 전환 등 보상 없는 제거. 풀 소유 객체는 파괴하지 않습니다.</summary>
     public void Despawn()
@@ -147,7 +152,7 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     /// </summary>
     public void TakeDamage(float damage)
     {
-        if (damage <= 0f || IsDead || !isActiveAndEnabled)
+        if (damage <= 0f || IsDead || invulnerable || !isActiveAndEnabled)
             return;
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);

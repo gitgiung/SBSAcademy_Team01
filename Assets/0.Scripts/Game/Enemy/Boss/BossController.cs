@@ -19,6 +19,9 @@ public sealed class BossController : MonoBehaviour
     [SerializeField] private BossPatternSelector patternSelector;
     [SerializeField] private Animator animator;
 
+    [Header("2페이즈 테두리")]
+    [SerializeField] private Material phaseTwoOutlineMaterial;
+
     [Header("일반 패턴 선택 거리")]
     [SerializeField, Min(0.01f)] private float closeRange = 4f;
     [SerializeField, Min(0.01f)] private float specialPatternDistance = 12f;
@@ -64,6 +67,8 @@ public sealed class BossController : MonoBehaviour
     private EnemyHealth health;
     private Rigidbody2D body;
     private BossAttackHitVfx hitVfx;
+    private SpriteRenderer bodyRenderer;
+    private SpriteRenderer phaseTwoOutline;
     private Coroutine patternRoutine;
     private BossPattern nextNormalPattern = BossPattern.Pattern1;
     private float nextPatternTime;
@@ -122,6 +127,7 @@ public sealed class BossController : MonoBehaviour
         if (animator == null) animator = GetComponent<Animator>();
         if (patternSelector == null) patternSelector = GetComponent<BossPatternSelector>();
         hitVfx = GetComponent<BossAttackHitVfx>();
+        bodyRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void OnEnable()
@@ -140,6 +146,8 @@ public sealed class BossController : MonoBehaviour
         }
 
         health.Died += OnDied;
+        if (CurrentPhase == 2 && phaseSpawnGeneration == health.SpawnGeneration)
+            SetPhaseTwoOutline(true);
         follow.SetTarget(target, FollowStoppingDistance);
         follow.enabled = true;
         nextNormalPattern = BossPattern.Pattern1;
@@ -223,6 +231,7 @@ public sealed class BossController : MonoBehaviour
         {
             phaseSpawnGeneration = health.SpawnGeneration;
             CurrentPhase = 1;
+            SetPhaseTwoOutline(false);
             nextAreaPatternTime = 0f;
             areaFollowupPending = false;
             phaseEntryAreaPending = false;
@@ -232,6 +241,7 @@ public sealed class BossController : MonoBehaviour
             return;
 
         CurrentPhase = 2;
+        SetPhaseTwoOutline(true);
         damage = damage * Multiple2;
         follow.moveSpeed = follow.moveSpeed * Multiple2;
         pattern2ToPattern1Delay = 1.5f;
@@ -257,6 +267,34 @@ public sealed class BossController : MonoBehaviour
         patternRoutine = StartCoroutine(PatternLoop());
     }
 
+    private void SetPhaseTwoOutline(bool visible)
+    {
+        if (visible && phaseTwoOutline == null && bodyRenderer != null && phaseTwoOutlineMaterial != null)
+        {
+            var visual = new GameObject("Phase Two Outline");
+            visual.layer = bodyRenderer.gameObject.layer;
+            visual.transform.SetParent(bodyRenderer.transform, false);
+            visual.AddComponent<HitFlashExcluded>();
+            phaseTwoOutline = visual.AddComponent<SpriteRenderer>();
+            phaseTwoOutline.sharedMaterial = phaseTwoOutlineMaterial;
+        }
+
+        if (phaseTwoOutline != null) phaseTwoOutline.enabled = visible;
+    }
+
+    private void LateUpdate()
+    {
+        if (phaseTwoOutline == null || !phaseTwoOutline.enabled || bodyRenderer == null) return;
+
+        phaseTwoOutline.sprite = bodyRenderer.sprite;
+        phaseTwoOutline.flipX = bodyRenderer.flipX;
+        phaseTwoOutline.flipY = bodyRenderer.flipY;
+        phaseTwoOutline.sortingLayerID = bodyRenderer.sortingLayerID;
+        phaseTwoOutline.sortingOrder = bodyRenderer.sortingOrder - 1;
+        phaseTwoOutline.maskInteraction = bodyRenderer.maskInteraction;
+        phaseTwoOutline.forceRenderingOff = bodyRenderer.forceRenderingOff || !bodyRenderer.enabled;
+    }
+
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;
@@ -275,7 +313,8 @@ public sealed class BossController : MonoBehaviour
             }
 
             float distance = Vector2.Distance(body.position, target.position);
-            bool patternReady = phaseEntryAreaPending ||
+            bool isPhaseEntryArea = phaseEntryAreaPending;
+            bool patternReady = isPhaseEntryArea ||
                 (patternSelector.isActiveAndEnabled && Time.time >= nextPatternTime);
             BossPattern selected = patternReady ? SelectAvailablePattern(distance) : BossPattern.None;
             if (selected == BossPattern.None)
@@ -315,7 +354,7 @@ public sealed class BossController : MonoBehaviour
 
                 case BossPattern.PhaseTwoArea:
                     ActivePattern = BossPattern.PhaseTwoArea;
-                    yield return PerformPhaseTwoAreaAttack();
+                    yield return PerformPhaseTwoAreaAttack(isPhaseEntryArea);
                     ActivePattern = BossPattern.None;
                     nextAreaPatternTime = Time.time + phaseTwoAreaCooldown;
                     nextNormalPattern = BossPattern.Pattern1;
@@ -360,7 +399,7 @@ public sealed class BossController : MonoBehaviour
         return patternSelector.SelectPattern(distance, (int)health.CurrentHealth, nextNormalPattern);
     }
 
-    private IEnumerator PerformPhaseTwoAreaAttack()
+    private IEnumerator PerformPhaseTwoAreaAttack(bool isPhaseEntryArea = false)
     {
         if (!CanAttackTarget()) yield break;
         bool wasFollowing = follow.enabled;
@@ -369,6 +408,7 @@ public sealed class BossController : MonoBehaviour
         float radius = entranceRunning ? entranceAreaRadius : phaseTwoAreaRadius;
         try
         {
+            if (isPhaseEntryArea) health.SetInvulnerable(true);
             if (hitVfx != null) hitVfx.ShowArea(radius);
             float elapsed = 0f;
             float chargeDuration = Mathf.Max(0f, phaseTwoAreaDelay);
@@ -386,6 +426,7 @@ public sealed class BossController : MonoBehaviour
         }
         finally
         {
+            if (isPhaseEntryArea) health.SetInvulnerable(false);
             if (hitVfx != null) hitVfx.HideArea();
             if (wasFollowing && isActiveAndEnabled && CanAttackTarget())
             {
@@ -671,11 +712,16 @@ public sealed class BossController : MonoBehaviour
 
     private void OnDisable()
     {
+        SetPhaseTwoOutline(false);
         RevealEntrance();
         entranceQueued = false;
         StopDashAnimation();
         ActivePattern = BossPattern.None;
-        if (health != null) health.Died -= OnDied;
+        if (health != null)
+        {
+            health.SetInvulnerable(false);
+            health.Died -= OnDied;
+        }
         if (patternRoutine != null)
         {
             StopCoroutine(patternRoutine);

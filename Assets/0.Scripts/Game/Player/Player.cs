@@ -12,6 +12,8 @@ using UnityEngine.UI;
 /// </summary>
 public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 {
+    internal const float DefaultParryVfxScale = 1.75f;
+
     [Header("플레이어 데이터 및 기본 설정")]
     public PlayerData data;
     public GameObject bulletPrefab;
@@ -32,6 +34,11 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [Header("렌더러 설정")]
     [SerializeField] private SpriteRenderer playerSpriteRenderer;
     [SerializeField] private Animator playerAnimator;
+
+    [Header("패링 이펙트 설정")]
+    [InspectorName("패링 이펙트 크기"), SerializeField, Min(0.01f)]
+    [Tooltip("패링 성공 섬광의 크기입니다. 기본값은 1.75입니다.")]
+    private float parryVfxScale = DefaultParryVfxScale;
 
     [Header("패링 타이밍 설정 (초 단위)")]
     [SerializeField] private float parryStartup = 0.033f;
@@ -91,6 +98,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private int lifecycleVersion;
 
     public bool IsDashing => movement != null && movement.IsDashing;
+    internal float ParryVfxScale => Mathf.Max(0.01f, parryVfxScale);
     public float DashCooldownRemaining => movement != null ? movement.DashCooldownRemaining : 0f;
     public float DashCooldownProgress => movement != null ? movement.DashCooldownProgress : 1f;
     public event Action TacticalUsesChanged;
@@ -149,6 +157,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
         view = new PlayerView(transform, playerSpriteRenderer, healthSlider, data, playerAnimator);
         view.BindResourceSliders(mpSlider, expSlider);
+        GetComponent<ResourceGaugePreview>()?.Bind(data, healthSlider, mpSlider, expSlider);
         defense = new PlayerDefense(view, parryStartup, parryActive, parryRecovery,
             guardTransitionTime, maxGuardDuration, normalGuardCooldown, breakGuardCooldown);
         defense.ParrySucceeded += HandleParrySucceeded;
@@ -298,7 +307,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (shieldButton == null)
         {
-            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Button[] buttons = FindObjectsByType<Button>(FindObjectsInactive.Include);
             for (int i = 0; i < buttons.Length; i++)
             {
                 if (buttons[i] != null && buttons[i].gameObject.scene == gameObject.scene && buttons[i].name == "Skill")

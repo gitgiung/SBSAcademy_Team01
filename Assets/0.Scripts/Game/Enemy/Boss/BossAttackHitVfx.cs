@@ -14,6 +14,12 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     [SerializeField] private Material rangeMaterial;
     [SerializeField] private Color rangeColor = new Color(1f, 0.35f, 0.08f, 0.4f);
+    [Header("공격 범위 깜빡임")]
+    [Tooltip("범위가 완전히 투명한 상태에서 최대 밝기에 도달하는 시간(초).")]
+    [SerializeField, Min(0.01f)] private float rangeFadeInDuration = 0.07f;
+    [Tooltip("최대 밝기에서 다시 투명해지는 시간(초).")]
+    [SerializeField, Min(0.01f)] private float rangeFadeOutDuration = 0.23f;
+    [Tooltip("돌진 착지 범위 깜빡임의 전체 시간(초). 0이면 표시하지 않습니다.")]
     [SerializeField, Min(0f)] private float dashDisplayDuration = 0.2f;
     [Header("원형 패턴")]
     [SerializeField] private Sprite areaBurstSprite;
@@ -38,9 +44,8 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     private MaterialPropertyBlock propertyBlock;
     private Texture2D circleTexture;
     private Sprite circleSprite;
-    private float dashTimeRemaining;
-    private Vector2 dashCenter;
-    private float dashRadius;
+    private float slashPulseStart;
+    private float dashPulseStart;
 
     private void Awake()
     {
@@ -72,7 +77,8 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         if (slashRenderer == null) return;
         slashRenderer.enabled = true;
         slashRenderer.transform.localPosition = Vector3.zero;
-        Place(slashRenderer, slashRenderer.transform.position, forward, radius, angle, rangeColor.a);
+        slashPulseStart = Time.time;
+        Place(slashRenderer, slashRenderer.transform.position, forward, radius, angle, 0f);
     }
 
     public void HideSlash()
@@ -175,29 +181,43 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     public void ShowDashImpact(Vector2 center, float radius)
     {
         if (dashRenderer == null) return;
-        dashCenter = center;
-        dashRadius = radius;
-        dashTimeRemaining = dashDisplayDuration;
+        dashPulseStart = Time.time;
         dashRenderer.enabled = dashDisplayDuration > 0f;
-        Place(dashRenderer, center, Vector2.right, radius, 360f, rangeColor.a);
+        Place(dashRenderer, center, Vector2.right, radius, 360f, 0f);
     }
+
+    private float RangePulseDuration => rangeFadeInDuration + rangeFadeOutDuration;
 
     private void LateUpdate()
     {
         burstTimeRemaining -= Time.deltaTime;
         UpdateBurst();
-        if (dashRenderer == null || !dashRenderer.enabled) return;
+        UpdateRangePulse(slashRenderer, slashPulseStart, RangePulseDuration, rangeColor);
+        UpdateRangePulse(dashRenderer, dashPulseStart, dashDisplayDuration, rangeColor);
+    }
 
-        dashTimeRemaining -= Time.deltaTime;
-        if (dashTimeRemaining <= 0f)
+    private float GetPulseOpacity(float startTime, float duration)
+    {
+        if (duration <= 0f) return 0f;
+        float progress = Mathf.Clamp01((Time.time - startTime) / duration);
+        float peak = rangeFadeInDuration / RangePulseDuration;
+        return Mathf.Min(progress / peak, (1f - progress) / (1f - peak));
+    }
+
+    private void UpdateRangePulse(SpriteRenderer renderer, float startTime, float duration, Color color)
+    {
+        if (renderer == null || !renderer.enabled) return;
+        if (Time.time - startTime >= duration)
         {
-            HideDash();
+            renderer.enabled = false;
             return;
         }
 
-        float duration = Mathf.Max(0.0001f, dashDisplayDuration);
-        float alpha = rangeColor.a * Mathf.Clamp01(dashTimeRemaining / duration);
-        Place(dashRenderer, dashCenter, Vector2.right, dashRadius, 360f, alpha);
+        color.a *= GetPulseOpacity(startTime, duration);
+        renderer.color = color;
+        renderer.GetPropertyBlock(propertyBlock);
+        propertyBlock.SetColor(GlowColorId, color);
+        renderer.SetPropertyBlock(propertyBlock);
     }
 
     private void OnDisable()
@@ -216,6 +236,8 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     private void OnValidate()
     {
         dashDisplayDuration = Mathf.Max(0f, dashDisplayDuration);
+        rangeFadeInDuration = Mathf.Max(0.01f, rangeFadeInDuration);
+        rangeFadeOutDuration = Mathf.Max(0.01f, rangeFadeOutDuration);
         rangeColor.a = Mathf.Clamp01(rangeColor.a);
         areaBurstDuration = Mathf.Max(0.01f, areaBurstDuration);
         entranceAreaBurstDuration = Mathf.Max(0f, entranceAreaBurstDuration);
@@ -272,7 +294,6 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     private void HideDash()
     {
-        dashTimeRemaining = 0f;
         if (dashRenderer != null) dashRenderer.enabled = false;
     }
 

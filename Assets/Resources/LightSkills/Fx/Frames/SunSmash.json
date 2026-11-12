@@ -1,0 +1,13 @@
+{
+ "name": "SunSmash",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 96,
+ "frameWidth": 138,
+ "frameHeight": 158,
+ "columns": 4,
+ "count": 15,
+ "pivotX": 0.144928,
+ "pivotY": 0.5
+}

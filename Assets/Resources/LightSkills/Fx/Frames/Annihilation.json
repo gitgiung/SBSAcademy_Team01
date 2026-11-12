@@ -1,0 +1,13 @@
+{
+ "name": "Annihilation",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 256,
+ "frameWidth": 300,
+ "frameHeight": 54,
+ "columns": 2,
+ "count": 17,
+ "pivotX": 0.053333,
+ "pivotY": 0.5
+}

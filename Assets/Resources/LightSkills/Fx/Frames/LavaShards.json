@@ -1,0 +1,13 @@
+{
+ "name": "LavaShards",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 224,
+ "frameWidth": 253,
+ "frameHeight": 46,
+ "columns": 2,
+ "count": 17,
+ "pivotX": 0.043478,
+ "pivotY": 0.5
+}

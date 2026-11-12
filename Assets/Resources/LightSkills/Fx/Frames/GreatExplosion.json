@@ -1,0 +1,13 @@
+{
+ "name": "GreatExplosion",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 104,
+ "frameWidth": 238,
+ "frameHeight": 238,
+ "columns": 5,
+ "count": 21,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

@@ -1,0 +1,13 @@
+{
+ "name": "SunBlade",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 112,
+ "frameWidth": 146,
+ "frameHeight": 235,
+ "columns": 6,
+ "count": 18,
+ "pivotX": 0.109589,
+ "pivotY": 0.493617
+}

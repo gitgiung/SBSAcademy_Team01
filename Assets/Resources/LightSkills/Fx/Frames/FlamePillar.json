@@ -1,0 +1,13 @@
+{
+ "name": "FlamePillar",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 112,
+ "frameWidth": 246,
+ "frameHeight": 269,
+ "columns": 5,
+ "count": 24,
+ "pivotX": 0.5,
+ "pivotY": 0.412639
+}

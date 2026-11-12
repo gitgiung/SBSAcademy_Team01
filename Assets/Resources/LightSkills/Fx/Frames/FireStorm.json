@@ -1,0 +1,13 @@
+{
+ "name": "FireStorm",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 104,
+ "frameWidth": 231,
+ "frameHeight": 228,
+ "columns": 5,
+ "count": 30,
+ "pivotX": 0.493506,
+ "pivotY": 0.5
+}

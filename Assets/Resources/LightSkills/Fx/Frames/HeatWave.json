@@ -1,0 +1,13 @@
+{
+ "name": "HeatWave",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 96,
+ "frameWidth": 241,
+ "frameHeight": 245,
+ "columns": 5,
+ "count": 18,
+ "pivotX": 0.502075,
+ "pivotY": 0.497959
+}

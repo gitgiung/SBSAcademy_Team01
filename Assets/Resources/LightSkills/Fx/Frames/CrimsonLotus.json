@@ -1,0 +1,13 @@
+{
+ "name": "CrimsonLotus",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 102,
+ "frameWidth": 138,
+ "frameHeight": 213,
+ "columns": 6,
+ "count": 18,
+ "pivotX": 0.130435,
+ "pivotY": 0.539906
+}

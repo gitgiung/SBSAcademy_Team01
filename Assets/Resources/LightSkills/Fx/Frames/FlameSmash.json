@@ -1,0 +1,13 @@
+{
+ "name": "FlameSmash",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 166,
+ "frameHeight": 166,
+ "columns": 4,
+ "count": 15,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

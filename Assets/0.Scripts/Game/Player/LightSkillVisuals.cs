@@ -87,6 +87,128 @@ public static class LightSkillVisuals
         return frames;
     }
 
+    /// <summary>스킬마다 pixelfx로 구워 둔 시트 한 장입니다. 그림은 Resources/LightSkills/Fx, 자르는 정보는 Fx/Frames에 있습니다.</summary>
+    public sealed class BakedClip
+    {
+        public Sprite[] Frames;
+        public float FrameDuration;
+        /// <summary>범위 그림에서 원점부터 판정 끝까지의 픽셀 길이입니다. 탄환 그림은 0입니다.</summary>
+        public float ReachPixels;
+        /// <summary>탄환은 반복 재생하고, 범위 그림은 한 번 재생한 뒤 사라집니다.</summary>
+        public bool Loop;
+        public float Duration => Frames.Length * FrameDuration;
+        public float ReachUnits => ReachPixels / PixelsPerUnit;
+    }
+
+    // tools/PixelFxBake/export-skills.mjs가 쓰는 JSON과 필드 이름이 같아야 합니다.
+    [System.Serializable]
+    private sealed class BakedSheet
+    {
+        public float fps;
+        public bool loop;
+        public float reach;
+        public int frameWidth;
+        public int frameHeight;
+        public int columns;
+        public int count;
+        public float pivotX;
+        public float pivotY;
+    }
+
+    private const string BakedFolder = "LightSkills/Fx/";
+    /// <summary>화염구가 맞아 터질 때의 폭발 그림입니다. 가운데부터 폭발 반경까지가 reach입니다.</summary>
+    public const string FireballBurstClip = "FireballBurst";
+    private static readonly Dictionary<string, BakedClip> BakedClips = new Dictionary<string, BakedClip>();
+
+    /// <summary>
+    /// 스킬 ID에 맞춰 구워 둔 그림 이름입니다. 없으면 null이고 호출 쪽이 예전 시트로 대신합니다.
+    /// 작열 구체·태양 탄막·절멸의 불·화염 고리는 전용 그림(Blaze)을 따로 쓰므로 여기에 없습니다.
+    /// </summary>
+    public static string BakedClipName(int skillId)
+    {
+        switch (skillId)
+        {
+            case 10001: return "FireBullet";
+            case 10002: return "FireDart";
+            case 10003: return "FlameSmash";
+            case 10004: return "FireOrb";
+            case 10005: return "FlameSpear";
+            case 10006: return "FlareShot";
+            case 10007: return "SunBlade";
+            case 10008: return "HeatGust";
+            case 10009: return "FlameArrow";
+            case 10010: return "EmberPellet";
+            case 10011: return "FlameFan";
+            case 10012: return "LavaShards";
+            case 10013: return "FireTracer";
+            case 10018: return "IceShard";
+            case 10019: return "WindArrow";
+            case 10020: return "RockShot";
+            case 10021: return "VoltArrow";
+            case 20001: return "FlameHammer";
+            case 20003: return "GreatExplosion";
+            case 20004: return "FireStorm";
+            case 20005: return "MeteorSword";
+            case 20006: return "FlameSlash";
+            case 20007: return "LavaEruption";
+            case 20008: return "HeatWave";
+            case 20009: return "FlamePillar";
+            case 20010: return "SunSmash";
+            case 20011: return "CrimsonLotus";
+            case 20013: return "Hellfire";
+            case 20014: return "Annihilation";
+            case 20015: return "SunCollapse";
+            default: return null;
+        }
+    }
+
+    /// <summary>구워 둔 시트를 처음 쓸 때 한 번만 읽어 프레임으로 자릅니다. 그림이나 정보가 없으면 null입니다.</summary>
+    public static BakedClip Baked(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
+        if (BakedClips.TryGetValue(name, out BakedClip cached)
+            && (cached == null || (cached.Frames.Length > 0 && cached.Frames[0] != null))) return cached;
+        BakedClip clip = LoadBaked(name);
+        BakedClips[name] = clip;
+        return clip;
+    }
+
+    private static BakedClip LoadBaked(string name)
+    {
+        Texture2D texture = Resources.Load<Texture2D>(BakedFolder + name);
+        TextAsset json = Resources.Load<TextAsset>(BakedFolder + "Frames/" + name);
+        if (texture == null || json == null) return null;
+        BakedSheet sheet = JsonUtility.FromJson<BakedSheet>(json.text);
+        if (sheet == null || sheet.count <= 0 || sheet.columns <= 0 || sheet.frameWidth <= 0 || sheet.frameHeight <= 0)
+            return null;
+        int rows = (sheet.count + sheet.columns - 1) / sheet.columns;
+        // 가져오기 설정으로 그림이 줄어들었으면 자르는 자리가 어긋나므로 쓰지 않습니다.
+        if (sheet.columns * sheet.frameWidth > texture.width || rows * sheet.frameHeight > texture.height)
+        {
+            Debug.LogWarning("[LightSkillVisuals] 구운 시트 크기가 정보와 다릅니다: " + name);
+            return null;
+        }
+
+        var pivot = new Vector2(sheet.pivotX, sheet.pivotY);
+        var sprites = new Sprite[sheet.count];
+        for (int i = 0; i < sheet.count; i++)
+        {
+            int x = (i % sheet.columns) * sheet.frameWidth;
+            // 시트는 위에서부터 채우고 Unity는 아래에서부터 셉니다.
+            int y = texture.height - (i / sheet.columns + 1) * sheet.frameHeight;
+            sprites[i] = Sprite.Create(texture, new Rect(x, y, sheet.frameWidth, sheet.frameHeight), pivot,
+                PixelsPerUnit, 0, SpriteMeshType.FullRect);
+            sprites[i].name = name + " " + i;
+        }
+        return new BakedClip
+        {
+            Frames = sprites,
+            FrameDuration = sheet.fps > 0f ? 1f / sheet.fps : BlazeFrameDuration,
+            ReachPixels = sheet.reach,
+            Loop = sheet.loop
+        };
+    }
+
     /// <summary>구운 그림의 색을 그대로 보여 주는 재질입니다. 속성 색조 이동을 적용하지 않습니다.</summary>
     public static Material BlazeMaterial()
     {

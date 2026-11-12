@@ -1,0 +1,13 @@
+{
+ "name": "LavaEruption",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 96,
+ "frameWidth": 193,
+ "frameHeight": 192,
+ "columns": 5,
+ "count": 21,
+ "pivotX": 0.502591,
+ "pivotY": 0.5
+}

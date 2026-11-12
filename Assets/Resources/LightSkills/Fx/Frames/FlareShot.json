@@ -1,0 +1,13 @@
+{
+ "name": "FlareShot",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": true,
+ "reach": 0,
+ "frameWidth": 67,
+ "frameHeight": 40,
+ "columns": 3,
+ "count": 12,
+ "pivotX": 0.671642,
+ "pivotY": 0.5
+}

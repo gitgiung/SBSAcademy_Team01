@@ -1,0 +1,13 @@
+{
+ "name": "MeteorSword",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 96,
+ "frameWidth": 210,
+ "frameHeight": 265,
+ "columns": 5,
+ "count": 18,
+ "pivotX": 0.5,
+ "pivotY": 0.396226
+}

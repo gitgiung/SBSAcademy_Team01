@@ -1,0 +1,13 @@
+{
+ "name": "FlameFan",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 96,
+ "frameWidth": 134,
+ "frameHeight": 132,
+ "columns": 4,
+ "count": 16,
+ "pivotX": 0.149254,
+ "pivotY": 0.5
+}

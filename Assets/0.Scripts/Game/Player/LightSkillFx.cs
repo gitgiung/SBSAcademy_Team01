@@ -24,6 +24,12 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private bool sunderScaled;
     private bool whirlScaled;
     private bool missileArt;
+    // 스킬마다 구워 둔 그림입니다. 없으면 null이고 예전 시트로 그립니다.
+    private LightSkillVisuals.BakedClip baked;
+    // 구운 그림은 프레임 수가 아니라 흐른 시간으로 재생합니다. 한 번 재생하는 그림은 끝나면 숨깁니다.
+    private bool clipTimed;
+    private bool clipLoop;
+    private float clipTime;
     private bool homing;
     private Vector2 castOrigin;
     private Vector2 fallbackAim;
@@ -91,8 +97,32 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         HideForks();
         if (spriteRenderer != null) spriteRenderer.enabled = true;
 
-        frames = LightSkillVisuals.Frames(skill.Shape, out frameDuration);
-        Material material = LightSkillVisuals.MaterialFor(skill.Element, skill.Shape);
+        // 스킬마다 구워 둔 그림이 있으면 그 그림을 씁니다. 탄환은 반복, 범위는 한 번 재생하는 그림이어야 합니다.
+        baked = LightSkillVisuals.Baked(LightSkillVisuals.BakedClipName(skill.Id));
+        if (baked != null && baked.Loop != projectile) baked = null;
+        clipTimed = baked != null;
+        clipLoop = projectile;
+        clipTime = 0f;
+        Material material;
+        if (baked != null)
+        {
+            frames = baked.Frames;
+            frameDuration = baked.FrameDuration;
+            material = LightSkillVisuals.BlazeMaterial();
+            if (projectile)
+            {
+                // 여러 발이 똑같이 깜빡이지 않도록 반복 그림의 시작 지점을 흩어 둡니다.
+                clipTime = Random.Range(0f, baked.Duration);
+                frame = Mathf.Min(frames.Length - 1, Mathf.FloorToInt(clipTime / frameDuration));
+            }
+            else
+                life = Mathf.Max(baked.Duration, skill.RepeatSpacing * (hitsLeft - 1) + 0.1f);
+        }
+        else
+        {
+            frames = LightSkillVisuals.Frames(skill.Shape, out frameDuration);
+            material = LightSkillVisuals.MaterialFor(skill.Element, skill.Shape);
+        }
         // 작열 구체는 pixelfx plasma-shot을 불 색으로 구운 그림을 씁니다. 없으면 기존 불꽃 탄환 그림입니다.
         if (skill.ForksOnHit && projectile)
         {
@@ -148,12 +178,15 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         if (spriteRenderer != null)
         {
             spriteRenderer.sharedMaterial = material;
-            spriteRenderer.sprite = frames.Length > 0 ? frames[0] : null;
+            spriteRenderer.sprite = frames.Length > 0 ? frames[Mathf.Clamp(frame, 0, frames.Length - 1)] : null;
             spriteRenderer.sortingOrder = 30;
         }
         // 화염 고리 그림은 바닥에 깔린 가로 타원이다. 조준과 상관없이 플레이어 주위의 가로 범위로 둔다.
-        if (skill.Shape == LightSkillShape.Ring)
+        // 구운 원형 그림도 불기둥·낙하물이 위로 서 있으므로 돌리지 않는다.
+        if (skill.Shape == LightSkillShape.Ring || (baked != null && skill.Shape == LightSkillShape.Circle))
             transform.rotation = Quaternion.identity;
+        else if (baked != null)
+            FaceDirection();
         else
             transform.right = this.direction;
         ApplyScale(sizeMul);
@@ -161,9 +194,10 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         {
             hitCollider.enabled = projectile;
             // 미사일 그림은 1배로 보여 주므로, 맞는 크기는 기존 탄환 배율을 곱했던 것과 같게 맞춥니다.
+            // 구운 탄환 그림은 스탯 배율만큼만 키우므로 탄환 배율을 반경에 곱해 예전과 같은 크기로 맞습니다.
             hitCollider.radius = missileArt
                 ? ProjectileHitRadius * ProjectileScale() * sizeMul
-                : ProjectileHitRadius;
+                : baked != null ? ProjectileHitRadius * ProjectileScale() : ProjectileHitRadius;
         }
         gameObject.name = skill.Name;
     }
@@ -208,6 +242,14 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         float height = frames[0].rect.height / LightSkillVisuals.PixelsPerUnit;
         if (width <= 0f || height <= 0f) return;
         float sizeMul = Mathf.Max(0.01f, projectileSize);
+        if (baked != null)
+        {
+            // 구운 그림은 플레이어와 같은 픽셀 크기입니다. 탄환은 스탯 배율만, 범위는 원점에서 판정 끝까지가 Range가 되도록 같은 비율로만 키웁니다.
+            transform.localScale = projectile || baked.ReachUnits <= 0f
+                ? Vector3.one * sizeMul
+                : Vector3.one * (skill.Range / baked.ReachUnits);
+            return;
+        }
         switch (skill.Shape)
         {
             case LightSkillShape.Circle:
@@ -343,6 +385,22 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private void Animate()
     {
         if (frames == null || frames.Length == 0 || spriteRenderer == null) return;
+        if (clipTimed)
+        {
+            clipTime += Time.deltaTime;
+            int index = Mathf.FloorToInt(clipTime / frameDuration);
+            if (clipLoop) index %= frames.Length;
+            else if (index >= frames.Length)
+            {
+                // 마지막 빈 프레임은 굽지 않았으므로 끝나면 숨깁니다. 남은 다단 히트는 계속 처리합니다.
+                spriteRenderer.enabled = false;
+                return;
+            }
+            if (index == frame) return;
+            frame = index;
+            spriteRenderer.sprite = frames[frame];
+            return;
+        }
         frameTimer += Time.deltaTime;
         if (frameTimer < frameDuration) return;
         frameTimer = 0f;
@@ -471,6 +529,29 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         bursting = true;
         projectile = false;
         if (hitCollider != null) hitCollider.enabled = false;
+        // 구운 탄환(화염구)은 폭발도 구운 그림으로 보여 줍니다. 가운데부터 폭발 반경까지가 그림의 reach입니다.
+        LightSkillVisuals.BakedClip burst = baked != null ? LightSkillVisuals.Baked(LightSkillVisuals.FireballBurstClip) : null;
+        if (burst != null && !burst.Loop && burst.ReachUnits > 0f && skill.SplashRadius > 0f)
+        {
+            frames = burst.Frames;
+            frameDuration = burst.FrameDuration;
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.enabled = true;
+                spriteRenderer.sharedMaterial = LightSkillVisuals.BlazeMaterial();
+                spriteRenderer.sprite = frames[0];
+                spriteRenderer.sortingOrder = 31;
+            }
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one * (skill.SplashRadius / burst.ReachUnits);
+            clipTimed = true;
+            clipLoop = false;
+            clipTime = 0f;
+            frame = 0;
+            life = burst.Duration;
+            return;
+        }
+        clipTimed = false;
         frames = LightSkillVisuals.Frames(LightSkillShape.Circle, out frameDuration);
         if (spriteRenderer != null)
         {

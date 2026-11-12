@@ -1,0 +1,13 @@
+{
+ "name": "FlameSlash",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 119,
+ "frameHeight": 146,
+ "columns": 5,
+ "count": 17,
+ "pivotX": 0.142857,
+ "pivotY": 0.493151
+}

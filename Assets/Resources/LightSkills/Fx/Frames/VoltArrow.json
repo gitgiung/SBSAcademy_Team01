@@ -1,0 +1,13 @@
+{
+ "name": "VoltArrow",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": true,
+ "reach": 0,
+ "frameWidth": 60,
+ "frameHeight": 31,
+ "columns": 3,
+ "count": 12,
+ "pivotX": 0.716667,
+ "pivotY": 0.548387
+}

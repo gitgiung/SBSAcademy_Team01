@@ -1,0 +1,13 @@
+{
+ "name": "FireballBurst",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 58,
+ "frameWidth": 134,
+ "frameHeight": 134,
+ "columns": 4,
+ "count": 14,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

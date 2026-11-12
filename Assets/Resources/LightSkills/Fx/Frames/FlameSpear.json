@@ -1,0 +1,13 @@
+{
+ "name": "FlameSpear",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 256,
+ "frameWidth": 298,
+ "frameHeight": 58,
+ "columns": 2,
+ "count": 15,
+ "pivotX": 0.04698,
+ "pivotY": 0.5
+}

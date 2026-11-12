@@ -61,6 +61,8 @@ public readonly struct LightSkillCast
     public bool SunderingFire => Id == 10017;
     /// <summary>화염 고리는 바닥 고리 대신 플레이어 둘레를 도는 불 회오리 그림(pixelfx flame-whirl)을 씁니다. 피해 판정은 기존 고리 그대로입니다.</summary>
     public bool FlameWhirl => Id == 10014;
+    /// <summary>태양 탄막은 플레이어 둘레에 태양 문양을 그리고, 긴 가시 끝에서 적을 쫓는 흰 불꽃 미사일을 쏩니다(pixelfx sun-crest·sun-missile). 발수·간격·피해는 표 그대로입니다.</summary>
+    public bool SunBarrage => Id == 10016;
     public float SplashRadius => Mathf.Max(0f, Width) * 2f;
 
     public LightSkillCast Presented()

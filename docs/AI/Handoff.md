@@ -1,5 +1,14 @@
 # 작업 인수인계
 
+## 2026-11-12 태양 탄막 2D 그래픽 main 반영
+
+- `origin/feature/soul-pipeline-3d`의 태양 탄막(10016) 2D만 main에 가져왔다. SoulArena 3D·휴머노이드 본선은 포함하지 않았다.
+- 에셋: `Resources/LightSkills/Blaze/SunCrest_*`(28)·`SunFlare_*`(7)·`SunMissile_*`(12) 및 meta. 굽기 소스 `tools/PixelFxBake/sun-crest.js`.
+- 코드: `SunBarrageCrest`, `LightSkillCatalog.SunBarrage`, `LightSkillVisuals` 태양 상수, `LightSkillFx` 유도 미사일/`PlayHoming`, `Player` 문양→가시 끝 발사. 기존 `projectileSize` 스탯 배율은 유지.
+- 검증: Assembly-CSharp 격리 Roslyn 컴파일(기록). Unity Play는 미실행.
+- 직접 확인: Play From Title 해제 → MainScene → `테스트/원하는 카드 고르기`로 태양 탄막(10016) → 플레이어 둘레에 태양 문양 후 가시 끝에서 흰 미사일이 적을 쫓음.
+- 이상 시: Console 첫 오류, `Blaze/SunCrest_00`·`SunMissile_00` 임포트(Point), 스킬 ID 10016.
+
 ## 2026-11-12 안드로이드 캡처·패링 무적·패시브 피해·전략 횟수 UI
 
 - 브랜치: `feature/gameplay-feel-polish` 계속. 기존 셰이더·ProjectSettings 사용자 변경은 보존.

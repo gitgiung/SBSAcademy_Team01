@@ -1,5 +1,25 @@
 # 작업 인수인계
 
+## 2026-11-12 필드 아이템 드랍 (힐팩·자석·폭탄)
+
+- 브랜치 main, 기능 커밋 `5ae1bb0`. 시작 시 HEAD는 `8f137da`였고 작업 중 다른 세션이 `19a42be`(태양 탄막)를 올려 그 위에 커밋했다. 시작부터 있던 AllIn1 셰이더·URP·ProjectSettings 변경과 다른 세션의 미추적 `tools/PixelFxBake/export-skills.mjs`·`skills/`는 건드리지 않았고 커밋에도 넣지 않았다. 씬·프리팹·ProjectSettings·패키지 변경 없음.
+- 동작: `SceneEnemyPool`이 소유한 일반 몬스터가 죽으면 난수 한 번으로 힐팩→자석→폭탄 중 하나를 죽은 자리에 떨어뜨린다. 플레이어가 획득 거리 안으로 들어오면 한 번만 효과가 난다. 레벨업·일시정지로 `timeScale`이 0인 동안에는 획득하지 않는다. 화면 밖 회수·보스전 반납처럼 사망이 아닌 제거와 보스 처치는 드랍하지 않는다.
+  - 힐팩: 최대 체력 × 비율만큼 회복. 체력이 가득 차 있어도 소모된다.
+  - 자석: 먹는 순간 이 씬에 떨어져 있던 모든 경험치(DNA)가 획득 범위·기본 흡입 속도와 무관하게 끌려온다. 이후에 떨어진 경험치는 대상이 아니다.
+  - 폭탄: 카메라 화면 안(여유 거리 포함)의 일반 몬스터를 즉시 처치한다. 일반 사망과 같이 경험치가 떨어지고 처치 수에 집계되며 피해 숫자는 뜨지 않는다. 보스는 대상이 아니다. 폭탄으로 죽은 몬스터는 아이템을 다시 떨어뜨리지 않는다(연쇄 방지).
+- **수치는 전부 임시값이며 기획 확정값이 아니다.** Hierarchy `Enemy Spawn System`의 `Scene Enemy Pool > Field Items`에서 조정한다. 씬에 값이 저장돼 있지 않아 코드 기본값이 보인다: 힐팩 0.7%·자석 0.4%·폭탄 0.3%(처치 1회당), 동시 12개, 힐 비율 0.3, 자석 최소 속도 18, 폭탄 여유 0.5, 획득 거리 0.9, 크기 0.9. Inspector에서 바꾸고 씬을 저장하면 그 씬에만 저장된다.
+- 그림: 프리팹 없이 코드로 만든 16×16 임시 픽셀 그림(`FieldItemPixelArt`). `Field Items`의 Heal Pack/Magnet/Bomb Sprite에 스프라이트를 넣으면 그것을 쓴다. 정렬 레이어는 DNA와 같은 `Entity`. 폭탄 파동은 코드 생성 고리(`FieldItemBlastFx`)다. 효과음·회복 숫자 표시는 없다.
+- 코드: `Assets/0.Scripts/Game/Item/`(`FieldItemDropSettings`, `FieldItemPickup`, `FieldItemPixelArt`, `FieldItemSprites`, `FieldItemBlastFx`), `SceneEnemyPool.FieldItems.cs`(partial, 드랍·효과 연결). `SceneEnemyPool`은 `partial`이 됐다. `EnemyHealth`에 `Defeated` 이벤트와 `Kill()`, `ExperiencePickup`에 `BeginMagnetAttraction(float)`을 추가했다. 기존 공개 API와 직렬화 필드는 그대로다. 새 전역 매니저·싱글톤은 없다.
+- 검증(실제 실행): `tools/FieldItemValidation` **36/36**(신규, 실제 소스 + Unity 대역, 드랍 판정·획득·힐/자석/폭탄 연결), `ExperienceAttractionValidation` **25/25**(기존 10 + 자석 15). 일부러 결함을 넣은 사본 12종에서 필드 아이템 도구가 12종 모두 실패함을 확인했다. Unity 6000.5.0f1 Roslyn으로 커밋 `5ae1bb0`의 트리만 따로 꺼내 Combat/Enemy/Boss/Encounter.Runtime, Assembly-CSharp, Assembly-CSharp-Editor, 테스트 어셈블리 3개까지 9개 컴파일 오류 0, 경고는 기존 3개(CS0252 1, CS0618 2). 캐시 응답 파일에 아직 없는 새 소스 7개(이번 6개 + `SunBarrageCrest`)는 스크립트가 추가했다. 임시 그림은 실제 바닥 타일 3종 위에 렌더링해 눈으로 확인했다.
+- 미검증: Unity 임포트·Play, 실제 렌더링·정렬 순서·획득 거리 체감, 대량 처치 시 프레임, Android 빌드·기기. PlayMode/EditMode 테스트 실행 0개. 다른 검증 도구(대시·장착·전투 표·혼합 추첨·보스 등장·피격)는 변경 소스를 포함하지 않아 이번에 다시 실행하지 않았다.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 오류 없음 확인 → `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `Enemy Spawn System` 선택 → Inspector `Scene Enemy Pool` 오른쪽 위 ⋮.
+  1) `테스트/힐팩 떨어뜨리기 (Play 중)`: 플레이어 오른쪽 2칸에 흰 구급상자. 피해를 입은 뒤 먹으면 HP가 최대의 30% 오른다.
+  2) `테스트/자석 떨어뜨리기 (Play 중)`: 경험치를 몇 개 남겨 두고 먹으면 멀리 있는 것까지 전부 날아온다.
+  3) `테스트/폭탄 떨어뜨리기 (Play 중)`: 먹으면 고리 파동과 함께 화면 안 일반 몬스터가 모두 죽고 경험치가 남는다. 보스는 죽지 않아야 한다.
+  4) 자연 드랍은 `Field Items`의 확률을 Play 중 1로 올리고 몬스터를 처치해 확인한다(Play 중 변경은 종료 시 원복).
+- 이상 시: Console 첫 오류, `Scene Enemy Pool`이 활성인지, `Max Field Items`에 걸렸는지, 아이템이 안 보이면 Sorting Layer `Entity` 유무와 `Item Scale`, 폭탄이 화면 밖까지 죽이면 `Recycle Camera` 연결을 확인한다. 메뉴가 안 보이면 임포트가 끝나지 않은 것이다.
+- 다음: 실제 Play로 확률·회복량·획득 거리·그림 크기 체감 확인 후 기획 수치 확정. 정식 스프라이트·효과음·회복 표시, 보스에게 폭탄 피해를 줄지는 기획 미정이라 넣지 않았다.
+
 ## 2026-11-12 태양 탄막 2D 그래픽 main 반영
 
 - `origin/feature/soul-pipeline-3d`의 태양 탄막(10016) 2D만 main에 가져왔다. SoulArena 3D·휴머노이드 본선은 포함하지 않았다.

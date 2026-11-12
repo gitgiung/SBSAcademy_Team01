@@ -1,5 +1,25 @@
 # 작업 인수인계
 
+## 2026-11-12 미커밋 작업을 main에 반영
+
+- 사용자 요청으로 로컬 main에 커밋한 뒤 `origin/main`으로 푸시한다. 공격 스킬 이펙트는 `eedcf4f`, 몬스터 속도·패링 진동·사망 보스 체력·레벨업 리롤은 `7ed28a0`. 이전에 로컬에만 있던 필드 아이템 그림 `a395a7f`·`5ed80d0`도 같이 올라간다.
+- AllIn1 셰이더·URP Global Settings·ProjectSettings는 내용 차이가 줄바꿈뿐이라 커밋하지 않았다. 워킹트리에 수정으로 남을 수 있다. `.utmp`·`Library`는 생성물이라 넣지 않았다.
+
+## 2026-11-12 일반 몬스터 속도·패링 진동·사망 보스 체력·레벨업 리롤
+
+- 브랜치 main, 기능 커밋 `7ed28a0`. 시작 시 있던 AllIn1 셰이더·URP·ProjectSettings 변경과 다른 세션의 필드 아이템 그림·공격 스킬 이펙트 작업은 건드리지 않았다. 스킬 컨트롤러 위치 반전은 요청에 완료로 적혀 있어 이번 작업에 넣지 않았다.
+- 일반 몬스터 추격 속도는 프리팹 속도 × 0.6이다. `Enemy Spawn System` 프리팹의 `Scene Enemy Pool > Normal Move Speed Scale`. 풀에서 꺼낼 때마다 프리팹 속도를 기준으로 다시 곱하므로 재사용해도 더 느려지지 않는다. 보스 이동은 이 배율을 타지 않는다. 플레이어 기본 속도 5 기준 임시 체감값: 느린 좀비 2→1.2, 기본 3→1.8, 빠른 4→2.4, 들개 5→3. 기획 확정값이 아니다.
+- 패링이 성공한 순간에만 짧은 기기 진동(약 40ms). 에디터·PC에서는 재생하지 않는다. 안드로이드 진동 권한은 `Assets/Plugins/Android/ParryHaptics.androidlib`에 넣었다. 가드를 누르고 있는 동안에는 진동하지 않는다.
+- 사망 화면은 보스 체력바를 끄지 않는다. 보스전 중이면 페이드를 멈추고 알파를 1로 둔 뒤, 죽음 패널보다 뒤에 둔다. 보스전이 아니면 바는 그대로 숨겨져 있다.
+- 레벨업 카드 아래마다 `리롤`이 있다. 한 번에 그 칸만 바꾸고, 지금 보이는 카드와 겹치지 않는다. 한 판에 10회. 남은 횟수는 레벨업 창 오른쪽 아래 `리롤 N`. 0이면 버튼이 비활성이다. 다른 카드가 없으면 횟수를 깎지 않고 Console에 한 줄 남긴다. 씬을 다시 열면 10으로 돌아간다.
+- 검증: Unity 6000.5.0f1 Roslyn으로 Combat/Enemy/Boss/Encounter.Runtime 오류 0. Assembly-CSharp는 캐시 응답에 없는 `SunBarrageCrest`와 필드 아이템 소스를 넣어 다시 컴파일했고 오류 0, 기존 경고 3개(CS0252 1, CS0618 2). Unity Play·안드로이드 빌드·기기는 미실행.
+- 직접 확인: Play 종료 → 임포트·컴파일 후 Console 오류 없음 → `Tools > Play From Title` 해제 → `MainScene` Play.
+  1) 일반 몬스터가 이전보다 느리게 따라오고, 걸어가면 거리가 벌어진다. 보스 추적·돌진 속도는 이전과 같다. 더 느리거나 빠르면 `Enemy Spawn System`의 `Normal Move Speed Scale`(0.6)을 조절하고 씬을 저장한다.
+  2) 보스전 중 사망하면 죽음 글자 뒤, 화면 아래 보스 체력바가 남아 있다. 보스 전에 죽으면 바가 없다.
+  3) `CombatUI > CombatPopupController` 메뉴 `테스트/경험치 13 획득`으로 레벨업. 카드 아래 `리롤`을 누르면 그 카드만 바뀌고 오른쪽 아래가 `리롤 9`가 된다. 10번 쓰면 `리롤 0`이고 버튼이 눌리지 않는다.
+  4) 패링 진동은 에디터에서 느껴지지 않는다. 안드로이드 기기에서 패링이 성공하는 순간에만 짧게 울려야 한다.
+- 이상 시: Console 첫 오류, `Normal Move Speed Scale`, 보스전인지, 레벨업 창의 `리롤 N`, 안드로이드 진동 권한. 안드로이드 빌드가 이 androidlib 때문에 실패하면 `ParryHaptics.androidlib`을 먼저 확인한다.
+
 ## 2026-11-12 필드 아이템 정식 그림·폭탄 폭발 연출
 
 - 브랜치 main, 커밋 `a395a7f`(+ 이 문서 커밋). **로컬 커밋만 했고 푸시하지 않았다**(사용자 지시 없음, origin/main은 `1359809`). 다른 세션의 미커밋 작업(`LightSkillFx`·`LightSkillVisuals`, `Assets/Resources/LightSkills/Fx/`, `tools/PixelFxBake/export-skills.mjs`·`skills/`, 이 문서의 "공격 스킬 이펙트 pixelfx 통일" 항목)과 시작부터 있던 AllIn1 셰이더·URP·ProjectSettings 변경은 건드리지 않았고 커밋에도 넣지 않았다. 씬·프리팹·ProjectSettings·패키지 변경 없음. 드랍 규칙·수치는 바꾸지 않았다.
@@ -12,7 +32,30 @@
   1) 힐팩은 빨간 십자가 있는 흰 구급상자, 자석은 빨간 말굽자석(끝이 은색), 폭탄은 불붙은 심지가 달린 검은 공으로 보인다. 크기는 예전과 같은 약 0.9칸이다.
   2) 폭탄을 먹으면 플레이어 자리에서 불덩이가 커졌다가 연기로 흩어지고(약 0.5초), 동시에 옅은 노란 고리가 화면 끝까지 퍼진다. 레벨업 창이 바로 떠도 연출이 남지 않고 끝난다.
 - 이상 시: Console 첫 오류. 예전 16픽셀 임시 그림이나 고리만 보이면 `Assets/Resources/FieldItems`의 PNG가 Sprite로 임포트됐는지(Texture Type·Sprite Mode Single), 그림이 흐리면 Filter Mode, 크기가 다르면 Pixels Per Unit과 `Item Scale`을 확인한다.
-- 다음: 실제 Play로 그림 크기·밝기·폭발 크기 확인 후 조정(`bake.mjs` 수정 → 다시 굽기). 푸시는 사용자 지시 후. 효과음·회복 숫자 표시와 드랍 수치 확정은 여전히 미정이다.
+- 다음: 실제 Play로 그림 크기·밝기·폭발 크기 확인 후 조정(`bake.mjs` 수정 → 다시 굽기). 효과음·회복 숫자 표시와 드랍 수치 확정은 여전히 미정이다. 이 커밋은 위 "미커밋 작업을 main에 반영" 푸시에 포함된다.
+
+## 2026-11-12 공격 스킬 이펙트 pixelfx 통일
+
+- 브랜치 main, 기능 커밋 `eedcf4f`. 작업 중 다른 세션이 `5ae1bb0`·`1359809`(필드 아이템)를 올렸고, 당시 워킹트리에 그 세션의 미커밋 변경이 있었다. 그것들과 시작부터 있던 AllIn1 셰이더·URP·ProjectSettings 변경은 건드리지 않았다. 씬·프리팹·ProjectSettings·패키지 변경 없음.
+- 내용: 예전 시트(lightfirebolt/lightfireblast/lightthrust/lightslash/lightflamering + 색조 이동)를 쓰던 공격 스킬 30종의 그림을 pixelfx(patch-gg/pixelfx 0.3.1, MIT)로 스킬 컨셉에 맞게 새로 구워 바꿨다. 이미 pixelfx였던 10014 화염 고리·10015 작열 구체·10016 태양 탄막·10017 절멸의 불은 그대로다. **피해·판정·사거리·타격 간격·MP는 바꾸지 않았다.** 그림만 판정에 맞췄다(범위 그림은 원점에서 판정 끝까지가 Range, 다단 히트 시각은 표의 HitDelay).
+  - 탄환 12(반복 0.4초): 10001 FireBullet, 10002 FireDart, 10004 FireOrb(+맞으면 FireballBurst), 10006 FlareShot, 10008 HeatGust, 10009 FlameArrow, 10010 EmberPellet, 10013 FireTracer, 10018 IceShard, 10019 WindArrow, 10020 RockShot, 10021 VoltArrow.
+  - 직선 3: 10005 FlameSpear, 10012 LavaShards(3타), 20014 Annihilation.
+  - 부채·호 5: 10007 SunBlade(2타), 10011 FlameFan, 20006 FlameSlash, 20010 SunSmash, 20011 CrimsonLotus.
+  - 원·고리 10: 10003 FlameSmash, 20001 FlameHammer, 20003 GreatExplosion, 20004 FireStorm(4타), 20005 MeteorSword, 20007 LavaEruption, 20008 HeatWave(고리), 20009 FlamePillar(3타), 20013 Hellfire, 20015 SunCollapse(2타).
+  - 제외: 전략 스킬 30001~30010은 원래 전용 이펙트가 없어 바꿀 그림이 없다. 20002 화염 돌진·20012 화염 십자는 시전 자체가 미지원이라 만들지 않았다.
+- 에셋: `Assets/Resources/LightSkills/Fx/<Name>.png`(시트 31장, Point·무압축·PPU 32) + `Fx/Frames/<Name>.json`(프레임 크기·열 수·개수·피벗·fps·loop·reach) + meta. 디스크 약 6.3MB, 메모리는 전부 합쳐 무압축 약 60MB지만 **처음 쓰는 스킬의 시트만** 읽는다(가장 큰 Hellfire 7.4MB).
+- 굽기: `tools/PixelFxBake/export-skills.mjs`(신규) + `tools/PixelFxBake/skills/{_kit,shots,lines,slashes,bursts}.js`. `.utmp/pixelfx`에 pixelfx를 클론한 뒤 repo 루트에서 `node tools/PixelFxBake/export-skills.mjs`(`--preview`면 Assets에 쓰지 않고 `.utmp/pixelfx-preview`에 접촉 시트만 만든다, `--only A,B`로 일부만). 기존 meta는 유지해 GUID가 보존된다.
+- 코드: `LightSkillVisuals`에 `BakedClip`, `Baked(name)`(시트+JSON을 처음 쓸 때 `Sprite.Create`로 자르고 캐시), `BakedClipName(skillId)`, `FireballBurstClip`. `LightSkillFx.Play`는 구운 그림이 있으면 `BlazeMaterial`로 그리고 없으면 예전 시트로 대신한다(탄환이 아닌 그림이 탄환 스킬에 연결되면 무시). 구운 그림은 시간 기준으로 재생하고 한 번 재생하는 그림은 끝나면 숨긴다. 탄환은 스탯 배율만큼만 키우고 충돌 반경에 기존 탄환 배율을 곱해 맞는 크기는 예전과 같다. 원형은 돌리지 않고, 직선·부채는 Z축으로만 돌린다. 기존 공개 API·`projectileSize`·`WithStatUpgrades`·전용 분기(작열 구체 등)는 그대로다.
+- 검증(실제 실행): 구운 31종을 접촉 시트로 눈으로 확인하며 조정. 시트 크기와 JSON 격자 일치·2048px 이하·코드 매핑 31개 모두 파일 존재를 스크립트로 확인(불일치 0, 안 쓰는 시트 0). Unity 6000.5.0f1 Roslyn 격리 컴파일: Enemy.Runtime → Assembly-CSharp 오류 0, 경고는 기존 3개(CS0252 1, CS0618 2). 캐시 응답 파일이 오래돼 `SunBarrageCrest`와 필드 아이템 소스 6개를 추가하고 Enemy.Runtime 참조를 새로 빌드해 물렸다(워킹트리의 다른 세션 미커밋 변경 포함 상태). `CombatSkillTableValidation` 23/23, `PlayerLoadoutValidation` 6/6, `DashCooldownValidation` 8/8.
+- 미검증: Unity 임포트·Play, 실제 게임 화면에서의 크기·정렬 순서·판정과 그림의 일치 체감, 패시브가 여러 개 겹칠 때 프레임·메모리, Android 빌드·기기. PlayMode/EditMode 테스트 실행 0개.
+- 알려 둘 점: MeteorSword·Hellfire·FlameHammer는 낙하 연출 때문에 충격이 3번째 프레임(약 0.07초)에 보이지만 피해는 기존대로 즉시 들어간다. 낙하물 꼬리는 첫 1~2프레임에 그림 위쪽 끝에서 잘린다. 태양 탄막 미사일의 충돌 반경은 발사체 크기 스탯이 두 번 곱해지는 기존 식 그대로 뒀다(이번 범위 밖).
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 오류 없음 → Project에서 `Assets/Resources/LightSkills/Fx/FireStorm` 선택해 Filter Mode Point·Compression None·Max Size 2048 확인 → `Tools > Play From Title` 해제 → `MainScene` Play → `테스트/원하는 카드 고르기`로 스킬을 하나씩 장착.
+  1) 탄환류: 불꽃 탄환·화염구·홍염 화살 등이 서로 다른 모양으로 날아가고, 얼음·바람·암석·전기는 각 속성 색이다. 화염구는 맞으면 불 폭발이 난다.
+  2) 화염창·용암 파편·멸화 일섬: 조준 방향으로 사거리 끝까지 뻗는다.
+  3) 태양 검·화염 부채·화염 베기·태양 강타·홍련 횡베기: 조준 방향 부채꼴 안의 적만 맞는다.
+  4) 화염 강타·대폭발·화염 폭풍·불기둥·업화 강림·태양 붕괴 등: 바닥 고리 안의 적이 맞고, 고리가 판정 범위와 같다. 열파 충격은 불 띠 부분만 맞는다.
+- 이상 시: Console 첫 오류와 `[LightSkillVisuals] 구운 시트 크기가 정보와 다릅니다` 경고(→ 해당 PNG의 Max Size·NPOT 설정), 그림이 예전 것으로 나오면 `Fx/<Name>.png`와 `Fx/Frames/<Name>.json`이 둘 다 임포트됐는지, 그림이 흐리면 Filter Mode, 크기가 판정과 다르면 JSON의 `reach`.
+- 다음: 실제 Play로 크기·밝기·지속 시간 체감 확인 후 조정(소스 수정 → 다시 굽기). 커밋 `eedcf4f`는 위 "미커밋 작업을 main에 반영" 푸시에 포함된다.
 
 ## 2026-11-12 필드 아이템 드랍 (힐팩·자석·폭탄)
 

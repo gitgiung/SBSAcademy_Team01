@@ -150,6 +150,8 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         master.onValueChanged.AddListener(value => { Managers.Sound.MasterVolume = value; masterValue.text = Percent(value); });
         bgm.onValueChanged.AddListener(value => { Managers.Sound.SetVolume(Define.ESound.Bgm, value); bgmValue.text = Percent(value); });
         effect.onValueChanged.AddListener(value => { Managers.Sound.SetVolume(Define.ESound.Effect, value); effectValue.text = Percent(value); });
+        Button(Rect(optionsRoot.transform, "Screenshot", 30, 435, 200, 40), "스크린샷", font,
+            new Color32(113, 247, 255, 255), GameScreenshot.Capture);
         Button(Rect(optionsRoot.transform, "BackToStatus", 810, 435, 155, 40), "뒤로가기", font,
             new Color32(255, 116, 132, 255), HideOptions);
         optionsRoot.SetActive(false);

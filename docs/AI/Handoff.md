@@ -1,5 +1,41 @@
 # 작업 인수인계
 
+## 2026-11-12 안드로이드 캡처·패링 무적·패시브 피해·전략 횟수 UI
+
+- 브랜치: `feature/gameplay-feel-polish` 계속. 기존 셰이더·ProjectSettings 사용자 변경은 보존.
+- 안드로이드 OS 캡처: `AndroidCapturePermit`이 Activity window의 `FLAG_SECURE`를 clear. 포커스/pause 복귀 때도 재적용. 인게임 F12/`GameScreenshot`은 보조로 유지.
+- 패링 성공 시 `parryInvulnerableDuration`(기본 0.5초) 무적. `TakeDamage`/`ApplyDamage`가 무적 중 피해·피격 반응을 무시.
+- 패시브 피해: 기존 산출(`damage×PassiveScale×스택`)에 `Player.PassiveDamageFactor(0.3)`를 곱함. 표 PassivePassiveScale` 자체는 유지.
+- 전략 횟수: CostType `Count` 스킬은 스테이지당 최대 5회(`TacticalStageMaxUses`). 시전 성공 시 CostAmount만큼 차감. Skill 버튼에 `xN` 표시, 0이면 버튼 비활성. 스테이지 전환 신호는 아직 없어 플레이어 비활성 시 횟수 맵만 비움(재시작·재입장 시 다시 5).
+- 검증: Assembly-CSharp 격리 Roslyn 컴파일 성공(기존 경고 3). `DashCooldownValidation` 8/8, `CombatSkillTableValidation` 23/23, `PlayerLoadoutValidation` 6/6. Unity Play·Android 실기기 캡처는 미실행.
+- 직접 확인: Play From Title 해제 → MainScene Play.
+  1) 패링 성공 직후 0.5초간 피격 무시.
+  2) 패시브만으로 보스 체력이 이전보다 훨씬 느리게 감소(대략 30%).
+  3) Skill 버튼 `x5`→사용마다 감소, 0에서 더 이상 시전 불가.
+  4) 안드로이드 빌드 기기에서 전원+볼륨(또는 제스처) 시스템 캡처가 검은 화면/차단 없이 나와야 함.
+- 이상 시: Console 첫 오류, `@Managers`의 AndroidCapturePermit, Player의 parryInvulnerableDuration=0.5, PassiveDamageFactor, Skill의 TacticalUses 라벨 확인.
+- 다음: 실기기 캡처·체감 확인. 스테이지 전환 시 전략 횟수 리셋 신호 연결은 별도.
+
+## 2026-11-12 조작감·캡처·복귀 지연·폰트 (feature/gameplay-feel-polish)
+
+- 브랜치: `feature/gameplay-feel-polish` (main `556ff93`에서 분기). 시작 시 있던 AllIn1 셰이더·URP/ProjectSettings 변경은 이번 작업과 무관해 건드리지 않았다.
+- 대쉬: `dashDuration` 0.15→0.25(코드 기본값 + MainScene/GiungScene). 이동속도×배율×시간 기준 거리 약 1.67배. 쿨타임·MP·배율은 유지.
+- 캡처: 당시에는 인게임 `GameScreenshot`(F12/설정 버튼)을 넣었고, 이후 항목에서 안드로이드 OS 캡처 허용으로 보완했다.
+- 레벨업 보상 후: 마지막 레벨업 창이 닫히면 월드 `timeScale`을 기존값의 **1%(99% 감소)** 로 0.5초 유지한 뒤 복구. 연속 레벨업 중(다음 카드)에는 적용하지 않음.
+- 일시정지/옵션/상태창(인벤 역할) 복귀: 창이 모두 닫힌 뒤 **0.5초간 timeScale 0 유지** 후 재개. 승패·사망 시에는 즉시 정리.
+- 전화 등 OS pause: `OnApplicationPause(true)` 때 전투 중이면 일시정지 창 강제 오픈. 이미 일시정지/레벨업 중이면 겹치지 않음.
+- 폰트: `UiFontScale.Factor=1.3`. 씬/프리팹 TMP는 로드 시 배율, 코드 생성 UI·피해 숫자·HP/MP 라벨·스프린트 쿨 글자도 동일. 마커로 중복 배율 방지.
+- 검증: Assembly-CSharp 격리 Roslyn 컴파일 성공(기존 경고 3개). `DashCooldownValidation` **8/8**. Unity Play/기기/Android 기본 캡처 재현은 미실행.
+- 직접 확인: Play 종료 → 임포트/컴파일 → `Tools > Play From Title` 해제 → `MainScene` Play.
+  1) 대쉬 거리가 이전보다 길게 느껴지는지.
+  2) F12 또는 일시정지→설정→스크린샷 후 Console에 저장 경로, 폴더에 PNG.
+  3) 레벨업 카드 선택 직후 약 0.5초 슬로모션 뒤 정상 속도.
+  4) 일시정지/설정 닫은 뒤 0.5초 정지 후 재개.
+  5) UI·피해 숫자 글자가 이전보다 큼(약 1.3배).
+  6) 에디터에서 전화 pause는 재현이 어려우니 기기에서 수신 시 일시정지 창이 뜨는지 확인.
+- 이상 시: Console 첫 오류, `dashDuration` 0.25, `@Managers`의 GameScreenshot/UiFontScaleBootstrap, timeScale이 재개 후에도 0·0.01에 남는지 확인.
+- 다음: 실제 Play 체감 후 대쉬 거리·지연 초를 조정할지 결정. 원격 푸시는 요청 시.
+
 ## 2026-11-11 main에 3개 브랜치 로컬 병합
 
 - 시작: main `b6a51d8`, 작업 트리 깨끗함. origin fetch 후 main과 origin/main 일치, 첫 두 브랜치의 로컬/원격 끝점도 일치함을 확인했다.

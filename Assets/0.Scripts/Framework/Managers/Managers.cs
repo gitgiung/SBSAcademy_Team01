@@ -129,6 +129,10 @@ public class Managers : MonoBehaviour
             _pool = new PoolManager(transform);
 
         _sound.Init(transform);
+        AndroidCapturePermit.EnsureOn(gameObject);
+        GameScreenshot.EnsureOn(gameObject);
+        if (GetComponent<UiFontScaleBootstrap>() == null)
+            gameObject.AddComponent<UiFontScaleBootstrap>();
         Initialized = true;
     }
 

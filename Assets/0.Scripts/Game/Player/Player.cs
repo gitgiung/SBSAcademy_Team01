@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -36,6 +37,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [SerializeField] private float parryStartup = 0.033f;
     [SerializeField] private float parryActive = 0.133f;
     [SerializeField] private float parryRecovery = 0.233f;
+    [SerializeField, Min(0f)] private float parryInvulnerableDuration = 0.5f;
 
     [Header("일반 가드 설정 (초 단위)")]
     [SerializeField] private float guardTransitionTime = 0.183f;
@@ -48,7 +50,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     [Header("대쉬 설정")]
     [SerializeField, Min(1f)] private float dashSpeedMultiplier = 3f;
-    [SerializeField, Min(0.01f)] private float dashDuration = 0.15f;
+    // 이동속도×배율×시간. 0.15→0.25로 거리를 약 1.67배 올립니다.
+    [SerializeField, Min(0.01f)] private float dashDuration = 0.25f;
     [SerializeField, Min(0f)] private float dashCooldown = 3f;
 
     private bool hasDied;
@@ -74,6 +77,11 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private PlayerShieldBar shieldBar;
     private float nextTacticalReadyTime;
     private const int FallbackTacticalId = 30009;
+    /// <summary>기획 초기 기준: 전략 스킬은 스테이지당 5회.</summary>
+    public const int TacticalStageMaxUses = 5;
+    /// <summary>패시브 피해를 현재 산출값의 30%로 맞춥니다.</summary>
+    public const float PassiveDamageFactor = 0.3f;
+    private readonly Dictionary<int, int> tacticalUsesRemaining = new Dictionary<int, int>();
     private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
     private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];
     private bool lastExternalMoving;
@@ -83,6 +91,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     public bool IsDashing => movement != null && movement.IsDashing;
     public float DashCooldownRemaining => movement != null ? movement.DashCooldownRemaining : 0f;
     public float DashCooldownProgress => movement != null ? movement.DashCooldownProgress : 1f;
+    public event Action TacticalUsesChanged;
 
     /// <summary>모바일 Sprint 버튼도 기존 입력과 같은 조준 방향·MP·대시 규칙을 사용합니다.</summary>
     public bool TryUseDash() => TryDash(CurrentAim());
@@ -227,9 +236,52 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         int id = data.Loadout != null ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) : 0;
         if (id == 0) id = FallbackTacticalId;
         if (!CombatSkillTable.TryGet(id, out CombatSkillRecord record)) return false;
+        int cost = TacticalUseCost(record);
+        if (cost > 0 && GetTacticalUsesRemaining(id) < cost) return false;
         if (!TacticalSkillEffect.TryApply(data, record)) return false;
+        if (cost > 0) ConsumeTacticalUses(id, cost);
         nextTacticalReadyTime = Time.time + Mathf.Max(0f, record.Cooldown);
         return true;
+    }
+
+    /// <summary>Skill 버튼에 표시할 현재 전략의 남은 스테이지 횟수입니다.</summary>
+    public int GetEquippedTacticalUsesRemaining()
+    {
+        int id = data != null && data.Loadout != null
+            ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) : 0;
+        if (id == 0) id = FallbackTacticalId;
+        return GetTacticalUsesRemaining(id);
+    }
+
+    public int GetTacticalUsesRemaining(int skillId)
+    {
+        if (skillId <= 0) return 0;
+        if (!tacticalUsesRemaining.TryGetValue(skillId, out int remaining))
+        {
+            remaining = TacticalStageMaxUses;
+            tacticalUsesRemaining[skillId] = remaining;
+        }
+        return remaining;
+    }
+
+    public void ResetTacticalStageUses()
+    {
+        tacticalUsesRemaining.Clear();
+        TacticalUsesChanged?.Invoke();
+    }
+
+    private void ConsumeTacticalUses(int skillId, int cost)
+    {
+        int remaining = Mathf.Max(0, GetTacticalUsesRemaining(skillId) - Mathf.Max(1, cost));
+        tacticalUsesRemaining[skillId] = remaining;
+        TacticalUsesChanged?.Invoke();
+    }
+
+    private static int TacticalUseCost(CombatSkillRecord record)
+    {
+        if (record == null) return 0;
+        if (!string.Equals(record.CostType, "Count", StringComparison.OrdinalIgnoreCase)) return 0;
+        return Mathf.Max(1, Mathf.RoundToInt(record.CostAmount));
     }
 
     /// <summary>이전 보호막 버튼 경로 호환용입니다.</summary>
@@ -316,7 +368,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             ownedPassiveTimers[i] = cooldown;
             float stackMul = data.Loadout.GetAttackSkillDamageMultiplier(id);
             float damage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element);
-            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul, false, 0));
+            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul * PassiveDamageFactor, false, 0));
         }
     }
 
@@ -434,6 +486,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         int version = lifecycleVersion;
         data.RestoreMP(data.parryMPRecovery);
+        if (parryInvulnerableDuration > 0f)
+            data.GrantInvulnerable(parryInvulnerableDuration);
         if (version == lifecycleVersion && isActiveAndEnabled && !hasDied && !data.IsDead)
         {
             BeginParryFeedback(defense.LastParrySource);
@@ -445,6 +499,9 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     public void TakeDamage(float damage, GameObject attacker = null)
     {
         if (data == null || hasDied || defense == null || movement == null)
+            return;
+
+        if (data.IsInvulnerable)
             return;
 
         if (movement.IsDashing || defense.IsBlockingDamage)
@@ -497,6 +554,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         StopAllCoroutines();
         Array.Clear(ownedPassiveIds, 0, ownedPassiveIds.Length);
         Array.Clear(ownedPassiveTimers, 0, ownedPassiveTimers.Length);
+        tacticalUsesRemaining.Clear();
         lightSkill?.Cancel();
         ResetHeavyCharge();
         actions?.Reset();

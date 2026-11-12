@@ -59,14 +59,17 @@ internal static class StatusPanelUI
         var text = rect.gameObject.AddComponent<TextMeshProUGUI>();
         if (font != null) text.font = font;
         text.text = value;
-        text.fontSize = size;
+        float scaled = UiFontScale.Size(size);
+        text.fontSize = scaled;
         text.enableAutoSizing = true;
-        text.fontSizeMin = Mathf.Min(12, size);
-        text.fontSizeMax = size;
+        text.fontSizeMin = Mathf.Min(UiFontScale.Size(12), scaled);
+        text.fontSizeMax = scaled;
         text.color = color ?? Color.black;
         text.alignment = alignment;
         text.raycastTarget = false;
         text.overflowMode = TextOverflowModes.Ellipsis;
+        if (text.GetComponent<UiFontScaledMarker>() == null)
+            text.gameObject.AddComponent<UiFontScaledMarker>();
         return text;
     }
     internal static Button Button(RectTransform rect, string label, TMP_FontAsset font, Color color, UnityAction action)

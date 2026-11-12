@@ -350,7 +350,8 @@ public class PlayerData : MonoBehaviour
     public bool ApplyDamage(float damage)
     {
         if (damage <= 0f || IsDead) return false;
-        if (IsInvulnerable) return true;
+        // 무적이면 피해·피격 반응 모두 없는 것으로 처리합니다.
+        if (IsInvulnerable) return false;
         float defense = StatCards.Value(PlayerStat.DEF);
         damage *= 1f - defense / (defense + 33.34f);
         damage = AbsorbShield(damage);

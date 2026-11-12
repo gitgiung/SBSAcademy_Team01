@@ -32,7 +32,9 @@ public sealed class SprintCooldownUI : MonoBehaviour
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;
             text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
-            text.fontSize = 36f;
+            text.fontSize = UiFontScale.Size(36f);
+            if (text.GetComponent<UiFontScaledMarker>() == null)
+                text.gameObject.AddComponent<UiFontScaledMarker>();
             text.fontStyle = TMPro.FontStyles.Bold;
             text.alignment = TMPro.TextAlignmentOptions.Center;
             text.color = Color.white;

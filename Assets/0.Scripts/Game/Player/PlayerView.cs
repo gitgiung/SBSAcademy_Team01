@@ -91,10 +91,12 @@ internal sealed class PlayerView
         rect.offsetMax = new Vector2(-8f, 0f);
         var label = child.AddComponent<TMPro.TextMeshProUGUI>();
         label.font = Resources.Load<TMPro.TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
-        label.fontSize = 22f;
+        label.fontSize = UiFontScale.Size(22f);
         label.enableAutoSizing = true;
-        label.fontSizeMin = 12f;
-        label.fontSizeMax = 22f;
+        label.fontSizeMin = UiFontScale.Size(12f);
+        label.fontSizeMax = UiFontScale.Size(22f);
+        if (label.GetComponent<UiFontScaledMarker>() == null)
+            label.gameObject.AddComponent<UiFontScaledMarker>();
         label.fontStyle = TMPro.FontStyles.Bold;
         label.alignment = TMPro.TextAlignmentOptions.Center;
         label.color = Color.white;

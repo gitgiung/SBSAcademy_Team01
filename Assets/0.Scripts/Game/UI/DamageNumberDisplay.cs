@@ -80,7 +80,7 @@ public sealed class DamageNumberDisplay : MonoBehaviour
 
         TextMeshProUGUI label = number.text;
         label.text = damage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
-        label.fontSize = Mathf.Max(10f, fontSize);
+        label.fontSize = UiFontScale.Size(Mathf.Max(10f, fontSize));
         label.transform.SetAsLastSibling();
         Position(number);
         label.gameObject.SetActive(true);

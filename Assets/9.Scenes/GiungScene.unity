@@ -1258,7 +1258,7 @@ MonoBehaviour:
   breakGuardCooldown: 1.5
   parrySpeedRatio: 0.8
   dashSpeedMultiplier: 3
-  dashDuration: 0.15
+  dashDuration: 0.25
   dashCooldown: 3
 --- !u!114 &454020001
 MonoBehaviour:

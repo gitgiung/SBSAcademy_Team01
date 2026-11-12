@@ -19,6 +19,10 @@ public sealed class CombatPopupController : MonoBehaviour
     private LevelUpSelectionPanel levelUpPanel;
     private readonly System.Random levelUpRandom = new System.Random();
 
+    private const float ResumeHoldSeconds = 0.5f;
+    private const float LevelUpSlowMotionScale = 0.01f;
+    private const float LevelUpSlowMotionSeconds = 0.5f;
+
     private readonly HashSet<UI_CombatPopup> activePopups = new HashSet<UI_CombatPopup>();
     private float previousTimeScale;
     private bool ownsPause;
@@ -26,6 +30,7 @@ public sealed class CombatPopupController : MonoBehaviour
     private bool automaticLevelUp;
     private bool completionPending;
     private Coroutine advanceLevelUp;
+    private Coroutine resumeRoutine;
 
     public RectTransform LevelUpContentRoot => levelUpPopup != null ? levelUpPopup.ContentRoot : null;
 
@@ -96,6 +101,22 @@ public sealed class CombatPopupController : MonoBehaviour
     }
 
     private void OnPauseClicked() { ShowPause(); }
+
+    /// <summary>전화 수신 등 OS 중단 시 전투 일시정지 창을 강제로 엽니다.</summary>
+    private void OnApplicationPause(bool paused)
+    {
+        if (!paused) return;
+        ForcePauseForInterruption();
+    }
+
+    private void ForcePauseForInterruption()
+    {
+        if (!CanShow() || pausePopup == null) return;
+        // 레벨업 등으로 이미 멈춰 있으면 창을 겹치지 않습니다.
+        if (pausePopup.gameObject.activeSelf) return;
+        if (levelUpPopup != null && levelUpPopup.gameObject.activeSelf) return;
+        ShowPause();
+    }
 
     public UI_CombatPopup ShowPause()
     {
@@ -354,11 +375,16 @@ public sealed class CombatPopupController : MonoBehaviour
     {
         if (!isActiveAndEnabled || (popup != pausePopup && popup != levelUpPopup) || !activePopups.Add(popup))
             return;
-        if (ownsPause) return;
+        CancelResume();
+        if (ownsPause)
+        {
+            Time.timeScale = 0f;
+            return;
+        }
         // Transfer a temporary parry stop back to its original scale before owning popup pause.
         foreach (Player candidate in FindObjectsByType<Player>())
             if (candidate.gameObject.scene == gameObject.scene) candidate.EndParryHitStop();
-        previousTimeScale = Time.timeScale;
+        previousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
         ownsPause = true;
         Time.timeScale = 0f;
     }
@@ -376,19 +402,92 @@ public sealed class CombatPopupController : MonoBehaviour
             }
             return;
         }
-        RestoreTimeScale();
+        bool fromLevelUp = popup == levelUpPopup;
+        BeginResume(fromLevelUp);
         if (isActiveAndEnabled && pauseButton != null && pauseButton.gameObject.activeInHierarchy)
             pauseButton.Select();
     }
 
-    private void RestoreTimeScale()
+    private void BeginResume(bool fromLevelUp)
+    {
+        if (!ownsPause) return;
+        CancelResume();
+        if (!isActiveAndEnabled || (growthSource != null && growthSource.IsDead)
+            || (gameManager != null && gameManager.state != GameState.Playing))
+        {
+            RestoreTimeScaleImmediate();
+            return;
+        }
+        resumeRoutine = StartCoroutine(ResumeAfterPopup(fromLevelUp));
+    }
+
+    private IEnumerator ResumeAfterPopup(bool fromLevelUp)
+    {
+        if (fromLevelUp)
+        {
+            // 보상 선택 직후 인지 지연을 위해 월드 시간을 99% 줄입니다(1%만 진행).
+            float target = previousTimeScale > 0f ? previousTimeScale : 1f;
+            Time.timeScale = target * LevelUpSlowMotionScale;
+            float elapsed = 0f;
+            while (elapsed < LevelUpSlowMotionSeconds)
+            {
+                if (ShouldAbortResume())
+                {
+                    AbortResume();
+                    yield break;
+                }
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+        else
+        {
+            // 일시정지·옵션·상태(인벤) 창을 닫은 뒤 0.5초간 정지 상태를 유지합니다.
+            Time.timeScale = 0f;
+            float elapsed = 0f;
+            while (elapsed < ResumeHoldSeconds)
+            {
+                if (ShouldAbortResume())
+                {
+                    AbortResume();
+                    yield break;
+                }
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+        resumeRoutine = null;
+        RestoreTimeScaleImmediate();
+    }
+
+    private bool ShouldAbortResume() =>
+        !isActiveAndEnabled || activePopups.Count > 0
+        || (gameManager != null && gameManager.state != GameState.Playing)
+        || (growthSource != null && growthSource.IsDead);
+
+    private void AbortResume()
+    {
+        resumeRoutine = null;
+        // 새 팝업이 다시 AcquirePause를 소유 중이면 시간을 되돌리지 않습니다.
+        if (activePopups.Count == 0) RestoreTimeScaleImmediate();
+    }
+
+    private void CancelResume()
+    {
+        if (resumeRoutine == null) return;
+        StopCoroutine(resumeRoutine);
+        resumeRoutine = null;
+    }
+
+    private void RestoreTimeScaleImmediate()
     {
         if (!ownsPause) return;
         ownsPause = false;
         // 승패에 의한 정지나 외부에서 바꾼 시간 배율을 덮어쓰지 않습니다.
-        if (Time.timeScale == 0f && (growthSource == null || !growthSource.IsDead)
+        if ((Time.timeScale == 0f || Time.timeScale <= LevelUpSlowMotionScale + 0.0001f)
+            && (growthSource == null || !growthSource.IsDead)
             && (gameManager == null || gameManager.state == GameState.Playing))
-            Time.timeScale = previousTimeScale;
+            Time.timeScale = previousTimeScale > 0f ? previousTimeScale : 1f;
     }
 
     private void OnDisable()
@@ -417,11 +516,13 @@ public sealed class CombatPopupController : MonoBehaviour
     private void CloseOwnedPopups()
     {
         CancelLevelUpAdvance();
+        CancelResume();
         automaticLevelUp = false;
+        // OnDisable의 ReleasePause가 재개 코루틴을 다시 켜지 않도록 먼저 비웁니다.
+        activePopups.Clear();
         if (pausePopup != null) pausePopup.gameObject.SetActive(false);
         if (levelUpPopup != null) levelUpPopup.gameObject.SetActive(false);
-        activePopups.Clear();
-        RestoreTimeScale();
+        RestoreTimeScaleImmediate();
     }
 
     private void OnDestroy()

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -30,3 +31,4 @@ public sealed class BossAreaFollowupTests
         finally { Object.DestroyImmediate(root); }
     }
 }
+#endif

@@ -19,7 +19,7 @@ GameObject:
   - component: {fileID: 1000011}
   - component: {fileID: 1000010}
   m_Layer: 0
-  m_Name: Enemy_movespeed 4
+  m_Name: Enemy_movespeed3_3min
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -221,7 +221,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25917665923e68c45a9c1774c59d4b06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Enemy.Runtime::EnemyFollow
-  moveSpeed: 4
+  moveSpeed: 3
   stoppingDistance: 0.5
 --- !u!114 &1385214210470336019
 MonoBehaviour:

@@ -10,6 +10,7 @@ public sealed class ZombieSlimeBoss : MonoBehaviour
 {
     private EnemyHealth health;
     private EnemyFollow follow;
+    private Transform target;
 
     public EnemyHealth Health
     {
@@ -38,9 +39,14 @@ public sealed class ZombieSlimeBoss : MonoBehaviour
         if (follow == null)
             return;
 
-        Transform player = FindPlayer();
-        if (player != null)
-            follow.SetTarget(player);
+        if (target == null) target = FindPlayer();
+        if (target != null) follow.SetTarget(target);
+    }
+
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+        if (follow != null) follow.SetTarget(target);
     }
 
     private Transform FindPlayer()

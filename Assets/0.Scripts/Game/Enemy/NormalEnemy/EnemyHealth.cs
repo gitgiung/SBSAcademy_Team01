@@ -116,6 +116,14 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
 
     public void SetExperienceDropper(IEnemyExperienceDropper dropper) { experienceDropper = dropper; }
 
+    /// <summary>현재 보스가 씬의 공용 체력바를 소유하도록 연결하거나 해제합니다.</summary>
+    public void SetHealthSlider(Slider slider)
+    {
+        healthSlider = slider;
+        EnsureInitialized();
+        UpdateHealthUI();
+    }
+
     /// <summary>보스 전환 등 보상 없는 제거. 풀 소유 객체는 파괴하지 않습니다.</summary>
     public void Despawn()
     {

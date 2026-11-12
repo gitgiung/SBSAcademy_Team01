@@ -107,6 +107,6 @@ public sealed partial class Player
     }
     private void RefreshHeavyIndicator() => view?.SetHeavyChargeIndicator(IsHeavyCharging,
         IsHeavyCharging ? heavyCharge.Direction : Vector2.zero, HeavyChargeProgress, HeavyChargeStage);
-    private void OnApplicationFocus(bool focused) { if (!focused) ResetHeavyCharge(); }
-    private void OnApplicationPause(bool paused) { if (paused) ResetHeavyCharge(); }
+    private void OnApplicationFocus(bool focused) { if (!focused) { ResetHeavyCharge(); ReleaseTouchGuard(); } }
+    private void OnApplicationPause(bool paused) { if (paused) { ResetHeavyCharge(); ReleaseTouchGuard(); } }
 }

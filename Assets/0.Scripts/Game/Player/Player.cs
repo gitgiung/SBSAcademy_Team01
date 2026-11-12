@@ -77,6 +77,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private SunBarrageCrest sunCrest;
     private PlayerShieldBar shieldBar;
     private float nextTacticalReadyTime;
+    private float tacticalCooldownDuration;
     private const int FallbackTacticalId = 30009;
     /// <summary>기획 초기 기준: 전략 스킬은 스테이지당 5회.</summary>
     public const int TacticalStageMaxUses = 5;
@@ -93,6 +94,9 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     public float DashCooldownRemaining => movement != null ? movement.DashCooldownRemaining : 0f;
     public float DashCooldownProgress => movement != null ? movement.DashCooldownProgress : 1f;
     public event Action TacticalUsesChanged;
+    public float TacticalCooldownRemaining => Mathf.Max(0f, nextTacticalReadyTime - Time.time);
+    public float TacticalCooldownProgress => tacticalCooldownDuration > 0f
+        ? Mathf.Clamp01(1f - TacticalCooldownRemaining / tacticalCooldownDuration) : 1f;
 
     /// <summary>모바일 Sprint 버튼도 기존 입력과 같은 조준 방향·MP·대시 규칙을 사용합니다.</summary>
     public bool TryUseDash() => TryDash(CurrentAim());
@@ -156,6 +160,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
                 if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);
         lightSkill = new PlayerLightSkill(this, data, view);
         InitializeHeavyCharge();
+        InitializeGuardInput();
         if (lightAttackButton != null)
             Util.GetOrAddComponent<PlayerLightAttackButton>(lightAttackButton.gameObject).Bind(this);
         BindTacticalButton();
@@ -173,7 +178,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void Update()
     {
-        if (Time.timeScale <= 0f) { CancelReleasedHeavyKey(); return; }
+        if (Time.timeScale <= 0f) { CancelReleasedHeavyKey(); ReleaseTouchGuard(); return; }
         if (hasDied || data.IsDead) return;
         data.TickShield(Time.deltaTime);
         data.TickHealOverTime(Time.deltaTime);
@@ -241,7 +246,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (cost > 0 && GetTacticalUsesRemaining(id) < cost) return false;
         if (!TacticalSkillEffect.TryApply(data, record)) return false;
         if (cost > 0) ConsumeTacticalUses(id, cost);
-        nextTacticalReadyTime = Time.time + Mathf.Max(0f, record.Cooldown);
+        tacticalCooldownDuration = Mathf.Max(0f, record.Cooldown);
+        nextTacticalReadyTime = Time.time + tacticalCooldownDuration;
         return true;
     }
 
@@ -306,6 +312,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         // 약공격과 같이 포인터 다운에서 바로 시전합니다. Inspector 영구 이벤트와 무관합니다.
         shieldButton.onClick.RemoveListener(TryUseShieldSkill);
         Util.GetOrAddComponent<PlayerTacticalSkillButton>(shieldButton.gameObject).Bind(this);
+        Util.GetOrAddComponent<SprintCooldownUI>(shieldButton.gameObject).BindTactical(this);
     }
 
     public void NotifyLightAttackAnimationProgress(int actionId, float elapsed) => lightSkill?.OnAnimationProgress(actionId, elapsed);
@@ -505,6 +512,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (!movement.TryBeginDash(direction, dashDuration, dashSpeedMultiplier, dashCooldown)) return false;
             started = true;
             ResetHeavyCharge();
+            guardInput?.Release();
             defense.CancelForDash();
             joystickController?.StopMovement();
             StartCoroutine(movement.DashRoutine());
@@ -522,7 +530,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     {
         if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
         ResetHeavyCharge();
-        StartCoroutine(defense.GuardParryProcess(() => parryInput != null && parryInput.IsPressed()));
+        StartCoroutine(defense.GuardParryProcess(IsGuardHeld));
         return true;
     }
 
@@ -599,6 +607,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         StopAllCoroutines();
         // 발사 코루틴이 끊기면 태양 문양만 남지 않게 함께 지웁니다.
         if (sunCrest != null) sunCrest.Cancel();
+        guardInput?.Release();
         Array.Clear(ownedPassiveIds, 0, ownedPassiveIds.Length);
         Array.Clear(ownedPassiveTimers, 0, ownedPassiveTimers.Length);
         tacticalUsesRemaining.Clear();

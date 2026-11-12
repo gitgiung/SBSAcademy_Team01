@@ -50,6 +50,7 @@ ExportedObj/
 !/tools/ExperienceAttractionValidation/Validation.csproj
 !/tools/DashCooldownValidation/Validation.csproj
 !/tools/BossEntranceValidation/Validation.csproj
+!/tools/FieldItemValidation/Validation.csproj
 *.unityproj
 *.sln
 *.slnx

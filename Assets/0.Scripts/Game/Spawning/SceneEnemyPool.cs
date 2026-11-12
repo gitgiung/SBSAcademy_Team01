@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 /// <summary>일반 적/XP의 씬 소유권과 lease를 추적합니다. 저장은 기존 Managers.Pool을 사용합니다.</summary>
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(1000)]
-public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawnDiagnostics, IEnemyExperienceDropper
+public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawnDiagnostics, IEnemyExperienceDropper
 {
     public const int MaxActiveEnemies = 130;
     private const float RecycleInterval = 0.25f;
@@ -68,6 +68,7 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawn
         LastSpawnFailure = EnemySpawnFailure.InvalidConfiguration;
         if (closing || !isActiveAndEnabled || target == null || prefab == null || !scene.IsValid() || !scene.isLoaded
             || !prefab.TryGetComponent<EnemyHealth>(out _) || !prefab.TryGetComponent<EnemyFollow>(out _)) return false;
+        fieldItemTarget = target;
         if (ActiveEnemyCount >= (director != null ? director.Settings.maxActiveNormalEnemies : MaxActiveEnemies))
         { LastSpawnFailure = EnemySpawnFailure.Capacity; return false; }
         if (pool == null) pool = Managers.Pool;
@@ -83,6 +84,8 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawn
                 health.PrepareForSpawn(this, (director != null ? director.Settings : fallbackSettings).RawXP(director != null ? director.ElapsedTime : 0));
                 health.Died -= HandleEnemyDied;
                 health.Died += HandleEnemyDied;
+                health.Defeated -= HandleEnemyDefeated;
+                health.Defeated += HandleEnemyDefeated;
                 enemy.GetComponent<EnemyFollow>().SetTarget(target);
                 var item = enemy.GetComponent<PooledObject>();
                 item.LeaseEnded += HandleEnemyReturned;
@@ -100,7 +103,11 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawn
     private void HandleEnemyReturned(PooledObject item, uint lease)
     {
         item.LeaseEnded -= HandleEnemyReturned;
-        if (item.TryGetComponent<EnemyHealth>(out var health)) health.Died -= HandleEnemyDied;
+        if (item.TryGetComponent<EnemyHealth>(out var health))
+        {
+            health.Died -= HandleEnemyDied;
+            health.Defeated -= HandleEnemyDefeated;
+        }
         if (activeEnemies.TryGetValue(item, out uint owned) && owned == lease) activeEnemies.Remove(item);
     }
     private void HandlePickupReturned(PooledObject item, uint lease)
@@ -145,10 +152,10 @@ public sealed class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawn
     }
 
     private void HandleCollected(float raw, float awarded) { if (director != null) director.RecordCollection(raw, awarded); }
-    private void OnApplicationQuit() { closing = true; activeEnemies.Clear(); activePickups.Clear(); }
+    private void OnApplicationQuit() { closing = true; activeEnemies.Clear(); activePickups.Clear(); activeFieldItems.Clear(); }
     private void OnDisable() { ReturnAll(); }
     private void OnDestroy() { closing = true; ReturnAll(); }
-    private void ReturnAll() { ReturnOwned(activeEnemies); ReturnOwned(activePickups); }
+    private void ReturnAll() { ReturnOwned(activeEnemies); ReturnOwned(activePickups); DiscardFieldItems(); }
     private static void ReturnOwned(Dictionary<PooledObject, uint> items)
     {
         var remaining = new List<KeyValuePair<PooledObject, uint>>(items);

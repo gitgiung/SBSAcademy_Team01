@@ -50,6 +50,8 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     private System.Action<float, float> collectedReport;
     private float attractionElapsedTime;
     private bool attracted;
+    // 자석 아이템으로 끌려가는 중이면 0보다 큽니다. 획득 범위와 기본 흡입 속도 대신 이 최소 속도를 씁니다.
+    private float magnetSpeed;
     private Vector3 motionPosition;
     private Vector3 baseScale;
     private bool baseScaleCaptured;
@@ -66,6 +68,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
         collectedReport = null;
         attractionElapsedTime = 0f;
         attracted = false;
+        magnetSpeed = 0f;
         motionReady = false;
         visualTime = 0f;
         RestoreScale();
@@ -75,6 +78,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     {
         attractionElapsedTime = 0f;
         attracted = false;
+        magnetSpeed = 0f;
         motionReady = false;
         visualTime = 0f;
         RestoreScale();
@@ -111,10 +115,26 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     {
         attractionElapsedTime = 0f;
         attracted = false;
+        magnetSpeed = 0f;
         motionPosition = transform.position;
         motionReady = true;
         ResolvePlayerData(target);
         RefreshExperienceColor();
+    }
+
+    /// <summary>
+    /// 자석 아이템: 획득 범위 밖이거나 기본 흡입 속도가 0이어도 플레이어에게 끌려가기 시작합니다.
+    /// 이미 흡입 중이던 보석의 누적 가속은 유지합니다.
+    /// </summary>
+    public bool BeginMagnetAttraction(float minimumSpeed)
+    {
+        if (collected || !isActiveAndEnabled || float.IsNaN(minimumSpeed) || float.IsInfinity(minimumSpeed)
+            || minimumSpeed <= 0f) return false;
+        if (playerData == null) ResolvePlayerData(null);
+        if (playerData == null || playerData.IsDead) return false;
+        magnetSpeed = Mathf.Max(magnetSpeed, minimumSpeed);
+        attracted = true;
+        return true;
     }
 
     /// <summary>드롭 생성자가 경험치량을 주입할 때 외형도 함께 갱신합니다. 기존 float 획득값과 호환됩니다.</summary>
@@ -154,6 +174,7 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
     {
         attractionElapsedTime = 0f;
         attracted = false;
+        magnetSpeed = 0f;
         motionReady = false;
         RestoreScale();
     }
@@ -188,38 +209,45 @@ public sealed class ExperiencePickup : MonoBehaviour, IPooledExperiencePickup, I
 
     private void UpdateAttraction(float deltaTime)
     {
-        if (collected || playerData == null || playerData.IsDead || attractionSpeed <= 0f
-            || float.IsNaN(attractionSpeed) || float.IsInfinity(attractionSpeed))
+        bool magnetized = magnetSpeed > 0f;
+        float startSpeed = float.IsNaN(attractionSpeed) || float.IsInfinity(attractionSpeed)
+            ? 0f : Mathf.Max(0f, attractionSpeed);
+        if (magnetized) startSpeed = Mathf.Max(startSpeed, magnetSpeed);
+        if (collected || playerData == null || playerData.IsDead || startSpeed <= 0f)
         {
             attractionElapsedTime = 0f;
             attracted = false;
             return;
         }
 
-        float pickupDistance = Mathf.Max(0f, playerData.PickupDistance);
-        if (pickupDistance <= 0f)
+        if (magnetized) attracted = true;
+        else
         {
-            attractionElapsedTime = 0f;
-            attracted = false;
-            return;
-        }
-
-        Vector2 offset = (Vector2)playerData.transform.position - (Vector2)transform.position;
-        if (!attracted)
-        {
-            if (offset.sqrMagnitude > pickupDistance * pickupDistance)
+            float pickupDistance = Mathf.Max(0f, playerData.PickupDistance);
+            if (pickupDistance <= 0f)
             {
                 attractionElapsedTime = 0f;
+                attracted = false;
                 return;
             }
-            attracted = true;
+
+            if (!attracted)
+            {
+                Vector2 offset = (Vector2)playerData.transform.position - (Vector2)transform.position;
+                if (offset.sqrMagnitude > pickupDistance * pickupDistance)
+                {
+                    attractionElapsedTime = 0f;
+                    return;
+                }
+                attracted = true;
+            }
         }
 
         if (deltaTime <= 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime)) return;
         float acceleration = float.IsNaN(attractionAcceleration) || float.IsInfinity(attractionAcceleration)
             ? 0f : Mathf.Max(0f, attractionAcceleration);
         // 구간 평균 속도로 이동해 프레임 간격이 달라도 같은 추적 시간에는 같은 거리를 이동합니다.
-        float distance = (attractionSpeed + acceleration * (attractionElapsedTime + deltaTime * .5f)) * deltaTime;
+        float distance = (startSpeed + acceleration * (attractionElapsedTime + deltaTime * .5f)) * deltaTime;
         attractionElapsedTime += deltaTime;
 
         transform.position = Vector3.MoveTowards(

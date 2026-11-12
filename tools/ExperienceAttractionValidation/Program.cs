@@ -28,6 +28,33 @@ static class Program
     }
     static float X(ExperiencePickup p) => p.transform.position.x;
     static void Step(ExperiencePickup p, float dt) => Call(p, "UpdateAttraction", dt);
+    static PlayerData Player(ExperiencePickup p) => (PlayerData)typeof(ExperiencePickup)
+        .GetField("playerData", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(p);
+    // 플레이어가 획득 범위(1) 밖인 100 거리에 있는 보석입니다.
+    static ExperiencePickup Far(float acceleration = 0, float speed = 1, float pickupDistance = 1)
+    { var p = New(acceleration, speed); Player(p).experiencePickupDistance = pickupDistance; return p; }
+    static void True(bool value, string what) { if (!value) throw new Exception(what); }
+    static void MagnetTests()
+    {
+        Test("자석 없이는 획득 범위 밖 보석이 움직이지 않음", () => { var p=Far(); Step(p,1); Near(0,X(p)); });
+        Test("자석은 획득 범위 밖 보석도 끌어당김", () => { var p=Far(); True(p.BeginMagnetAttraction(5),"거부됨"); Step(p,1); Near(5,X(p)); Step(p,1); Near(10,X(p)); });
+        Test("자석은 기본 흡입 속도 0·획득 범위 0이어도 최소 속도로 끌어당김", () => { var p=Far(0,0,0); Step(p,1); Near(0,X(p)); True(p.BeginMagnetAttraction(4),"거부됨"); Step(p,1); Near(4,X(p)); });
+        Test("자석 최소 속도보다 빠른 보석은 원래 속도를 유지", () => { var p=Far(0,10); True(p.BeginMagnetAttraction(4),"거부됨"); Step(p,1); Near(10,X(p)); });
+        Test("자석 흡입에도 보석의 가속이 적용됨", () => { var p=Far(2); True(p.BeginMagnetAttraction(5),"거부됨"); Step(p,1); Near(6,X(p)); Step(p,1); Near(14,X(p)); });
+        Test("이미 흡입 중이던 보석은 자석 후에도 누적 가속 유지", () => { var p=New(); Step(p,1); Near(2,X(p)); True(p.BeginMagnetAttraction(1),"거부됨"); Step(p,1); Near(6,X(p)); });
+        Test("약한 자석이 더 강한 자석 속도를 낮추지 않음", () => { var p=Far(); True(p.BeginMagnetAttraction(8),"거부됨"); True(p.BeginMagnetAttraction(3),"거부됨"); Step(p,1); Near(8,X(p)); });
+        Test("잘못된 자석 속도는 거부하고 보석이 움직이지 않음", () => {
+            foreach(float speed in new[]{0f,-1f,float.NaN,float.PositiveInfinity}) { var p=Far(); True(!p.BeginMagnetAttraction(speed),"허용됨 "+speed); Step(p,1); Near(0,X(p)); } });
+        Test("사망한 플레이어·이미 획득된 보석에는 자석이 걸리지 않음", () => {
+            var dead=Far(); Player(dead).IsDead=true; True(!dead.BeginMagnetAttraction(5),"사망 허용");
+            var taken=Far(); Set(taken,"collected",true); True(!taken.BeginMagnetAttraction(5),"획득 후 허용"); Step(taken,1); Near(0,X(taken)); });
+        Test("자석 흡입 중 플레이어가 죽으면 멈춤", () => { var p=Far(); p.BeginMagnetAttraction(5); Step(p,1); Near(5,X(p)); Player(p).IsDead=true; Step(p,1); Near(5,X(p)); });
+        Test("자석 흡입도 목표 위치를 지나치지 않음", () => { var p=Far(); p.BeginMagnetAttraction(1000); Step(p,1); Near(100,X(p)); });
+        Test("일시정지 동안 자석 흡입이 진행되지 않음", () => { var p=Far(2); p.BeginMagnetAttraction(5); Step(p,1); Step(p,0); Step(p,1); Near(14,X(p)); });
+        Test("풀 반납·재대여 후 자석 상태 초기화", () => { var p=Far(); p.BeginMagnetAttraction(5); p.OnPoolReturn(); p.OnPoolRent(); var d=new PlayerData{experiencePickupDistance=1}; d.transform.position=new Vector3(100,0,0); Set(p,"playerData",d); Step(p,1); Near(0,X(p)); });
+        Test("비활성 후 자석 상태 초기화", () => { var p=Far(); p.BeginMagnetAttraction(5); Call(p,"OnDisable"); Step(p,1); Near(0,X(p)); });
+        Test("새로 스폰(Initialize)하면 자석 상태 초기화", () => { var p=Far(); var d=Player(p); p.BeginMagnetAttraction(5); p.Initialize(null); Set(p,"playerData",d); Step(p,1); Near(0,X(p)); });
+    }
     static int Main()
     {
         Test("가속도 0은 기존 등속 이동", () => { var p=New(0); Step(p,1); Near(1,X(p)); Step(p,1); Near(2,X(p)); });
@@ -42,6 +69,7 @@ static class Program
         Test("시작 속도 0은 기존처럼 흡입 끔", () => { var p=New(10,0); Step(p,1); Near(0,X(p)); });
         Test("목표 위치를 지나치지 않음", () => { var p=New(1000); Step(p,1); Near(100,X(p)); });
         Test("잘못된 가속도는 등속으로 처리", () => { foreach(float a in new[]{-1f,float.NaN,float.PositiveInfinity}) { var p=New(a); Step(p,1); Near(1,X(p)); } });
+        MagnetTests();
         Console.WriteLine($"{count-failures}/{count} 통과"); return failures==0 ? 0 : 1;
     }
 }

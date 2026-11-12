@@ -46,6 +46,9 @@ $files = @(
 $files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/Player/Data/PlayerExperience*.cs" | ForEach-Object { $_.FullName }
 $files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/UI/LevelUp/*.cs" | ForEach-Object { $_.FullName }
 $files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/Enemy/NormalEnemy/Survival*.cs" | ForEach-Object { $_.FullName }
+# SceneEnemyPool의 필드 아이템 partial과 그 의존 소스
+$files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/Spawning/SceneEnemyPool.*.cs" | ForEach-Object { $_.FullName }
+$files += Get-ChildItem "$projectRoot/Assets/0.Scripts/Game/Item/*.cs" | ForEach-Object { $_.FullName }
 foreach ($file in $files) {
  $source = if ([IO.Path]::IsPathRooted($file)) { $file } else { Join-Path $projectRoot $file }
  Copy-Item -LiteralPath $source -Destination "$validationRoot/Assets/Runtime/" -Force

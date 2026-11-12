@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>../../.utmp/FieldItem/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>../../.utmp/FieldItem/bin/</BaseOutputPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework><NuGetAudit>false</NuGetAudit></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/0.Scripts/Game/Item/FieldItemDropSettings.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Item/FieldItemPixelArt.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Item/FieldItemSprites.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Item/FieldItemPickup.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Item/FieldItemBlastFx.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Spawning/SceneEnemyPool.FieldItems.cs" />
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+</Project>

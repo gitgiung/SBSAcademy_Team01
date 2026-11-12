@@ -23,6 +23,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     public bool IsDead { get; private set; }
     public int SpawnGeneration { get; private set; }
     public event System.Action Died;
+    /// <summary>Died 이후, 죽은 위치가 유효한 동안 한 번 알립니다. 처치 위치 기준 후속 드랍에 사용합니다.</summary>
+    public event System.Action<EnemyHealth> Defeated;
     public static event System.Action<EnemyHealth, float> DamageApplied;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -164,6 +166,18 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     }
 
     /// <summary>
+    /// 폭탄 아이템 등 즉시 처치. 피해 숫자 알림 없이 일반 사망과 같은 보상·집계 경로를 탑니다.
+    /// </summary>
+    public bool Kill()
+    {
+        if (IsDead || !isActiveAndEnabled) return false;
+        CurrentHealth = 0f;
+        UpdateHealthUI();
+        Die();
+        return true;
+    }
+
+    /// <summary>
     /// 피격 색상 변경 코루틴
     /// </summary>
     private IEnumerator Flash()
@@ -224,6 +238,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
         {
             SpawnExperiencePickup();
             Died?.Invoke();
+            // 사망 알림에서 재대여됐다면 새 생명의 위치이므로 알리지 않습니다.
+            if (SpawnGeneration == dyingGeneration) Defeated?.Invoke(this);
         }
         // 사망 알림에서 반환/재대여했다면 새로운 생명은 이전 사망이 정리하지 않습니다.
         finally { if (SpawnGeneration == dyingGeneration) Despawn(); }

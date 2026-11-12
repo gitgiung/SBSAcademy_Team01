@@ -528,6 +528,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
 
     private void HandleParrySucceeded()
     {
+        DeviceHaptics.Pulse();
         int version = lifecycleVersion;
         data.RestoreMP(data.parryMPRecovery);
         if (parryInvulnerableDuration > 0f)

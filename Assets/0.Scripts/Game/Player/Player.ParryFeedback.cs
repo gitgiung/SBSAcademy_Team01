@@ -97,3 +97,47 @@ public sealed partial class Player
     private static float FeedbackValue(float value) =>
         float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Max(0f, value);
 }
+
+/// <summary>패링 성공 순간의 짧은 기기 진동. 에디터와 PC에서는 재생하지 않습니다.</summary>
+public static class DeviceHaptics
+{
+    public static void Pulse(long milliseconds = 40)
+    {
+        if (milliseconds <= 0) return;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        try { AndroidPulse(milliseconds); }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning("패링 진동을 재생하지 못했습니다: " + exception.Message);
+        }
+#elif UNITY_IOS && !UNITY_EDITOR
+        Handheld.Vibrate();
+#endif
+    }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    private static void AndroidPulse(long milliseconds)
+    {
+        using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+        using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+        using (var vibrator = activity.Call<AndroidJavaObject>("getSystemService", "vibrator"))
+        {
+            if (vibrator == null || !vibrator.Call<bool>("hasVibrator")) return;
+            using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
+            {
+                int sdk = version.GetStatic<int>("SDK_INT");
+                if (sdk >= 26)
+                {
+                    using (var effectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+                    {
+                        int amplitude = effectClass.GetStatic<int>("DEFAULT_AMPLITUDE");
+                        using (var effect = effectClass.CallStatic<AndroidJavaObject>("createOneShot", milliseconds, amplitude))
+                            vibrator.Call("vibrate", effect);
+                    }
+                }
+                else vibrator.Call("vibrate", milliseconds);
+            }
+        }
+    }
+#endif
+}

@@ -31,6 +31,9 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     private TMP_Text detailsText;
     private Button detailsClose;
     private Action<int> onSelected;
+    private Action<int> onReroll;
+    private readonly List<Button> rerollButtons = new List<Button>();
+    private TMP_Text rerollCount;
     private bool selectionPending;
     private GameObject messageRoot;
     private TMP_Text messageTitle;
@@ -65,7 +68,12 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             int index = i;
             cards.Add(new Card(Rect(root, "Choice" + i, 60 + i * 305, 55, 275, 350), font,
                 () => Select(index), () => ShowDetails(index)));
+            rerollButtons.Add(Button(Rect(root, "Reroll" + i, 60 + i * 305, 414, 275, 34), "리롤", font,
+                new Color32(113, 247, 255, 255), () => Reroll(index)));
         }
+        rerollCount = Text(Rect(root, "RerollCount", 680, 456, 300, 34), "", font, 22,
+            new Color32(153, 248, 255, 255), TextAlignmentOptions.Right);
+        rerollCount.fontStyle = FontStyles.Bold;
         detailsRoot = Stretch(root, "CardDetails").gameObject;
         Image((RectTransform)detailsRoot.transform, new Color(0, 0, 0, .85f), true);
         var detailPanel = Rect(detailsRoot.transform, "Panel", 240, 75, 520, 350);
@@ -86,11 +94,13 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     }
 
     /// <summary>최대 세 선택지를 표시합니다. 콜백은 실제 효과 적용/팝업 완료를 담당합니다.</summary>
-    public void SetChoices(IReadOnlyList<LevelUpCardData> choices, Action<int> selected)
+    public void SetChoices(IReadOnlyList<LevelUpCardData> choices, Action<int> selected,
+        int rerollsRemaining = 0, Action<int> reroll = null)
     {
         if (root == null) throw new InvalidOperationException("Initialize must be called before SetChoices.");
         if (choices == null || choices.Count > 3) throw new ArgumentException("Level-up requires at most three cards.", nameof(choices));
         onSelected = selected;
+        onReroll = reroll;
         selectionPending = false;
         detailsRoot.SetActive(false);
         messageRoot.SetActive(false);
@@ -100,6 +110,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             LevelUpCardData data = i < choices.Count ? choices[i] : null;
             cards[i].Show(data, selected != null);
         }
+        ShowReroll(choices.Count, rerollsRemaining, reroll != null && selected != null);
     }
 
     public void Focus()
@@ -118,12 +129,35 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         onSelected(index);
     }
 
+    private void Reroll(int index)
+    {
+        if (selectionPending || onReroll == null) return;
+        onReroll(index);
+    }
+
+    private void ShowReroll(int choiceCount, int rerollsRemaining, bool visible)
+    {
+        if (rerollCount != null)
+        {
+            rerollCount.gameObject.SetActive(visible);
+            if (visible) rerollCount.text = "리롤 " + Mathf.Max(0, rerollsRemaining);
+        }
+        for (int i = 0; i < rerollButtons.Count; i++)
+        {
+            bool show = visible && i < choiceCount;
+            rerollButtons[i].gameObject.SetActive(show);
+            rerollButtons[i].interactable = show && rerollsRemaining > 0;
+        }
+    }
+
     public void ShowMessage(string title, string content, Action confirmed)
     {
         if (root == null) throw new InvalidOperationException("Initialize must be called before ShowMessage.");
         onSelected = null;
+        onReroll = null;
         selectionPending = false;
         onConfirmed = confirmed;
+        ShowReroll(0, 0, false);
         foreach (var card in cards) card.Root.gameObject.SetActive(false);
         detailsRoot.SetActive(false);
         messageTitle.text = title;

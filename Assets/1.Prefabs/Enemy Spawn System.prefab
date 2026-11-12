@@ -47,6 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SceneEnemyPool
   recycleCamera: {fileID: 0}
   offscreenRecycleMargin: 20
+  normalMoveSpeedScale: 0.6
 --- !u!114 &2996440706355701037
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,6 +13,8 @@ public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEn
     [SerializeField] private Camera recycleCamera;
     [SerializeField, Min(0.01f), Tooltip("카메라 화면 가장자리에서 이 거리보다 먼 일반 적을 반환합니다.")]
     private float offscreenRecycleMargin = 20f;
+    [SerializeField, Range(0.2f, 1f), Tooltip("일반 몬스터 추격 속도 배율. 프리팹 속도에 곱합니다. 보스는 이 풀로 나오지 않아 그대로입니다. 임시 체감값입니다.")]
+    private float normalMoveSpeedScale = 0.6f;
 
     private readonly List<KeyValuePair<PooledObject, uint>> recycleCandidates = new List<KeyValuePair<PooledObject, uint>>();
     private float recycleTimer;
@@ -74,6 +76,8 @@ public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEn
         if (pool == null) pool = Managers.Pool;
         LastSpawnFailure = EnemySpawnFailure.PoolUnavailable;
         if (pool == null) return false;
+        float authoredSpeed = prefab.GetComponent<EnemyFollow>().moveSpeed;
+        float pacedSpeed = ScaleNormalMoveSpeed(authoredSpeed, normalMoveSpeedScale);
         try
         {
             pool.Pop(prefab, position, Quaternion.identity, initialize: enemy =>
@@ -86,7 +90,10 @@ public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEn
                 health.Died += HandleEnemyDied;
                 health.Defeated -= HandleEnemyDefeated;
                 health.Defeated += HandleEnemyDefeated;
-                enemy.GetComponent<EnemyFollow>().SetTarget(target);
+                var follow = enemy.GetComponent<EnemyFollow>();
+                // 풀에서 꺼낼 때마다 프리팹 속도에 다시 곱합니다. 인스턴스 속도에 또 곱하면 재사용마다 느려집니다.
+                follow.moveSpeed = pacedSpeed;
+                follow.SetTarget(target);
                 var item = enemy.GetComponent<PooledObject>();
                 item.LeaseEnded += HandleEnemyReturned;
                 activeEnemies.Add(item, item.LeaseVersion);
@@ -97,6 +104,13 @@ public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEn
             return true;
         }
         catch (System.Exception exception) { Debug.LogException(exception, this); return false; }
+    }
+
+    public static float ScaleNormalMoveSpeed(float authoredSpeed, float scale)
+    {
+        if (float.IsNaN(authoredSpeed) || float.IsInfinity(authoredSpeed) || authoredSpeed < 0f) authoredSpeed = 0f;
+        if (float.IsNaN(scale) || float.IsInfinity(scale)) scale = 0.6f;
+        return authoredSpeed * Mathf.Clamp(scale, 0f, 1f);
     }
 
     private void HandleEnemyDied() { if (director != null) director.RecordKill(); }

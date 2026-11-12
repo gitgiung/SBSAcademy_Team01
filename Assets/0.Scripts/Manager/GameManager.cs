@@ -88,7 +88,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
         if (gameOverPanel != null) gameOverPanel.SetActive(result == GameState.Defeat);
         if (victoryPanel != null) victoryPanel.SetActive(result == GameState.Victory);
-        if (result == GameState.Defeat && bossHealthUI != null) bossHealthUI.SetActive(false);
+        if (result == GameState.Defeat) RevealBossHealthBehindDefeat();
         StateChanged?.Invoke(result);
 
         GameObject panel = result == GameState.Defeat ? gameOverPanel : victoryPanel;
@@ -99,6 +99,17 @@ public class GameManager : MonoBehaviour
             button.Select();
             break;
         }
+    }
+
+    private void RevealBossHealthBehindDefeat()
+    {
+        foreach (BossEncounterController encounter in FindObjectsByType<BossEncounterController>())
+            if (encounter.gameObject.scene == gameObject.scene) encounter.KeepBossHealthVisible();
+        if (bossHealthUI == null || !bossHealthUI.activeInHierarchy || gameOverPanel == null) return;
+        if (bossHealthUI.transform.parent != gameOverPanel.transform.parent) return;
+        int panelIndex = gameOverPanel.transform.GetSiblingIndex();
+        if (bossHealthUI.transform.GetSiblingIndex() > panelIndex)
+            bossHealthUI.transform.SetSiblingIndex(panelIndex);
     }
 
     public void RestartGame() { TransitionTo(restartScene); }

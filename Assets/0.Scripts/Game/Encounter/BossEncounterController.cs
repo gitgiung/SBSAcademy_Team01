@@ -210,6 +210,17 @@ public sealed class BossEncounterController : MonoBehaviour
         bossHealthFadeRoutine = null;
     }
 
+    public void KeepBossHealthVisible()
+    {
+        if (Phase != EncounterPhase.BossFight || bossHealthSlider == null) return;
+        if (bossHealthFadeRoutine != null) StopCoroutine(bossHealthFadeRoutine);
+        bossHealthFadeRoutine = null;
+        if (bossHealthCanvasGroup == null)
+            bossHealthCanvasGroup = bossHealthSlider.GetComponent<CanvasGroup>();
+        if (bossHealthCanvasGroup != null) bossHealthCanvasGroup.alpha = 1f;
+        bossHealthSlider.SetActive(true);
+    }
+
     private void HideBossHealthBar()
     {
         if (bossHealthFadeRoutine != null) StopCoroutine(bossHealthFadeRoutine);

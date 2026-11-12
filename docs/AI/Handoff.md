@@ -1,5 +1,32 @@
 # 작업 인수인계
 
+## 2026-11-12 보스 타격 직전 빨간 섬광
+
+- 후속 요청으로 타격 직전 빨간 섬광 연출과 관련 Inspector 설정·프리팹 참조를 제거했다. 기존 공격 범위 표시와 원형 확산은 유지한다. MainScene에서 할퀴기·돌진 전에 빨간 섬광이 나오지 않는지 확인한다. 이상 시 Console 첫 오류 및 해당 보스의 활성 VFX를 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 빨간 섬광이 표시 초반에 작아졌다가 최대 밝기까지 커지도록 했다. `Pre Hit Flash Width`는 최대 너비다. `Tools > Play From Title` 해제 → `MainScene` Play → 할퀴기·돌진 직전 크기와 밝기 변화를 확인한다. 짧아서 구분이 어려우면 예고 시간을 0.5초로 늘리고, 이상 시 Console 첫 오류와 Width를 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 빨간 `ParryFlash_00`에도 투명 → 최대 밝기 → 투명 사이클을 추가했다. `Range Fade In Duration`과 `Range Fade Out Duration`의 비율을 타격 전 남은 예고 시간에 맞춰 적용한다. `MainScene`에서 할퀴기·돌진 직전 한 번 반짝이는지 확인한다. 이상 시 Console 첫 오류와 `Pre Hit Flash Lead Time` 및 페이드 값을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 후속 요청으로 BeastZombie의 `Pre Hit Flash Textures`에 `MagicBarrier/ParryFlash_00`만 남겼다. MainScene에서 할퀴기·돌진 직전 빨간 이미지 한 장이 유지되다가 타격 때 사라지는지 확인한다. 이상 시 Console 첫 오류와 Inspector의 배열 항목을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 프레임 소스를 `Art/Pretty_Magical_Girl/VFX/MagicBarrier`의 원본 PNG `ParryFlash_00`~`04` 다섯 장으로 수정했다. BeastZombie의 `Pre Hit Flash Textures`가 순서를 지정한다. 03·04의 분리된 불꽃 조각이 함께 나오도록 PNG 전체를 한 프레임으로 사용한다. Unity 컴파일·Play·자동 테스트 미실행(0개). MainScene에서 할퀴기·돌진 직전에 다섯 장의 빨간 애니메이션을 확인한다. 이상 시 Console 첫 오류와 Inspector 배열 순서를 확인한다.
+
+- 후속 요청으로 등장·2페이즈 원형 공격에서 빨간 섬광을 제외했다. 할퀴기·돌진은 `ParryFlash_00`~`16`을 이름순으로 남은 예고 시간에 맞춰 한 번 재생한다. Inspector의 예고 시간과 너비는 기존 필드를 유지한다. `Tools > Play From Title` 해제 → `MainScene` Play → 등장·2페이즈 원형은 기존 연출만, 할퀴기·돌진은 타격 직전 빨간 애니메이션을 확인한다. 이상 시 Console 첫 오류, 예고 시간(예: 0.5초)과 프레임 Sprite 임포트를 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- BeastZombie의 할퀴기·원형(등장 포함)·돌진에 기존 `Resources/PlayerDefenseVfx/ParryFlash_00` 한 장을 빨간색으로 표시한다. `Boss Attack Hit Vfx > 타격 직전 빨간 섬광`의 `Pre Hit Flash Lead Time` 기본 0.25초(0이면 끔), `Pre Hit Flash Width` 기본 1.5 월드 단위다. 할퀴기는 피해 애니메이션 이벤트, 원형은 충전 완료 시각, 돌진은 추적 대상의 현재 위치로 예측한 도착 시점을 기준으로 한다. 기존 피해 판정과 타이밍을 유지한다.
+- `git diff --check` 통과. Unity 컴파일·Play·자동 테스트 미실행(0개). `Tools > Play From Title` 해제 → `MainScene` Play → 보스 패턴 직전 보스 위치에 빨간 섬광이 표시되고 타격 순간 사라지는지 확인한다. 이상 시 Console 첫 오류, VFX Inspector의 예고 시간, ParryFlash_00의 Sprite 임포트 및 할퀴기 클립의 피해 이벤트를 확인한다.
+
+## 2026-11-12 보스 범위 깜빡임과 등장 섬광
+
+- 추가 요청으로 등장 원형 예고와 타격 순간의 흰색 범위 깜빡임도 제외했다. 기존 등장 확산 VFX와 원형 충전은 유지한다. 현재 깜빡임은 할퀴기·돌진 착지에 적용한다. `Tools > Play From Title` 해제 → `MainScene` Play → 30초 등장 때 원형 예고가 유지되고 안쪽 원이 차오른 뒤 기존 확산이 재생되는지 확인한다. 이상 시 Console 첫 오류와 `Range Material`을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- 후속 요청으로 2페이즈 원형 패턴(진입 직후와 반복)을 깜빡임에서 제외했다. 기존처럼 바깥 원이 유지되고 안쪽 원이 차오른다. 보스 등장 예고·타격 섬광, 할퀴기, 돌진의 깜빡임은 유지했다. 직접 확인은 `MainScene` Play → 보스 HP 50% 이하 → 원형 예고가 계속 보이고 안쪽 원이 차오르는지 확인한다. 이상 시 Console 첫 오류와 `Boss Attack Hit Vfx > Range Material`을 확인한다. Unity 컴파일·Play·자동 테스트 미실행(0개).
+
+- `BossAttackHitVfx`의 할퀴기·원형 예고와 돌진 착지 범위가 투명에서 최대 밝기까지 올라갔다가 투명해진다. Inspector의 `공격 범위 깜빡임`에서 `Range Fade In Duration`(기본 0.07초), `Range Fade Out Duration`(기본 0.23초)을 조절한다. 돌진은 기존 `Dash Display Duration`을 전체 길이로 쓰고 같은 페이드 비율을 적용한다.
+- 등장 원형 타격 프레임에 실제 피해 반경으로 흰색 범위 깜빡임을 시작하고 기존 확산 VFX를 함께 재생한다. 공격 판정과 타이밍은 그대로다. “팅–쾅”은 시각 연출로 적용했다.
+- 정적 코드 확인 및 diff 공백 검사. Unity 컴파일·Play·자동 테스트 미실행(0개). 직접 확인은 `Tools > Play From Title` 해제 → `MainScene` Play → 30초 등장 전 주황색 범위 깜빡임과 등장 타격 때 흰색 섬광 확인 → BeastZombie Inspector에서 페이드 시간 조정 후 재시작이다. 이상 시 Console 첫 오류, `Range Material` 및 `Range Color`의 Alpha를 확인한다.
+
 ## 2026-11-11 Player 컴파일 경고 정리
 
 - 전략 버튼 자동 검색의 구버전 `FindObjectsSortMode` 인자를 제거하고, 패링 줌 중 활성 카메라 비교에 `ReferenceEquals`를 사용했다. 기존 보호막 버튼 호환 메서드 `TryUseShieldSkill`은 유지했다.

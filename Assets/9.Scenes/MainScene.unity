@@ -1299,7 +1299,7 @@ MonoBehaviour:
   spawners:
   - {fileID: 1152493169}
   spawnDirector: {fileID: 500663899}
-  bossAppearTime: 30
+  bossAppearTime: 3
   bossSpawnAnchor: {fileID: 454019995}
   bossHealthSlider: {fileID: 5856254087394751847}
   bossHealthFadeDuration: 0.5
@@ -2247,7 +2247,7 @@ MonoBehaviour:
   currentHealth: 100
   attackRange: 8
   attackCooldown: 0.333
-  attackDamage: 1
+  attackDamage: 15
   bulletSpeed: 6
   maxMP: 100
   currentMP: 100
@@ -30951,11 +30951,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6913157123822524479, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 144.16869
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6913157123822524479, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 333.7468
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6913157123822524479, guid: 0f808e9825d18f3419680e58b18c5bf2, type: 3}
       propertyPath: m_LocalPosition.z
@@ -31906,6 +31906,26 @@ PrefabInstance:
     - target: {fileID: 2801471059774490790, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: preHitFlashWidth
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: dashDisplayDuration
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: rangeFadeInDuration
+      value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: rangeFadeOutDuration
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 7670373938179878916, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: healthSlider

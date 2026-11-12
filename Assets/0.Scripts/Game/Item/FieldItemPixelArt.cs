@@ -1,6 +1,9 @@
 using UnityEngine;
 
-/// <summary>필드 아이템의 16×16 임시 픽셀 그림입니다. 정식 스프라이트가 지정되면 쓰이지 않습니다.</summary>
+/// <summary>
+/// Resources/FieldItems의 그림을 불러오지 못했을 때만 쓰는 16×16 대체 그림입니다.
+/// 평소에는 쓰이지 않습니다.
+/// </summary>
 public static class FieldItemPixelArt
 {
     public const int Size = 16;

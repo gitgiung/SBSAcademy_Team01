@@ -33,7 +33,7 @@ public sealed class FieldItemDropSettings
     [Tooltip("플레이어 중심에서 이 거리 안으로 들어오면 아이템을 획득합니다.")]
     [Min(0f)] public float collectDistance = 0.9f;
 
-    [Header("외형 (비우면 코드로 만든 픽셀 그림 사용)")]
+    [Header("외형 (비우면 Resources/FieldItems의 그림 사용)")]
     public Sprite healPackSprite;
     public Sprite magnetSprite;
     public Sprite bombSprite;

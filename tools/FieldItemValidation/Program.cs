@@ -1,11 +1,16 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// 실제 FieldItem*.cs와 SceneEnemyPool.FieldItems.cs를 실행합니다.
-// Unity 오브젝트 수명·씬·카메라·풀과 SceneEnemyPool의 나머지 절반은 이 파일의 대역입니다.
+// 실제 FieldItem*.cs와 SceneEnemyPool.FieldItems.cs를 실행하고, 구워 둔 Assets/Resources/FieldItems 파일을 읽어 확인합니다.
+// Unity 오브젝트 수명·씬·카메라·풀·Resources와 SceneEnemyPool의 나머지 절반은 이 파일의 대역입니다.
+// Unity의 실제 임포트 결과(스프라이트 생성, 필터, 압축)는 여기서 확인하지 못합니다.
 static class Program
 {
     static int failures, count;
@@ -14,6 +19,7 @@ static class Program
     {
         count++;
         UnityEngine.Object.ResetWorld();
+        ResetSpriteCache();
         try { action(); Console.WriteLine("PASS " + name); }
         catch (Exception e) { failures++; Console.WriteLine("FAIL " + name + ": " + (e.InnerException ?? e).Message); }
     }
@@ -82,6 +88,171 @@ static class Program
     }
 
     static List<FieldItemPickup> Items() => new List<FieldItemPickup>(UnityEngine.Object.FindObjectsByType<FieldItemPickup>());
+
+    // FieldItemSprites는 한 번 불러온 그림을 계속 쓰므로 테스트마다 비웁니다.
+    static void ResetSpriteCache()
+    {
+        const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
+        Array.Clear((Sprite[])typeof(FieldItemSprites).GetField("items", flags).GetValue(null));
+        typeof(FieldItemSprites).GetField("blastRing", flags).SetValue(null, null);
+        typeof(FieldItemSprites).GetField("blastFrames", flags).SetValue(null, null);
+    }
+
+    // Resources에 구운 그림이 임포트돼 있는 상황의 대역입니다. width는 유닛 단위 너비입니다.
+    static Sprite Asset(string name, float width = 1f)
+    {
+        var sprite = new Sprite { name = name, width = width };
+        Resources.Assets[FieldItemSprites.ResourceFolder + "/" + name] = sprite;
+        return sprite;
+    }
+
+    static Sprite[] BlastAssets(int frames)
+    {
+        var sprites = new Sprite[frames];
+        // 일부러 뒤에서부터 등록해 이름순 정렬을 확인합니다.
+        for (int i = frames - 1; i >= 0; i--) sprites[i] = Asset(FieldItemSprites.BlastFramePrefix + i.ToString("00"), 5f);
+        return sprites;
+    }
+
+    static SpriteRenderer RingOf(FieldItemBlastFx blast)
+    {
+        foreach (SpriteRenderer renderer in UnityEngine.Object.FindObjectsByType<SpriteRenderer>())
+            if (renderer.transform.parent == blast.transform) return renderer;
+        throw new Exception("파동 고리 없음");
+    }
+
+    static float RingWorldDiameter(FieldItemBlastFx blast)
+    {
+        SpriteRenderer ring = RingOf(blast);
+        return ring.transform.localScale.x * blast.transform.localScale.x * ring.sprite.bounds.size.x;
+    }
+
+    // ── 구워 둔 파일 ────────────────────────────────────────────
+    static string AssetFolder([System.Runtime.CompilerServices.CallerFilePath] string source = "") =>
+        Environment.GetEnvironmentVariable("FIELD_ITEM_ASSET_DIR") ?? Path.GetFullPath(
+            Path.Combine(Path.GetDirectoryName(source), "../../Assets/Resources", FieldItemSprites.ResourceFolder));
+
+    sealed class Png { public int Width, Height; public byte[] Rgba; public byte Alpha(int x, int y) => Rgba[(y * Width + x) * 4 + 3]; }
+
+    // 굽기 스크립트가 쓰는 형식(8비트 RGBA, 필터 없음)만 읽습니다.
+    static Png ReadPng(string name)
+    {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(AssetFolder(), name + ".png"));
+        var png = new Png();
+        var packed = new MemoryStream();
+        for (int position = 8; position < bytes.Length;)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(position));
+            string type = Encoding.ASCII.GetString(bytes, position + 4, 4);
+            if (type == "IHDR")
+            {
+                png.Width = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(position + 8));
+                png.Height = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(position + 12));
+                Check(bytes[position + 16] == 8 && bytes[position + 17] == 6, name + " RGBA8 아님");
+            }
+            else if (type == "IDAT") packed.Write(bytes, position + 8, length);
+            position += 12 + length;
+        }
+        packed.Position = 0;
+        var raw = new MemoryStream();
+        using (var inflate = new ZLibStream(packed, CompressionMode.Decompress)) inflate.CopyTo(raw);
+        byte[] rows = raw.ToArray();
+        int stride = png.Width * 4 + 1;
+        Equal(stride * png.Height, rows.Length, name + " 데이터 길이");
+        png.Rgba = new byte[png.Width * png.Height * 4];
+        for (int y = 0; y < png.Height; y++)
+        {
+            Equal((byte)0, rows[y * stride], name + " 행 필터");
+            Buffer.BlockCopy(rows, y * stride + 1, png.Rgba, y * png.Width * 4, png.Width * 4);
+        }
+        return png;
+    }
+
+    static int Opaque(Png png) { int total = 0; for (int i = 3; i < png.Rgba.Length; i += 4) if (png.Rgba[i] != 0) total++; return total; }
+
+    static bool BorderClear(Png png)
+    {
+        for (int i = 0; i < png.Width; i++) if (png.Alpha(i, 0) != 0 || png.Alpha(i, png.Height - 1) != 0) return false;
+        for (int i = 0; i < png.Height; i++) if (png.Alpha(0, i) != 0 || png.Alpha(png.Width - 1, i) != 0) return false;
+        return true;
+    }
+
+    static string[] BakedNames()
+    {
+        var names = new List<string>();
+        foreach (string file in Directory.GetFiles(AssetFolder(), "*.png")) names.Add(Path.GetFileNameWithoutExtension(file));
+        names.Sort(string.CompareOrdinal);
+        return names.ToArray();
+    }
+
+    static void AssetFileTests()
+    {
+        Test("구운 아이템 그림 3종은 32×32 픽셀 그림이고 가장자리가 비어 있음", () =>
+        {
+            foreach (var kind in new[] { FieldItemKind.HealPack, FieldItemKind.Magnet, FieldItemKind.Bomb })
+            {
+                Png png = ReadPng(FieldItemSprites.ResourceName(kind));
+                Equal(32, png.Width, kind + " 너비"); Equal(32, png.Height, kind + " 높이");
+                Check(BorderClear(png), kind + " 가장자리에 닿음");
+                Check(Opaque(png) >= 200, kind + " 내용 부족 " + Opaque(png));
+                for (int i = 3; i < png.Rgba.Length; i += 4)
+                    Check(png.Rgba[i] == 0 || png.Rgba[i] == 255, kind + " 반투명 픽셀");
+            }
+        });
+        Test("구운 폭발 프레임은 번호가 이어진 160×160이고 마지막 프레임만 비어 있음", () =>
+        {
+            var frames = new List<string>();
+            foreach (string name in BakedNames()) if (name.StartsWith(FieldItemSprites.BlastFramePrefix, StringComparison.Ordinal)) frames.Add(name);
+            Equal(14, frames.Count, "프레임 수");
+            for (int i = 0; i < frames.Count; i++)
+            {
+                Equal(FieldItemSprites.BlastFramePrefix + i.ToString("00"), frames[i], "프레임 이름");
+                Png png = ReadPng(frames[i]);
+                Equal(160, png.Width, frames[i] + " 너비"); Equal(160, png.Height, frames[i] + " 높이");
+                Check(BorderClear(png), frames[i] + " 가장자리에서 잘림");
+                if (i == frames.Count - 1) Equal(0, Opaque(png), "마지막 프레임");
+                else Check(Opaque(png) > 0, frames[i] + " 비어 있음");
+            }
+            // 불덩이가 커졌다가 흩어집니다.
+            Check(Opaque(ReadPng(frames[5])) > Opaque(ReadPng(frames[0])) * 10, "커지지 않음");
+            Check(Opaque(ReadPng(frames[12])) < Opaque(ReadPng(frames[5])) / 10, "흩어지지 않음");
+        });
+        Test("구운 고리 그림은 128×128이고 가장자리 띠가 밝고 모서리는 투명", () =>
+        {
+            Png png = ReadPng(FieldItemSprites.BlastRingName);
+            Equal(128, png.Width, "너비"); Equal(128, png.Height, "높이");
+            Equal((byte)0, png.Alpha(0, 0), "모서리");
+            Check(png.Alpha(64, 64) > 0 && png.Alpha(64, 64) < 80, "가운데 " + png.Alpha(64, 64));
+            Check(png.Alpha(119, 64) > 200, "띠 " + png.Alpha(119, 64)); // 중심에서 약 0.86 반지름
+        });
+        Test("구운 파일은 코드가 찾는 이름과 일치하고 남는 파일이 없음", () =>
+        {
+            var expected = new List<string> { FieldItemSprites.BlastRingName };
+            foreach (var kind in new[] { FieldItemKind.HealPack, FieldItemKind.Magnet, FieldItemKind.Bomb }) expected.Add(FieldItemSprites.ResourceName(kind));
+            for (int i = 0; i < 14; i++) expected.Add(FieldItemSprites.BlastFramePrefix + i.ToString("00"));
+            expected.Sort(string.CompareOrdinal);
+            Equal(string.Join(",", expected), string.Join(",", BakedNames()), "파일 목록");
+        });
+        Test("meta는 단일 스프라이트·32 PPU·밉맵과 압축 없음이고 GUID가 겹치지 않음", () =>
+        {
+            var guids = new HashSet<string>();
+            foreach (string name in BakedNames())
+            {
+                string meta = File.ReadAllText(Path.Combine(AssetFolder(), name + ".png.meta")).Replace("\r\n", "\n");
+                foreach (string setting in new[] { "\n  textureType: 8\n", "\n  spriteMode: 1\n", "\n  spritePixelsToUnits: 32\n",
+                    "\n  alignment: 0\n", "\n    enableMipMap: 0\n", "\n  alphaIsTransparency: 1\n" })
+                    Check(meta.Contains(setting), name + " meta에 없음: " + setting.Trim());
+                Equal(3, meta.Split("\n    textureCompression: 0\n").Length - 1, name + " 압축 없음 플랫폼 수");
+                // 아이템과 폭발은 Point, 화면 크기로 늘리는 고리만 Bilinear입니다.
+                string filter = name == FieldItemSprites.BlastRingName ? "1" : "0";
+                Check(meta.Contains("\n    filterMode: " + filter + "\n"), name + " 필터");
+                string guid = meta.Split('\n')[1];
+                Check(guid.StartsWith("guid: ", StringComparison.Ordinal) && guid.Length == 38, name + " GUID 형식");
+                Check(guids.Add(guid), name + " GUID 중복");
+            }
+            Equal(18, guids.Count, "meta 수");
+        });
+    }
 
     static int Main()
     {
@@ -214,6 +385,38 @@ static class Program
             Check(middle > 0 && middle < 80, "가운데 " + middle);
             Check(band > 200, "띠 " + band);
         });
+
+        Test("Resources에 구운 그림이 있으면 그 그림을 쓰고 없으면 코드 그림으로 대신함", () =>
+        {
+            Sprite baked = Asset(FieldItemSprites.ResourceName(FieldItemKind.HealPack));
+            Check(ReferenceEquals(baked, FieldItemSprites.Get(FieldItemKind.HealPack)), "구운 그림 미사용");
+            Check(ReferenceEquals(baked, FieldItemSprites.Get(FieldItemKind.HealPack)), "다시 불러옴");
+            Equal(1, Resources.LoadCalls, "불러온 횟수");
+            Sprite fallback = FieldItemSprites.Get(FieldItemKind.Magnet);
+            Check(fallback != null && fallback.texture != null && fallback.texture.width == 16, "대체 그림 없음");
+            Sprite ring = Asset(FieldItemSprites.BlastRingName, 4f);
+            Check(ReferenceEquals(ring, FieldItemSprites.BlastRing()), "구운 고리 미사용");
+        });
+        Test("종류별 그림 파일 이름이 정해져 있고 없는 종류는 이름이 없음", () =>
+        {
+            Equal("HealPack", FieldItemSprites.ResourceName(FieldItemKind.HealPack), "힐팩");
+            Equal("Magnet", FieldItemSprites.ResourceName(FieldItemKind.Magnet), "자석");
+            Equal("Bomb", FieldItemSprites.ResourceName(FieldItemKind.Bomb), "폭탄");
+            Check(FieldItemSprites.ResourceName(FieldItemKind.None) == null, "None");
+            Asset("None"); Asset("99");
+            Check(FieldItemSprites.Get(FieldItemKind.None) == null && FieldItemSprites.Get((FieldItemKind)99) == null, "없는 종류 그림");
+        });
+        Test("폭발 프레임은 접두사가 맞는 것만 이름순으로 돌려주고 없으면 빈 배열", () =>
+        {
+            Equal(0, FieldItemSprites.BlastFrames().Length, "없을 때");
+            Sprite[] baked = BlastAssets(14);
+            Asset("HealPack"); Asset(FieldItemSprites.BlastRingName); Asset("BombBlastOther");
+            Sprite[] frames = FieldItemSprites.BlastFrames();
+            Equal(14, frames.Length, "프레임 수");
+            for (int i = 0; i < frames.Length; i++) Check(ReferenceEquals(baked[i], frames[i]), "순서 " + i);
+            Check(ReferenceEquals(frames, FieldItemSprites.BlastFrames()), "다시 불러옴");
+        });
+        AssetFileTests();
 
         // ── 필드 아이템 획득 ───────────────────────────────────────
         Test("획득 거리 안으로 들어오면 효과를 한 번만 알림", () =>
@@ -433,12 +636,53 @@ static class Program
             Equal(1, blasts.Length, "파동 수");
             Near(1f, blasts[0].transform.position.x, "중심 x");
             Equal(1, blasts[0].gameObject.scene.id, "씬");
+            SpriteRenderer ring = RingOf(blasts[0]);
             Frame(.34f, 0f); Tick(blasts[0]);
             Check(blasts[0] != null, "일찍 사라짐");
-            float diameter = blasts[0].transform.localScale.x;
-            Check(diameter > 9.9f && diameter <= 10f, "지름 " + diameter);
+            float diameter = RingWorldDiameter(blasts[0]);
+            Check(diameter > 9.9f && diameter <= 10.001f, "지름 " + diameter);
+            Check(blasts[0].GetComponent<SpriteRenderer>() == null, "프레임이 없는데 폭발 그림을 만듦");
             Frame(.02f, 0f); Tick(blasts[0]);
             Check(blasts[0] == null, "남음");
+            Check(ring == null, "고리가 남음");
+        });
+        Test("구운 고리 그림의 크기와 무관하게 파동 지름은 화면 대각선", () =>
+        {
+            NewPlayer(); SceneEnemyPool pool = NewPool();
+            Asset(FieldItemSprites.BlastRingName, 4f); // 128픽셀 ÷ 32 PPU
+            pool.recycleCamera = NewCamera(0f, 0f, 3f, 4f / 3f);
+            pool.FieldItems.bombViewMargin = 0f;
+            pool.DefeatEnemiesInView(default);
+            FieldItemBlastFx blast = UnityEngine.Object.FindObjectsByType<FieldItemBlastFx>()[0];
+            Frame(.34f, 0f); Tick(blast);
+            float diameter = RingWorldDiameter(blast);
+            Check(diameter > 9.9f && diameter <= 10.001f, "지름 " + diameter);
+        });
+        Test("폭발 그림은 실제 시간 30fps로 한 번 재생되고 끝나면 고리와 함께 사라짐", () =>
+        {
+            NewPlayer(); SceneEnemyPool pool = NewPool();
+            Sprite[] frames = BlastAssets(14);
+            pool.recycleCamera = NewCamera();
+            pool.DefeatEnemiesInView(new Vector3(3f, 4f, 0f));
+            FieldItemBlastFx blast = UnityEngine.Object.FindObjectsByType<FieldItemBlastFx>()[0];
+            SpriteRenderer burst = blast.GetComponent<SpriteRenderer>(), ring = RingOf(blast);
+            Check(burst != null && ReferenceEquals(frames[0], burst.sprite), "첫 프레임");
+            Near(3f, blast.transform.position.x, "중심 x");
+            Check(burst.sortingOrder > ring.sortingOrder, "폭발이 고리 뒤에 그려짐");
+            // 전투가 멈춘 상태(timeScale 0)에서도 진행합니다.
+            Frame(.05f, 0f); Tick(blast);
+            Check(ReferenceEquals(frames[1], burst.sprite), "0.05초");
+            Frame(.15f, 0f); Tick(blast);
+            Check(ReferenceEquals(frames[6], burst.sprite) && ring.enabled, "0.2초");
+            Frame(.2f, 0f); Tick(blast);
+            Check(blast != null, "고리 시간에 맞춰 일찍 사라짐");
+            Check(ReferenceEquals(frames[12], burst.sprite) && burst.enabled, "0.4초");
+            Check(!ring.enabled, "고리가 남아 보임");
+            Frame(.05f, 0f); Tick(blast);
+            Check(blast != null && ReferenceEquals(frames[13], burst.sprite), "마지막 프레임(0.45초)");
+            Frame(.03f, 0f); Tick(blast);
+            Check(blast == null, "재생 후 남음");
+            Check(burst == null && ring == null, "자식이 남음");
         });
         Test("풀 정리 시 남은 아이템은 효과 없이 제거되고 종료 중에는 떨어지지 않음", () =>
         {
@@ -534,6 +778,8 @@ namespace UnityEngine
         public static void ResetWorld()
         {
             World.Clear();
+            Resources.Assets.Clear();
+            Resources.LoadCalls = 0;
             Camera.main = null;
             Random.value = 0f;
             Debug.Exceptions = 0;
@@ -555,7 +801,11 @@ namespace UnityEngine
             if (target is null) return;
             target.destroyed = true;
             if (target is GameObject gameObject)
+            {
                 foreach (Component component in gameObject.Components) component.destroyed = true;
+                // 자식 오브젝트도 함께 파괴됩니다.
+                foreach (Transform child in gameObject.transform.Children.ToArray()) Destroy(child.gameObject);
+            }
         }
 
         public static T[] FindObjectsByType<T>() where T : Object
@@ -618,6 +868,34 @@ namespace UnityEngine
     {
         public Vector3 position;
         public Vector3 localScale = Vector3.one;
+        public Transform parent;
+        internal readonly List<Transform> Children = new List<Transform>();
+        public void SetParent(Transform newParent, bool worldPositionStays)
+        {
+            if (!(parent is null)) parent.Children.Remove(this);
+            parent = newParent;
+            if (newParent is null) return;
+            newParent.Children.Add(this);
+            if (!worldPositionStays) position = newParent.position;
+        }
+    }
+
+    public static class Resources
+    {
+        public static readonly Dictionary<string, Object> Assets = new Dictionary<string, Object>();
+        public static int LoadCalls;
+        public static T Load<T>(string path) where T : Object
+        {
+            LoadCalls++;
+            return Assets.TryGetValue(path, out Object asset) ? asset as T : null;
+        }
+        public static T[] LoadAll<T>(string folder) where T : Object
+        {
+            var found = new List<T>();
+            foreach (var entry in Assets)
+                if (entry.Key.StartsWith(folder + "/", StringComparison.Ordinal) && entry.Value is T match) found.Add(match);
+            return found.ToArray();
+        }
     }
 
     public class Behaviour : Component
@@ -643,15 +921,20 @@ namespace UnityEngine
         public int sortingOrder;
         public Rendering.ShadowCastingMode shadowCastingMode;
         public bool receiveShadows;
+        public bool enabled = true;
         public Color color = new Color(1f, 1f, 1f, 1f);
     }
+
+    public struct Bounds { public Vector3 size; }
 
     public class Sprite : Object
     {
         public Texture2D texture;
         public float pixelsPerUnit;
+        public float width = 1f; // 유닛 단위
+        public Bounds bounds => new Bounds { size = new Vector3(width, width, 0f) };
         public static Sprite Create(Texture2D texture, Rect rect, Vector2 pivot, float pixelsPerUnit, uint extrude,
-            SpriteMeshType meshType) => new Sprite { texture = texture, pixelsPerUnit = pixelsPerUnit };
+            SpriteMeshType meshType) => new Sprite { texture = texture, pixelsPerUnit = pixelsPerUnit, width = rect.width / pixelsPerUnit };
     }
 
     public class Texture2D : Object
@@ -674,7 +957,7 @@ namespace UnityEngine
     public enum TextureWrapMode { Clamp }
     public enum SpriteMeshType { FullRect }
 
-    public struct Rect { public Rect(float x, float y, float width, float height) { } }
+    public struct Rect { public float width; public Rect(float x, float y, float width, float height) { this.width = width; } }
 
     public struct Color
     {

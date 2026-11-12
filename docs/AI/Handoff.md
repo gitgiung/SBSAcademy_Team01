@@ -1,5 +1,19 @@
 # 작업 인수인계
 
+## 2026-11-12 필드 아이템 정식 그림·폭탄 폭발 연출
+
+- 브랜치 main, 커밋 `a395a7f`(+ 이 문서 커밋). **로컬 커밋만 했고 푸시하지 않았다**(사용자 지시 없음, origin/main은 `1359809`). 다른 세션의 미커밋 작업(`LightSkillFx`·`LightSkillVisuals`, `Assets/Resources/LightSkills/Fx/`, `tools/PixelFxBake/export-skills.mjs`·`skills/`, 이 문서의 "공격 스킬 이펙트 pixelfx 통일" 항목)과 시작부터 있던 AllIn1 셰이더·URP·ProjectSettings 변경은 건드리지 않았고 커밋에도 넣지 않았다. 씬·프리팹·ProjectSettings·패키지 변경 없음. 드랍 규칙·수치는 바꾸지 않았다.
+- 에셋: `Assets/Resources/FieldItems/`에 `HealPack`·`Magnet`·`Bomb`(32×32, Point), `BombBlast_00`~`13`(160×160, Point, 30fps, 마지막 프레임은 빈 그림), `BlastRing`(128×128, Bilinear) PNG 18장 + meta. 전부 단일 스프라이트·PPU 32·무압축·밉맵 없음. 기존 `Item_*.png`와 같은 32픽셀·어두운 외곽선 화풍이다.
+- 굽기: `tools/FieldItemArt/bake.mjs`(Node만 필요, 의존성 없음, 결과가 항상 같다). 그림을 고치려면 스크립트의 그리기 함수를 수정하고 repo 루트에서 `node tools/FieldItemArt/bake.mjs`. `--check`는 저장된 파일이 스크립트 결과와 같은지만 확인한다. `--out <폴더>`·`--sheet <png>`로 Assets 밖에 미리보기를 만들 수 있다. GUID는 파일 이름에서 만들어 다시 구워도 유지된다. **Unity에서 PNG를 직접 고치면 다음 굽기 때 덮어쓴다.**
+- 코드: `FieldItemSprites.Get`·`BlastRing`이 `Resources/FieldItems`의 그림을 먼저 쓰고 없으면 기존 코드 그림(`FieldItemPixelArt`, 코드 고리)으로 대신한다. `BlastFrames()` 추가. `FieldItemBlastFx`는 뿌리에 폭발 그림(1.25배, 약 6유닛)을, 자식 `Ring`에 화면 대각선까지 퍼지는 고리를 둔다. 둘 다 실제 시간으로 진행하고 폭발 프레임이 없으면 고리만 재생한다. 수명은 고리 0.35초와 폭발 약 0.47초 중 긴 쪽이다. `Field Items`의 Sprite 칸에 넣은 그림이 여전히 우선한다. 파일 이름(`HealPack`/`Magnet`/`Bomb`/`BlastRing`/`BombBlast_`)은 `FieldItemSprites`의 상수·`ResourceName`과 굽기 스크립트가 같아야 한다.
+- 검증(실제 실행): `tools/FieldItemValidation` **46/46**(기존 36 + 10: 구운 그림 우선·대체, 프레임 정렬, 고리 지름, 폭발 재생·정리, 실제 PNG 크기·내용과 meta 설정·GUID 중복·이름 일치), `ExperienceAttractionValidation` **25/25**, `bake.mjs --check` 37/37 일치. 일부러 결함을 넣은 사본 24종(기존 12 + 신규 12)에서 24종 모두 실패 확인. Unity 6000.5.0f1 Roslyn으로 커밋 `a395a7f`의 트리만 따로 꺼내 9개 어셈블리 컴파일 오류 0, 경고는 기존 3개(CS0252 1, CS0618 2). 새 GUID 19개는 프로젝트 안에서 겹치지 않는다. 그림은 미리보기 시트로 눈으로 확인하며 조정했다.
+- 미검증: **Unity 임포트·Play를 하지 않았다.** 따라서 임포트된 스프라이트의 실제 모습, 게임 화면에서의 크기·밝기·정렬 순서, 폭발 크기 체감, Android 빌드·기기는 확인하지 않았다. 검증 도구는 PNG·meta 파일 내용과 Unity 대역만 본다. PlayMode/EditMode 테스트 실행 0개.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 오류 없음 → Project에서 `Assets/Resources/FieldItems/Bomb` 선택해 Texture Type Sprite·Pixels Per Unit 32·Filter Mode Point·Compression None 확인 → `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `Enemy Spawn System` → Inspector `Scene Enemy Pool` 오른쪽 위 ⋮ → `테스트/힐팩|자석|폭탄 떨어뜨리기 (Play 중)`.
+  1) 힐팩은 빨간 십자가 있는 흰 구급상자, 자석은 빨간 말굽자석(끝이 은색), 폭탄은 불붙은 심지가 달린 검은 공으로 보인다. 크기는 예전과 같은 약 0.9칸이다.
+  2) 폭탄을 먹으면 플레이어 자리에서 불덩이가 커졌다가 연기로 흩어지고(약 0.5초), 동시에 옅은 노란 고리가 화면 끝까지 퍼진다. 레벨업 창이 바로 떠도 연출이 남지 않고 끝난다.
+- 이상 시: Console 첫 오류. 예전 16픽셀 임시 그림이나 고리만 보이면 `Assets/Resources/FieldItems`의 PNG가 Sprite로 임포트됐는지(Texture Type·Sprite Mode Single), 그림이 흐리면 Filter Mode, 크기가 다르면 Pixels Per Unit과 `Item Scale`을 확인한다.
+- 다음: 실제 Play로 그림 크기·밝기·폭발 크기 확인 후 조정(`bake.mjs` 수정 → 다시 굽기). 푸시는 사용자 지시 후. 효과음·회복 숫자 표시와 드랍 수치 확정은 여전히 미정이다.
+
 ## 2026-11-12 필드 아이템 드랍 (힐팩·자석·폭탄)
 
 - 브랜치 main, 기능 커밋 `5ae1bb0`. 시작 시 HEAD는 `8f137da`였고 작업 중 다른 세션이 `19a42be`(태양 탄막)를 올려 그 위에 커밋했다. 시작부터 있던 AllIn1 셰이더·URP·ProjectSettings 변경과 다른 세션의 미추적 `tools/PixelFxBake/export-skills.mjs`·`skills/`는 건드리지 않았고 커밋에도 넣지 않았다. 씬·프리팹·ProjectSettings·패키지 변경 없음.
@@ -8,7 +22,7 @@
   - 자석: 먹는 순간 이 씬에 떨어져 있던 모든 경험치(DNA)가 획득 범위·기본 흡입 속도와 무관하게 끌려온다. 이후에 떨어진 경험치는 대상이 아니다.
   - 폭탄: 카메라 화면 안(여유 거리 포함)의 일반 몬스터를 즉시 처치한다. 일반 사망과 같이 경험치가 떨어지고 처치 수에 집계되며 피해 숫자는 뜨지 않는다. 보스는 대상이 아니다. 폭탄으로 죽은 몬스터는 아이템을 다시 떨어뜨리지 않는다(연쇄 방지).
 - **수치는 전부 임시값이며 기획 확정값이 아니다.** Hierarchy `Enemy Spawn System`의 `Scene Enemy Pool > Field Items`에서 조정한다. 씬에 값이 저장돼 있지 않아 코드 기본값이 보인다: 힐팩 0.7%·자석 0.4%·폭탄 0.3%(처치 1회당), 동시 12개, 힐 비율 0.3, 자석 최소 속도 18, 폭탄 여유 0.5, 획득 거리 0.9, 크기 0.9. Inspector에서 바꾸고 씬을 저장하면 그 씬에만 저장된다.
-- 그림: 프리팹 없이 코드로 만든 16×16 임시 픽셀 그림(`FieldItemPixelArt`). `Field Items`의 Heal Pack/Magnet/Bomb Sprite에 스프라이트를 넣으면 그것을 쓴다. 정렬 레이어는 DNA와 같은 `Entity`. 폭탄 파동은 코드 생성 고리(`FieldItemBlastFx`)다. 효과음·회복 숫자 표시는 없다.
+- 그림: 프리팹 없이 코드로 만든 16×16 임시 픽셀 그림(`FieldItemPixelArt`). `Field Items`의 Heal Pack/Magnet/Bomb Sprite에 스프라이트를 넣으면 그것을 쓴다. 정렬 레이어는 DNA와 같은 `Entity`. 폭탄 파동은 코드 생성 고리(`FieldItemBlastFx`)다. 효과음·회복 숫자 표시는 없다. (이후 정식 그림과 폭발 연출로 바꿨다. '필드 아이템 정식 그림·폭탄 폭발 연출' 항목 참고. 코드 그림은 불러오기 실패 시 대체용으로 남아 있다.)
 - 코드: `Assets/0.Scripts/Game/Item/`(`FieldItemDropSettings`, `FieldItemPickup`, `FieldItemPixelArt`, `FieldItemSprites`, `FieldItemBlastFx`), `SceneEnemyPool.FieldItems.cs`(partial, 드랍·효과 연결). `SceneEnemyPool`은 `partial`이 됐다. `EnemyHealth`에 `Defeated` 이벤트와 `Kill()`, `ExperiencePickup`에 `BeginMagnetAttraction(float)`을 추가했다. 기존 공개 API와 직렬화 필드는 그대로다. 새 전역 매니저·싱글톤은 없다.
 - 검증(실제 실행): `tools/FieldItemValidation` **36/36**(신규, 실제 소스 + Unity 대역, 드랍 판정·획득·힐/자석/폭탄 연결), `ExperienceAttractionValidation` **25/25**(기존 10 + 자석 15). 일부러 결함을 넣은 사본 12종에서 필드 아이템 도구가 12종 모두 실패함을 확인했다. Unity 6000.5.0f1 Roslyn으로 커밋 `5ae1bb0`의 트리만 따로 꺼내 Combat/Enemy/Boss/Encounter.Runtime, Assembly-CSharp, Assembly-CSharp-Editor, 테스트 어셈블리 3개까지 9개 컴파일 오류 0, 경고는 기존 3개(CS0252 1, CS0618 2). 캐시 응답 파일에 아직 없는 새 소스 7개(이번 6개 + `SunBarrageCrest`)는 스크립트가 추가했다. 임시 그림은 실제 바닥 타일 3종 위에 렌더링해 눈으로 확인했다.
 - 미검증: Unity 임포트·Play, 실제 렌더링·정렬 순서·획득 거리 체감, 대량 처치 시 프레임, Android 빌드·기기. PlayMode/EditMode 테스트 실행 0개. 다른 검증 도구(대시·장착·전투 표·혼합 추첨·보스 등장·피격)는 변경 소스를 포함하지 않아 이번에 다시 실행하지 않았다.

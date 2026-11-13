@@ -1,5 +1,11 @@
 # 작업 인수인계
 
+## 2026-11-13 차징 Guard 반복 제거
+
+- 사용자 요청으로 직전 Guard 주기 재시작 코드만 제거했다. 차징 중 Guard는 다시 한 번 재생한 뒤 마지막 자세를 유지한다. 약/강공격0.25초 발사·모션 종료 이동 해제, 차징 규칙, 일반 가드/대시는 유지한다. 아래 Guard 반복 추가 기록은 이번 요청으로 대체된다.
+- 기존 반복 구현에서 단발 유지 회귀 실패를 확인한 뒤 제거했고 실제 Animator 복사본 회귀 **41/41 통과**, 최신 원본 Assembly-CSharp Roslyn 컴파일 exit0·오류/경고 출력 없음. 원본 MainScene 화면·실제 입력/스킬 발사 통합·기기는 미검증. 시작 HEAD8092221, balancing-exp-and-skill-range. 기존 NanumGothic Combat SDF.asset 사용자 변경 보존. 씬/프리팹/클립/Animator/meta 변경 없음.
+- 직접 확인: 컴파일 완료 → MainScene Play → 강공격 길게 누르기. Guard가 한 번 재생된 뒤 마지막 자세에 머물러야 한다. 해제 후 공격 모션0.25초 발사 및 모션 종료 이동 복구 확인. 이상 시 Console 첫 오류와 Animator Guard 상태를 확인한다.
+
 ## 2026-11-13 차징 중 Guard 모션 반복
 
 - 사용자 요청으로 PlayerView.SetHeavyChargeAnimation에서 차징 중 Guard가 한 주기를 마치면 초과 진행률을 보존해 다음 주기로 재생한다. 실제 Guard 클립/Animator 자산의 Loop Time은 변경하지 않아 일반 방어의 단발 후 자세 유지, 대시 Charge, 수동 공격0.25초 발사/모션 종료 이동 해제를 보존한다. 차징 취소/해제 시 반복을 중지하며 기존 흐름으로 복귀한다. 일시정지에서는 기존 Player.Update의 차징 갱신 중단에 따라 모션도 정지한다.

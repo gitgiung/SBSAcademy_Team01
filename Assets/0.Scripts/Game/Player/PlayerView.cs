@@ -147,11 +147,6 @@ internal sealed class PlayerView
     {
         heavyChargeAnimation = isCharging;
         RefreshGuardAnimation();
-        if (!isCharging || !AnimationAvailable || animator.IsInTransition(0)) return;
-        var state = animator.GetCurrentAnimatorStateInfo(0);
-        // 공유 Guard 클립은 일반 방어에서 단발로 유지하고, 차징 중에만 반복합니다.
-        if (state.fullPathHash == AnimationHash("Guard") && state.normalizedTime >= 1f)
-            animator.Play(state.fullPathHash, 0, state.normalizedTime % 1f);
     }
 
     private void RefreshGuardAnimation()

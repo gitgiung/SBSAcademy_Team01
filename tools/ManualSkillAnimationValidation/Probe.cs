@@ -39,12 +39,12 @@ public static class ManualSkillAnimationProbe
             Charging(true); Move(); Step();
             Check(State("Guard"), "charging holds Guard after the non-looping clip ends");
             Charging(true); animator.Update(0);
-            Check(animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f,
-                "charging restarts Guard after each completed cycle");
+            Check(animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f,
+                "charging holds the completed Guard pose without restarting");
             for (int i = 0; i < 40; i++) { Charging(true); animator.Update(.05f); }
             Charging(true); animator.Update(0);
-            Check(State("Guard") && animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f,
-                "held charging keeps cycling Guard over multiple periods");
+            Check(State("Guard") && animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f,
+                "held charging keeps the completed Guard pose over multiple periods");
             Check(!animator.GetBool("IsDashing"), "charging does not activate dash animation");
             Check(renderer.color == Color.white, "charging does not apply defense tint");
             Check(!root.transform.Find("Defense VFX").GetComponent<SpriteRenderer>().enabled,

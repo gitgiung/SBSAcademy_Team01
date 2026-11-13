@@ -10,6 +10,6 @@
 4. Probe.cs를 검증 프로젝트 Assets/Editor에 복사한다. 검증 프로젝트에 Unity UI와 Animation 내장 모듈을 활성화한다.
 5. 검증 프로젝트에서 `-batchmode -nographics -executeMethod ManualSkillAnimationProbe.Run`으로 실행한다. 결과는 검증 프로젝트 루트의 manual-animation-result.txt이며, 성공 시 PASS 41/41 및 종료 코드0이다.
 
-차징 중 Guard 주기 재시작/여러 주기 반복과 일반 Guard의 단발 유지도 검증한다. 차징 반복은 PlayerView의 차징 표시 갱신에서 수행하므로 검증에서도 매 프레임 SetHeavyChargeAnimation을 호출한다.
+차징 Guard는 반복하지 않고 단발 후 마지막 자세를 유지한다. 차징 표시를 매 프레임 갱신해도 모션이 재시작되지 않는지와 일반 Guard의 단발 유지도 검증한다.
 
 Guard 유지, 공격 진입/복귀/재시작, 취소, 리셋, 방어 VFX 비활성, 대시 보존, 실제 가드와 차징 표시의 독립 해제 및0.25초 타격/0.74초 잠금/모션 종료 해제, 중복 발사·오래된 ID 방어, 일시정지·모션 중단·Animator 비활성화·큰 프레임 간격·사망·Controller 제거를 검사한다. 스프라이트 원화/화면 구성, 실제 스킬 발사 코루틴과 원본 MainScene Play는 별도 확인한다.

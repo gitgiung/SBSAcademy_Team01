@@ -214,11 +214,24 @@ public sealed class MobileReadinessTests
 
     private float TacticalRemaining => (float)player.GetType().GetProperty("TacticalCooldownRemaining").GetValue(player);
 
+    private void EquipWaterShield()
+    {
+        object data = Get(player, "data");
+        object loadout = data.GetType().GetProperty("Loadout").GetValue(data);
+        Type skillType = RuntimeType("Data.SkillData");
+        object skill = Activator.CreateInstance(skillType);
+        skillType.GetField("DataId").SetValue(skill, 30009);
+        Assert.That(Call(loadout, "TryAddTacticalSkill", skill), Is.True);
+        object tacticalSlot = Enum.Parse(RuntimeType("PlayerSkillButton"), "Tactical");
+        Assert.That(Call(loadout, "TryEquip", tacticalSlot, 30009), Is.True);
+    }
+
     [UnityTest]
     public IEnumerator TacticalCooldownUsesSuccessfulCastAndStopsDuringPause()
     {
         Assert.That(player.GetType().GetProperty("TacticalCooldownRemaining"), Is.Not.Null);
         Assert.That(TacticalRemaining, Is.Zero);
+        EquipWaterShield();
         Assert.That((bool)Call(player, "TryUseTacticalSkill"), Is.True);
         float started = TacticalRemaining;
         Assert.That(started, Is.EqualTo(6f).Within(.01f), "기존 표의 30009는 6초입니다.");
@@ -236,6 +249,8 @@ public sealed class MobileReadinessTests
     public void FailedTacticalCastDoesNotStartCooldown()
     {
         Assert.That(player.GetType().GetProperty("TacticalCooldownRemaining"), Is.Not.Null);
+        Assert.That((bool)Call(player, "TryUseTacticalSkill"), Is.False, "미장착 상태에서는 시전할 수 없습니다.");
+        EquipWaterShield();
         Time.timeScale = 0;
         Assert.That((bool)Call(player, "TryUseTacticalSkill"), Is.False);
         Assert.That(TacticalRemaining, Is.Zero);
@@ -255,6 +270,10 @@ public sealed class MobileReadinessTests
             Call(player, "BindTacticalButton");
             var display = button.GetComponent(RuntimeType("SprintCooldownUI"));
             Assert.That(display, Is.Not.Null, "전략 버튼에도 기존 쿨타임 표시를 연결합니다.");
+            Assert.That(button.GetComponent<Button>().interactable, Is.False);
+            EquipWaterShield();
+            Call(player, "BindTacticalButton");
+            Assert.That(button.GetComponent<Button>().interactable, Is.True);
             Assert.That((bool)Call(player, "TryUseTacticalSkill"), Is.True);
             Call(display, "Refresh");
             var image = (Image)Get(display, "cooldownImage");

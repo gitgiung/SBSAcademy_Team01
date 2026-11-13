@@ -181,8 +181,8 @@ public sealed class BossEncounterController : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    [ContextMenu("테스트/다음 보스 즉시 소환")]
-    private void SpawnNextBossForTest()
+    [ContextMenu("다음 보스 즉시 소환")]
+    private void SpawnNextBossImmediately()
     {
         if (!Application.isPlaying || !isActiveAndEnabled || Phase != EncounterPhase.TimedCombat ||
             !HasNextRound || Time.timeScale <= 0f)

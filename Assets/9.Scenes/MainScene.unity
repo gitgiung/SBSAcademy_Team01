@@ -3131,14 +3131,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5b649f83919c8644aace3832ce73178, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  projectileHitFlashScale: 0.35
-  projectileHitFlashFrames:
-  - {fileID: -1302220922881043143, guid: d3b6df0e6050469a05de8ec4b0f54b2d, type: 3}
-  - {fileID: -4996814613887731585, guid: 00220b75929ad81daf79cdbb234bea53, type: 3}
-  - {fileID: 7111575784764684793, guid: 78cf222d33ebbfaa426e11852cfa97a1, type: 3}
-  - {fileID: -3180676014670968904, guid: 762836e81d1850700be135211ccdf06a, type: 3}
-  projectileHitFlashMaterial: {fileID: 2100000, guid: d056264e03aa47d092ba62599b22fc08, type: 2}
-  guardButton: {fileID: 1437309640}
   heavyAttackButton: {fileID: 452539071}
   heavyChargeSettings:
     Configured: 1
@@ -3152,12 +3144,7 @@ MonoBehaviour:
     - 0.1
     - 0.5
     SuperArmor: 0
-  parryZoomRatio: 0.2
-  parryZoomInDuration: 0.02
-  parryZoomOutDuration: 0.28
-  parryHitStopDuration: 0.32
-  parryRecoilDistance: 0.35
-  parryRecoilDuration: 0.12
+  guardButton: {fileID: 1437309640}
   data: {fileID: 454020001}
   bulletPrefab: {fileID: 7471816246809313549, guid: ca61cadf05c05be42aac42e0884ec18b, type: 3}
   healthSlider: {fileID: 496842392}
@@ -3170,6 +3157,13 @@ MonoBehaviour:
   passiveProjectiles:
   - Key: FlameBullet
     Prefab: {fileID: 6974386644661140354, guid: 4d2e91c0cc59d5343852bf3878ded84b, type: 3}
+  projectileHitFlashScale: 0.35
+  projectileHitFlashFrames:
+  - {fileID: -1302220922881043143, guid: d3b6df0e6050469a05de8ec4b0f54b2d, type: 3}
+  - {fileID: -4996814613887731585, guid: 00220b75929ad81daf79cdbb234bea53, type: 3}
+  - {fileID: 7111575784764684793, guid: 78cf222d33ebbfaa426e11852cfa97a1, type: 3}
+  - {fileID: -3180676014670968904, guid: 762836e81d1850700be135211ccdf06a, type: 3}
+  projectileHitFlashMaterial: {fileID: 2100000, guid: d056264e03aa47d092ba62599b22fc08, type: 2}
   enemyTag: Enemy
   playerSpriteRenderer: {fileID: 454019996}
   playerAnimator: {fileID: 0}
@@ -3177,6 +3171,7 @@ MonoBehaviour:
   parryStartup: 0.033
   parryActive: 0.133
   parryRecovery: 0.233
+  parryInvulnerableDuration: 0.5
   guardTransitionTime: 0.183
   maxGuardDuration: 6
   normalGuardCooldown: 0.5
@@ -3185,6 +3180,12 @@ MonoBehaviour:
   dashSpeedMultiplier: 3
   dashDuration: 0.25
   dashCooldown: 3
+  parryZoomRatio: 0.2
+  parryZoomInDuration: 0.02
+  parryZoomOutDuration: 0.28
+  parryHitStopDuration: 0.32
+  parryRecoilDistance: 0.35
+  parryRecoilDuration: 0.12
 --- !u!114 &454020001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -33297,26 +33298,6 @@ PrefabInstance:
     - target: {fileID: 2801471059774490790, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: preHitFlashWidth
-      value: 12
-      objectReference: {fileID: 0}
-    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: dashDisplayDuration
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: rangeFadeInDuration
-      value: 0.12
-      objectReference: {fileID: 0}
-    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
-      propertyPath: rangeFadeOutDuration
-      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 7670373938179878916, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: healthSlider

@@ -1,8 +1,39 @@
 # 작업 인수인계
 
+## 2026-11-13 Player 스크립트 정리
+
+- `Assets/0.Scripts/Game/Player`를 Attacks, Defense, Input, Movement, Presentation, Data로 정리했다. `Player.cs`는 763줄에서 278줄로 줄이고 공격, 전략, 피격·패링, 이동, 입력, 공격 연출 및 MP 버튼 표시를 partial 파일로 분리했다. 기존 공개 API와 직렬화 필드, 기존 스크립트 GUID 32개를 유지했다. 옮겨진 경로를 쓰는 검증 도구도 갱신했다.
+- 기존 Unity Roslyn 컴파일 7개 성공, GUID 대조 완료. Unity Play 및 자동 테스트 실행 0개. 다음은 원본 Unity 임포트 후 `Tools > Play From Title` 해제 → MainScene Play → 이동·대시·약공격·강공격·가드/패링·전략 버튼·DNA 획득을 확인하는 것이다. 이상 시 Console 첫 컴파일 오류와 Player 컴포넌트의 Missing Script 여부를 확인한다.
+
+## 2026-11-13 연속 패링 표시 제거
+
+- 사용자 요청으로 연속 패링 표시 스크립트와 MainScene 컴포넌트, 연동 코드를 제거했다. Assets에서 스크립트 이름과 GUID의 남은 참조가 없는 것을 확인했다. Unity Play 및 자동 테스트 0개. MainScene에서 연속 패링 시 기존 성공 연출만 재생되는지 확인한다.
+
+## 2026-11-13 약·강공격 MP 부족 점멸
+
+- 대시 키와 모바일 Sprint 버튼도 공통 `TryDash`에서 MP 부족으로 거절되면 같은 점멸을 재생한다. MainScene에서 대시 쿨타임이 끝난 상태로 MP를 대시 비용 아래로 낮추고 키와 버튼을 각각 눌러 확인한다. 이상 시 PlayerData의 Dash MP Cost, Sprint 연결과 Console 첫 오류를 확인한다.
+
+- 장착한 약·강공격 시도가 MP 부족으로 실패하면 MP 바를 0.4초간 붉게 두 번 점멸한다. MP 0에서도 보이는 전체 너비의 가림 이미지를 재사용하며 미장착 슬롯은 시전 전에 거절한다.
+- Roslyn 컴파일 7개 성공, Unity Play 및 자동 테스트 0개. MainScene Play → 약·강공격 장착 → 각각 비용보다 낮은 MP에서 버튼을 눌러 MP 바 점멸 확인. 빈 슬롯이나 충분한 MP에서는 점멸 없이 기존 동작을 유지한다. 이상 시 Console 첫 오류, 현재 MP·스킬 비용, Player의 MP Slider 및 ResourceGaugePreview 연결을 확인한다.
+
+## 2026-11-13 전략 스킬 미장착 입력 차단
+
+- MobileUI Skill은 전략 스킬 미장착 시 사용 가능 횟수 0으로 표시하고 버튼 입력을 막는다. 시전 진입점도 빈 슬롯을 거절하며, 기존 물의 방패 자동 대체를 제거했다. 실제 장착 시 기존 횟수와 쿨타임 규칙을 사용한다.
+- Roslyn 컴파일 7개 성공. 모바일 테스트의 기존 물의 방패 시전 케이스는 명시적으로 장착하도록 갱신하고 미장착 차단 검사를 추가했다. Unity Play 및 자동 테스트 실행 0개. MainScene Play → 미장착 상태에서 Skill 터치 → 물의 방패를 장착하고 다시 터치. 첫 상태에서 발동하지 않고 장착 후 발동하면 정상이다. 이상 시 실제 장착 슬롯, 남은 사용 횟수, Skill의 Button 및 Console 첫 오류를 확인한다.
+
+## 2026-11-13 약·강공격 MP 버튼 표시
+
+- Player가 기존 버튼 참조에서 `N_Attack/Cooldown`과 `C_Attack/Cooldown`을 찾아 초기화 및 LateUpdate에서 갱신한다. 미장착·MP 부족 시 가림막이 켜진다. 해당 슬롯에 시전 가능한 스킬이 장착되고 현재 MP가 비용 이상이면 가림막이 꺼진다.
+- Roslyn 컴파일 7개 성공, Unity Play 및 자동 테스트 실행 0개. 확인은 `Tools > Play From Title` 해제 → MainScene Play → 미장착 버튼의 Cooldown 가림막 확인 → `CombatUI > CombatPopupController > 테스트/원하는 카드 고르기`로 불꽃 탄환 또는 열파 충격 장착 → MP를 비용 아래로 낮췄다가 회복하여 해당 버튼의 가림막이 켜졌다 꺼지는지 확인. 이상 시 Console 첫 오류, 장착 슬롯·현재 MP, Player의 버튼 참조와 자식 이름을 확인한다.
+
+## 2026-11-13 데미지 숫자 크기 구간
+
+- 적과 플레이어 피해 숫자의 TMP 크기를 피해 32 미만 42, 32 이상 62 미만 54, 62 이상 66으로 적용한다. 소수 피해는 표시 반올림 전 값으로 판정한다. 데미지 숫자는 전역 글자 1.3배 보정을 적용하지 않아 최대 66을 유지한다.
+- Roslyn 컴파일 7개 성공. Unity Play 및 자동 테스트 실행 0개. 확인은 `Tools > Play From Title` 해제 → MainScene Play → 기본탄과 피해량이 다른 스킬로 적 공격 → 표시 피해에 따른 크기 비교. 이상 시 Console 첫 오류와 MainScene의 DamageNumberDisplay 프리팹 참조를 확인한다.
+
 ## 2026-11-13 다음 보스 즉시 소환 메뉴
 
-- MainScene Play 중 `Boss Encounter > Boss Encounter Controller`의 컴포넌트 메뉴 `테스트/다음 보스 즉시 소환`으로 다음 회차를 바로 시작한다. 에디터 전용이며 일반 전투 중 유효한 회차가 있을 때 동작한다. 진행 시간은 건너뛰지 않으며, 처치 후 다음 회차를 예약하고 일반 전투를 재개한다.
+- MainScene Play 중 `Boss Encounter > Boss Encounter Controller`의 컴포넌트 메뉴 `다음 보스 즉시 소환`으로 다음 회차를 바로 시작한다. 에디터 전용이며 일반 전투 중 유효한 회차가 있을 때 동작한다. 진행 시간은 건너뛰지 않으며, 처치 후 다음 회차를 예약하고 일반 전투를 재개한다. 메뉴와 섬광 Inspector 제목에서 테스트 표기를 제거했다. 이름 변경 후 Unity 실행 0개.
 - Roslyn 컴파일 7개 성공. Unity Play 및 자동 테스트 실행 0개. 직접 확인은 `Tools > Play From Title` 해제 → MainScene Play → 메뉴 클릭 → 보스 등장·시계 정지·처치 후 재개 → 메뉴를 다시 눌러 다음 회차 등장 확인. 안 뜨면 일시정지를 풀고 Console 첫 오류와 Schedule의 다음 프리팹·Boss Target을 확인한다.
 
 ## 2026-11-13 열파 충격 피격 밀림 3배
@@ -10,7 +41,7 @@
 - 열파 충격(20008)이 일반 몬스터에게 피해를 주고 몬스터가 살아남으면 기존 계산 거리(상한 1.25유닛 적용)의 3배를 같은 방향·시간으로 적용한다. 최대 3.75유닛이며 기존 충돌 처리를 사용한다. 보스는 기존 피격 밀림 제외 경로를 유지한다.
 - Unity 6000.5.0f1 Roslyn 컴파일 7개 성공, Unity Play와 자동 테스트 실행 0개. 다음은 피해를 버티는 일반 몬스터를 대상으로 실화면 거리 확인이다. `Tools > Play From Title` 해제 → `MainScene` Play → `CombatUI > CombatPopupController > 테스트/원하는 카드 고르기`로 열파 충격을 장착 → 강공격으로 불 고리에 적중. 적이 살아남아 더 멀리 밀리면 정상이다. 이상 시 Console 첫 오류, 적 체력, 불 고리 적중 여부와 `Enemy Follow` 거리 값을 확인한다.
 
-## 2026-11-13 투사체 스킬 적중 섬광 테스트
+## 2026-11-13 투사체 스킬 적중 섬광
 
 - 확대와 함께 섬광 불투명도를 첫 프레임 100%에서 마지막 프레임 0%까지 선형으로 낮춘다. 흰색 셰이더는 원본 스프라이트 알파에 SpriteRenderer 알파를 곱한다. Roslyn 컴파일 7개 성공, 셰이더 임포트·Play·자동 테스트 미실행. MainScene에서 적중 시 커지며 흐려지는지 확인하고 이상 시 Console 첫 셰이더 오류와 Player의 머티리얼 참조를 확인한다.
 
@@ -19,7 +50,7 @@
 - 후속 변경: MainScene Player에 흰색 전용 머티리얼을 연결했다. 원본 프레임의 투명도와 윤곽을 유지하며 RGB는 흰색으로 출력한다. 기본 자동 공격 탄환도 직접 피해를 주면 같은 섬광을 사용한다. 크기 조절과 0으로 끄기는 공통이다. C# 어셈블리 7개 컴파일 성공. 셰이더 임포트·렌더링 및 Unity Play/자동 테스트는 미실행(0개). 직접 확인은 MainScene Play 후 기본탄과 투사체 스킬을 각각 맞혀 둘 다 흰색 섬광이 뜨는지 보는 것이다. 이상 시 Console의 첫 셰이더 오류와 Player의 Projectile Hit Flash Material을 확인한다.
 
 - `LightSkillShape.Projectile`로 실행된 일반·유도 투사체가 직접 피해를 주면 충돌 위치에 원본 MagicBarrier의 `ParryFlash_01_0`~`04_0`을 30fps로 한 번 재생한다. 각 이미지에서 첫 번째 슬라이스를 사용한다. 범위·폭발 추가 피해와 기본탄 경로는 기존 동작을 유지한다.
-- MainScene의 Player에 네 스프라이트를 직접 연결했다. Inspector `투사체 적중 섬광 (테스트) > Projectile Hit Flash Scale` 기본값 0.35, 0이면 표시를 끈다.
+- MainScene의 Player에 네 스프라이트를 직접 연결했다. Inspector `투사체 적중 섬광 > Projectile Hit Flash Scale` 기본값 0.35, 0이면 표시를 끈다.
 - Unity 6000.5.0f1 Roslyn 컴파일 7개 성공. Unity Play 및 자동 테스트 실행 0개. 다음은 실제 화면에서 크기·표시 순서 확인이다.
 - 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → `CombatUI > CombatPopupController > 테스트/원하는 카드 고르기`로 불꽃 탄환을 장착 → 적에게 맞힌다. 적중 지점에 작은 섬광이 한 번 나타나면 정상이다. 이상 시 Console 첫 오류, MainScene Player의 크기 값과 프레임 4개 참조를 확인한다.
 

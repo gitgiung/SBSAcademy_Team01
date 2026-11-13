@@ -48,8 +48,12 @@ public sealed partial class Player
         if (heavyCharge == null || !CanAcceptGameplayInput || !HeavyContextValid()) return false;
         int skillId = data.Loadout.GetEquippedSkillId(PlayerSkillButton.Heavy);
         if (!CombatSkillTable.TryGet(skillId, out CombatSkillRecord record)
-            || !LightSkillCatalog.TryCreateHeavy(record, out LightSkillCast skill)
-            || !heavyCharge.TryBegin(heavyChargeSettings, ReadAimDirection(), record)) return false;
+            || !LightSkillCatalog.TryCreateHeavy(record, out LightSkillCast skill)) return false;
+        if (!heavyCharge.TryBegin(heavyChargeSettings, ReadAimDirection(), record))
+        {
+            if (!IsHeavyCharging && skill.MpCost > data.CurrentMP) resourceGaugePreview?.FlashInsufficientMp();
+            return false;
+        }
         chargedSkill = skill;
         joystickController?.StopMovement();
         view.SetMovementAnimation(heavyCharge.Direction, false, false, dashDuration);

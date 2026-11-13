@@ -48,7 +48,6 @@ MonoBehaviour:
   targetCamera: {fileID: 0}
   enemyColor: {r: 1, g: 0.85, b: 0.2, a: 1}
   playerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  fontSize: 42
   lifetime: 0.8
   riseDistance: 140
   worldOffset: {x: 0, y: 0.7, z: 0}

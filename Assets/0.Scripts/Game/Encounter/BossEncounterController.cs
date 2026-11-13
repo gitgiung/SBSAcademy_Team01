@@ -180,6 +180,18 @@ public sealed class BossEncounterController : MonoBehaviour
         RefreshDisplay();
     }
 
+#if UNITY_EDITOR
+    [ContextMenu("테스트/다음 보스 즉시 소환")]
+    private void SpawnNextBossForTest()
+    {
+        if (!Application.isPlaying || !isActiveAndEnabled || Phase != EncounterPhase.TimedCombat ||
+            !HasNextRound || Time.timeScale <= 0f)
+            return;
+
+        BeginBossFight();
+    }
+#endif
+
     private void BeginBossFight()
     {
         if (schedule != null && !PrepareScheduledBoss())

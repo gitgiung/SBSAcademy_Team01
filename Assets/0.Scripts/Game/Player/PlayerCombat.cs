@@ -20,6 +20,7 @@ internal sealed class PlayerCombat
     private readonly Data.SkillData[] skills = new Data.SkillData[PlayerLoadout.AttackCapacity];
     private readonly float[] timers = new float[PlayerLoadout.AttackCapacity];
     private float attackTimer;
+    internal Action<Vector3> BasicAttackHitFlash { get; set; }
 
     public PlayerCombat(Transform owner, PlayerData data, GameObject bulletPrefab, string enemyTag)
     {
@@ -91,7 +92,12 @@ internal sealed class PlayerCombat
         float speed = data.bulletSpeed;
         attackTimer = Mathf.Max(.01f, data.attackCooldown);
         pool.Pop(bulletPrefab, owner.position, Quaternion.identity,
-            initialize: go => go.GetComponent<Bullet>().InitDirection(direction, damage, speed));
+            initialize: go =>
+            {
+                Bullet bullet = go.GetComponent<Bullet>();
+                bullet.InitDirection(direction, damage, speed);
+                bullet.HitFlash = BasicAttackHitFlash;
+            });
     }
 
     private Transform FindClosestTarget(float range, Camera camera = null)

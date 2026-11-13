@@ -4,6 +4,9 @@ using UnityEngine;
 /// <summary>약공격 한 발의 그림과 타격입니다. 이동과 피해만 담당합니다.</summary>
 public sealed class LightSkillFx : MonoBehaviour, IPoolable
 {
+    private const int HeatWaveSkillId = 20008;
+    private const float HeatWaveKnockbackMultiplier = 3f;
+
     private SpriteRenderer spriteRenderer;
     private CircleCollider2D hitCollider;
     private PooledObject pooled;
@@ -60,6 +63,8 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private const float HomingSeekInterval = 0.1f;
     private const float HomingExtraLife = 0.8f;
 
+    internal System.Action<Vector3> ProjectileHitFlash { get; set; }
+
     public void OnPoolRent() => Cache();
     public void OnPoolReturn()
     {
@@ -68,6 +73,7 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         forking = false;
         homing = false;
         target = null;
+        ProjectileHitFlash = null;
         HideForks();
         StopAllCoroutines();
         hitIds.Clear();
@@ -413,7 +419,9 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!running || bursting || !projectile || other == null || !other.CompareTag("Enemy")) return;
-        Damage(other);
+        Vector3 impactPosition = other.ClosestPoint(transform.position);
+        impactPosition.z = transform.position.z;
+        if (Damage(other)) ProjectileHitFlash?.Invoke(impactPosition);
         if (!skill.ExplodesOnHit)
         {
             Finish();
@@ -607,12 +615,17 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         }
     }
 
-    private void Damage(Collider2D hit)
+    private bool Damage(Collider2D hit)
     {
         EntityId id = hit.GetEntityId();
-        if (!hitIds.Add(id)) return;
-        if (hit.TryGetComponent<IDamageable>(out IDamageable damageable))
+        if (!hitIds.Add(id) || !hit.TryGetComponent<IDamageable>(out IDamageable damageable)) return false;
+        EnemyHealth health = damageable as EnemyHealth;
+        float previousHealth = health != null ? health.CurrentHealth : 0f;
+        if (skill.Id == HeatWaveSkillId && health != null)
+            health.TakeDamage(damage, HeatWaveKnockbackMultiplier);
+        else
             damageable.TakeDamage(damage);
+        return health == null || health.CurrentHealth < previousHealth;
     }
 
     private void Finish()

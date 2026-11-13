@@ -1,5 +1,38 @@
 # 작업 인수인계
 
+## 2026-11-13 다음 보스 즉시 소환 메뉴
+
+- MainScene Play 중 `Boss Encounter > Boss Encounter Controller`의 컴포넌트 메뉴 `테스트/다음 보스 즉시 소환`으로 다음 회차를 바로 시작한다. 에디터 전용이며 일반 전투 중 유효한 회차가 있을 때 동작한다. 진행 시간은 건너뛰지 않으며, 처치 후 다음 회차를 예약하고 일반 전투를 재개한다.
+- Roslyn 컴파일 7개 성공. Unity Play 및 자동 테스트 실행 0개. 직접 확인은 `Tools > Play From Title` 해제 → MainScene Play → 메뉴 클릭 → 보스 등장·시계 정지·처치 후 재개 → 메뉴를 다시 눌러 다음 회차 등장 확인. 안 뜨면 일시정지를 풀고 Console 첫 오류와 Schedule의 다음 프리팹·Boss Target을 확인한다.
+
+## 2026-11-13 열파 충격 피격 밀림 3배
+
+- 열파 충격(20008)이 일반 몬스터에게 피해를 주고 몬스터가 살아남으면 기존 계산 거리(상한 1.25유닛 적용)의 3배를 같은 방향·시간으로 적용한다. 최대 3.75유닛이며 기존 충돌 처리를 사용한다. 보스는 기존 피격 밀림 제외 경로를 유지한다.
+- Unity 6000.5.0f1 Roslyn 컴파일 7개 성공, Unity Play와 자동 테스트 실행 0개. 다음은 피해를 버티는 일반 몬스터를 대상으로 실화면 거리 확인이다. `Tools > Play From Title` 해제 → `MainScene` Play → `CombatUI > CombatPopupController > 테스트/원하는 카드 고르기`로 열파 충격을 장착 → 강공격으로 불 고리에 적중. 적이 살아남아 더 멀리 밀리면 정상이다. 이상 시 Console 첫 오류, 적 체력, 불 고리 적중 여부와 `Enemy Follow` 거리 값을 확인한다.
+
+## 2026-11-13 투사체 스킬 적중 섬광 테스트
+
+- 확대와 함께 섬광 불투명도를 첫 프레임 100%에서 마지막 프레임 0%까지 선형으로 낮춘다. 흰색 셰이더는 원본 스프라이트 알파에 SpriteRenderer 알파를 곱한다. Roslyn 컴파일 7개 성공, 셰이더 임포트·Play·자동 테스트 미실행. MainScene에서 적중 시 커지며 흐려지는지 확인하고 이상 시 Console 첫 셰이더 오류와 Player의 머티리얼 참조를 확인한다.
+
+- 섬광 재생을 30fps 기준 8프레임으로 늘렸다. 원본 4장을 각각 2프레임씩 표시하고, 크기는 Inspector 설정값의 25%에서 시작해 마지막 프레임에 100%에 도달한다. 기본탄과 투사체 스킬에 공통 적용. Roslyn 컴파일 7개 성공, Unity Play 및 자동 테스트 0개. MainScene에서 두 공격을 각각 맞혀 작은 흰 섬광이 점점 커진 뒤 사라지는지 확인한다.
+
+- 후속 변경: MainScene Player에 흰색 전용 머티리얼을 연결했다. 원본 프레임의 투명도와 윤곽을 유지하며 RGB는 흰색으로 출력한다. 기본 자동 공격 탄환도 직접 피해를 주면 같은 섬광을 사용한다. 크기 조절과 0으로 끄기는 공통이다. C# 어셈블리 7개 컴파일 성공. 셰이더 임포트·렌더링 및 Unity Play/자동 테스트는 미실행(0개). 직접 확인은 MainScene Play 후 기본탄과 투사체 스킬을 각각 맞혀 둘 다 흰색 섬광이 뜨는지 보는 것이다. 이상 시 Console의 첫 셰이더 오류와 Player의 Projectile Hit Flash Material을 확인한다.
+
+- `LightSkillShape.Projectile`로 실행된 일반·유도 투사체가 직접 피해를 주면 충돌 위치에 원본 MagicBarrier의 `ParryFlash_01_0`~`04_0`을 30fps로 한 번 재생한다. 각 이미지에서 첫 번째 슬라이스를 사용한다. 범위·폭발 추가 피해와 기본탄 경로는 기존 동작을 유지한다.
+- MainScene의 Player에 네 스프라이트를 직접 연결했다. Inspector `투사체 적중 섬광 (테스트) > Projectile Hit Flash Scale` 기본값 0.35, 0이면 표시를 끈다.
+- Unity 6000.5.0f1 Roslyn 컴파일 7개 성공. Unity Play 및 자동 테스트 실행 0개. 다음은 실제 화면에서 크기·표시 순서 확인이다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → `CombatUI > CombatPopupController > 테스트/원하는 카드 고르기`로 불꽃 탄환을 장착 → 적에게 맞힌다. 적중 지점에 작은 섬광이 한 번 나타나면 정상이다. 이상 시 Console 첫 오류, MainScene Player의 크기 값과 프레임 4개 참조를 확인한다.
+
+## 2026-11-13 일반 몬스터 피격 밀림
+
+- 피격 밀림 중 뒤쪽을 향하는 현상 수정: `EnemyFollow`가 마지막 물리 프레임의 밀림 여부를 제공하고, `EnemyDirectionAnimator`는 밀림 프레임에 직전 방향의 Idle을 유지한다. 마지막 밀림 스텝도 포함하며 추적 이동 시 방향 갱신을 재개한다. 수정 후 Roslyn 컴파일 7개 성공, Unity Play 및 자동 테스트 0개. `MainScene`에서 생존하는 일반 몬스터를 맞혀 같은 방향을 본 채 밀리고 다시 달리는지 확인한다. 이상 시 Console 첫 오류와 프리팹의 `EnemyFollow`·`EnemyDirectionAnimator`를 확인한다.
+
+- 브랜치 `Test`, 기준 HEAD `9a871df`. 기존 `ProjectSettings/ShaderGraphSettings.asset` 수정은 사용자 변경이다.
+- 일반 몬스터가 피해를 받고 살아남으면 직전 실제 추적 이동 방향의 반대로 0.12초간 밀린 뒤 추적을 재개한다. 아직 이동 기록이 없으면 현재 추적 대상을 기준으로 방향을 잡는다. 임시 튜닝값은 피해 1당 0.15유닛, 한 번에 남은 밀림 최대 1.25유닛이다. 피해당 거리는 프리팹의 `Enemy Follow > Knockback Distance Per Damage`에서 조절한다.
+- 기존 `CollisionMovement2D`를 사용하며, 비활성화 및 재대여 시 남은 밀림과 방향을 초기화한다. 보스 3종은 각 컨트롤러 초기화에서 피격 밀림을 끈다. 치명타로 체력이 0이 되는 경우에는 기존 즉시 사망 경로를 탄다.
+- Unity 6000.5.0f1 Roslyn으로 기존 컴파일 스크립트의 7개 어셈블리 컴파일 성공. Unity Play 및 자동 테스트 실행 0개. 다음은 MainScene에서 피해 차이에 따른 이동 거리, 벽 접촉, 연속 피격, 보스 패턴과의 체감 확인이다.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 살아남는 일반 몬스터에 피해가 다른 공격을 각각 맞힌다. 접근하던 반대 방향으로 큰 피해일수록 멀리 밀리고, 벽 앞에서는 벽을 통과하지 않으며, 밀림 후 추적을 재개하면 정상이다. 이상 시 Console 첫 오류, 대상이 피격 후 생존했는지, `Enemy Follow`의 거리 값과 몸체 콜라이더를 확인한다.
+
 ## 2026-11-12 3D를 제외한 브랜치를 메인에 합침
 
 - `feature/boss-appear-6-times`와 `iOS-Build-Test`는 같은 커밋이라 한 번에 합쳤다. 3분마다 보스 등장, 시간별 강화, 화면 안전 영역, 모바일 조작 위치, 전략 쿨타임 표시가 들어왔다.

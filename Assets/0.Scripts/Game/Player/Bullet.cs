@@ -12,6 +12,7 @@ public class Bullet : MonoBehaviour, IPoolable
     private bool isHit;
     private PooledObject pooled;
     private Rigidbody2D body;
+    internal System.Action<Vector3> HitFlash { get; set; }
 
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
@@ -61,6 +62,7 @@ public class Bullet : MonoBehaviour, IPoolable
         remainingLife = 0f;
         isHit = false;
         initialized = false;
+        HitFlash = null;
         if (body != null)
         {
             body.linearVelocity = Vector2.zero;
@@ -95,7 +97,15 @@ public class Bullet : MonoBehaviour, IPoolable
         try
         {
             if (collision.TryGetComponent<IDamageable>(out var damageableTarget))
+            {
+                var hitFlash = HitFlash;
+                Vector3 impact = hitFlash != null ? collision.ClosestPoint(transform.position) : Vector2.zero;
+                impact.z = transform.position.z;
+                EnemyHealth health = damageableTarget as EnemyHealth;
+                float previousHealth = health != null ? health.CurrentHealth : 0f;
                 damageableTarget.TakeDamage(damage);
+                if (health == null || health.CurrentHealth < previousHealth) hitFlash?.Invoke(impact);
+            }
         }
         finally
         {

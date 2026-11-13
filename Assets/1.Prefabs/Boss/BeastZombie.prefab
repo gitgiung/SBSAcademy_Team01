@@ -217,6 +217,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Enemy.Runtime::EnemyFollow
   moveSpeed: 5
   stoppingDistance: 2
+  knockbackDistancePerDamage: 0.15
 --- !u!114 &7670373938179878916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -307,9 +308,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Boss.Runtime::BossAttackHitVfx
   rangeMaterial: {fileID: 2100000, guid: e8d4a6b21c904f7e9a5d3c1b7e6f0284, type: 2}
   rangeColor: {r: 1, g: 0.35, b: 0.08, a: 0.4}
-  rangeFadeInDuration: 0.12
-  rangeFadeOutDuration: 0.3
-  dashDisplayDuration: 1
+  rangeFadeInDuration: 0.08
+  rangeFadeOutDuration: 0.4
+  dashDisplayDuration: 0
   areaBurstSprite: {fileID: 21300000, guid: 8789ccc3532d1e56d7a7698bab599721, type: 3}
   areaBurstColor: {r: 1, g: 0, b: 0, a: 1}
   areaBurstDuration: 0.8

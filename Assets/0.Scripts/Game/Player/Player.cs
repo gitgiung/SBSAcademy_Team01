@@ -28,6 +28,11 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     [Header("패시브 투사체 (Key는 SkillData.PassivePrefabKey와 일치)")]
     [SerializeField] private PlayerProjectileBinding[] passiveProjectiles = new PlayerProjectileBinding[0];
 
+    [Header("투사체 적중 섬광 (테스트)")]
+    [SerializeField, Min(0f)] private float projectileHitFlashScale = 0.35f;
+    [SerializeField] private Sprite[] projectileHitFlashFrames;
+    [SerializeField] private Material projectileHitFlashMaterial;
+
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
 
@@ -164,6 +169,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         actions = new PlayerActionGate(data);
         movement = new PlayerMovement(transform, data, () => defense.IsMovementSlowed ? parrySpeedRatio : 1f);
         combat = new PlayerCombat(transform, data, bulletPrefab, enemyTag);
+        combat.BasicAttackHitFlash = ShowProjectileHitFlash;
         if (passiveProjectiles != null)
             foreach (PlayerProjectileBinding binding in passiveProjectiles)
                 if (binding != null) combat.BindProjectile(binding.Key, binding.Prefab);
@@ -411,7 +417,10 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         void Arm(GameObject fx)
         {
             if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
+            {
                 skillFx.Play(skill, direction, damage, enemyTag, projectileSize);
+                skillFx.ProjectileHitFlash = ShowProjectileHitFlash;
+            }
         }
 
         PopLightFx(position, Arm);
@@ -436,10 +445,50 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         void Arm(GameObject fx)
         {
             if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
+            {
                 skillFx.PlayHoming(skill, outward, aim, castOrigin, damage, enemyTag, projectileSize);
+                skillFx.ProjectileHitFlash = ShowProjectileHitFlash;
+            }
         }
 
         PopLightFx(crest.SpikeTip(spike), Arm);
+    }
+
+    private void ShowProjectileHitFlash(Vector3 position)
+    {
+        if (!isActiveAndEnabled || projectileHitFlashScale <= 0f ||
+            projectileHitFlashFrames == null || projectileHitFlashFrames.Length == 0)
+            return;
+
+        StartCoroutine(PlayProjectileHitFlash(position));
+    }
+
+    private IEnumerator PlayProjectileHitFlash(Vector3 position)
+    {
+        const int frameCount = 8;
+        const float frameDuration = 1f / 30f;
+        const float initialScaleRatio = 0.25f;
+        float finalScale = projectileHitFlashScale;
+        GameObject flash = new GameObject("Projectile Hit Flash");
+        flash.transform.position = position;
+        SpriteRenderer renderer = flash.AddComponent<SpriteRenderer>();
+        if (projectileHitFlashMaterial != null) renderer.sharedMaterial = projectileHitFlashMaterial;
+        if (playerSpriteRenderer != null) renderer.sortingLayerID = playerSpriteRenderer.sortingLayerID;
+        renderer.sortingOrder = 32;
+        // Player가 비활성화되어 재생 코루틴이 멈춰도 섬광을 정리합니다.
+        Destroy(flash, 1f);
+        var frameWait = new WaitForSeconds(frameDuration);
+        for (int frame = 0; frame < frameCount; frame++)
+        {
+            if (renderer == null) yield break;
+            int spriteIndex = frame * projectileHitFlashFrames.Length / frameCount;
+            renderer.sprite = projectileHitFlashFrames[spriteIndex];
+            float progress = (float)frame / (frameCount - 1);
+            flash.transform.localScale = Vector3.one * (finalScale * Mathf.Lerp(initialScaleRatio, 1f, progress));
+            renderer.color = new Color(1f, 1f, 1f, 1f - progress);
+            yield return frameWait;
+        }
+        Destroy(flash);
     }
 
     private void PopLightFx(Vector3 position, Action<GameObject> arm)

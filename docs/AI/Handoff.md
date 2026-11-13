@@ -1,5 +1,20 @@
 # 작업 인수인계
 
+## 2026-11-13 수동 약·강공격 모션 연결
+
+- 사용자 확정: 약공격 시 Attack, 강공격 차징 중 Guard, 강공격 시전 시 Attack. 최초 Change → Charge 정정 뒤, Charge가 대시용임을 확인한 사용자가 차징을 Guard로 변경했다. 현재 Animator에서 공격 모션 상태 이름은 LightAttack이므로 해당 기존 상태를 재생한다.
+- TryCastLightSkill과 TryReleaseHeavyCharge의 수동 발사 직전에 PlayerView.PlayLightAttack을 연결했다. 발사 시점·코루틴·피해·MP·강공격 배율·행동 잠금 종료와 자동 발동은 유지한다. 강공격 표시 갱신에서 차징 시작/취소/자동 취소/해제/초기화 시 SetHeavyChargeAnimation을 동기화한다. PlayerView는 실제 가드와 차징 표시를 합성해 기존 IsGuarding Animator 조건만 재사용하며, 차징이 실제 방어 판정·가드 VFX·색 변경을 활성화하지 않는다. Charge 대시/Animator 자산/씬/프리팹/meta는 수정하지 않았다.
+- 검증: 실제 PlayerView/PlayerDefenseVfx와 기존 Animator·클립을 검증 복사본에서 실행, 회귀 **15/15 통과**. API 누락 실패를 수정 전에 확인했고 수정 후 Guard 유지·취소·즉시 공격 전환·공격 복귀/재시작·리셋·방어 효과 비활성·대시·가드/차징 독립 해제를 검증했다. 주변 Player/Data는 대역이므로 전체 입력·발사·MP·피해 통합 검증은 아니다. 영속 검증 소스/절차는 tools/ManualSkillAnimationValidation에 있다. 최신 원본 소스 목록에 BasicBulletVisual/BasicBulletHitFx/SkillCardIcons를 포함한 Assembly-CSharp Roslyn 컴파일 exit0, 오류/경고 출력 없음. 초기 오래된 응답 파일의 누락 소스 오류는 목록 보완 후 해소했다. 원본 MainScene Play·실제 화면·기기 미검증.
+- 현재 balancing-exp-and-skill-range, 시작 HEAD c313992. 기존 사용자 MainScene.unity 및 NanumGothic Combat SDF.asset 변경을 보존했다. 테스트 라이선스 IPC 대기에서 검증 프로세스 종료가 자동 검토로 한 번 거절되어, 프로젝트 경로·진입점·PID·시작 시각을 대조한 뒤 해당 검증 프로세스만 종료/재실행해 검증을 완료했다. 사용자 에디터 종료 없음.
+- 직접 확인: Play 종료 → 컴파일 완료 → MainScene Play → 스킬을 약/강 버튼에 장착 → 약공격 시 공격 모션, 강공격을 누르는 동안 Guard 자세, 손을 떼면 공격 모션 확인. 차징 취소/포커스 상실 뒤 Guard가 남지 않는지, 대시는 기존 Charge인지 확인한다. 차징만으로 가드 이펙트나 방어 판정이 생기면 안 된다. 문제 시 Console 첫 오류와 플레이어 Animator Controller, IsGuarding/IsDashing 및 LightAttack·Guard 상태를 확인한다. 다음 작업은 이 원본 씬 확인이며, 이전 조사 항목의 연결 미구현 설명은 이번 작업으로 대체한다.
+
+## 2026-11-13 약공격·강공격 시전 모션 누락 조사
+
+- 사용자 보고에 따라 현재 호출 경로를 정적으로 추적했다. 약공격 TryCastLightSkill과 강공격 TryReleaseHeavyCharge는 모두 CastShots로 직접 진입하며 PlayerView.PlayLightAttack을 호출하지 않는다. 기존 PlayerLightSkill.TryCast 안에는 모션 재생 호출이 남아 있지만 현재 Player 입력 경로에서는 해당 시전 메서드를 호출하지 않는다. 표 기반 발사와 캐릭터 시전 모션의 연결 누락을 확인했다. CombatSkillTable.json의 AnimationName도 빈 값이므로 표 값만으로 모션이 자동 연결되지는 않는다.
+- 이번 요청은 원인 설명으로 처리해 런타임 코드/씬/프리팹은 수정하지 않았다. 시작 HEAD c313992, 브랜치 balancing-exp-and-skill-range. 사용자 MainScene.unity 및 NanumGothic Combat SDF.asset 변경 보존. 실행 테스트 0개, Unity Play/컴파일 미실행. 실제 화면에서 보고된 현상을 재현한 결과가 아닌 소스 조사 결과다.
+- 후속: 수동 약/강공격에 기존 캐릭터 시전 모션을 연결하고 자동 발동은 별도로 유지해야 한다. 기존 LightAttackAnimationState는 레거시 lightSkill 실행 ID에 결합되어 있어 재생 호출만 추가하기 전에 발사 타이밍/행동 잠금 종료와의 관계를 검증한다.
+- 직접 확인: MainScene Play → 공격 스킬을 약/강 버튼에 장착 → 약공격 및 강공격 충전 후 해제 → 투사체/스킬 효과와 별도로 캐릭터 몸의 시전 자세 전환 여부를 본다. Animator 창에서 LightAttack 진입 여부 및 Console 첫 오류를 함께 확인한다.
+
 ## 2026-11-13 기본 탄환 피해를 1로 고정
 
 - 사용자 요청으로 PlayerCombat.TickBasicAttack에서 기본 탄환의 발사 피해를 상수1로 고정했다. 공격력/DMG 카드/속성 피해 보정을 거치지 않는다. 기본 탄환의 발사 조건에서 이제 사용하지 않는 공격력 유효성 검사도 제거했다. 발사 주기/타깃/속도/외형/풀링/MP는 유지한다. 공용 Bullet의 피해 처리와 스킬 발사는 변경하지 않아 수동/자동 스킬은 직전 DMG 공격력 증가를 계속 사용한다. 아래 이전 인수인계의 기본 탄환 공격력 연동 설명은 이번 요청으로 대체된다.

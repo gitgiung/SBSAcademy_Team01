@@ -67,6 +67,7 @@ public sealed partial class Player
         if (!actions.TryBeginLightAttack(0f, out int actionId)) return false;
         float damage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element) * result.Multiplier
             * data.Loadout.GetAttackSkillDamageMultiplier(skill.Id);
+        view.PlayLightAttack("LightAttack", result.Direction);
         StartCoroutine(CastShots(skill, result.Direction, damage, true, actionId));
         HeavyChargeReleased?.Invoke(result); return true;
     }
@@ -105,8 +106,12 @@ public sealed partial class Player
         if (IsHeavyCharging) view.SetMovementAnimation(heavyCharge.Direction, false, false, dashDuration);
         RefreshHeavyIndicator();
     }
-    private void RefreshHeavyIndicator() => view?.SetHeavyChargeIndicator(IsHeavyCharging,
-        IsHeavyCharging ? heavyCharge.Direction : Vector2.zero, HeavyChargeProgress, HeavyChargeStage);
+    private void RefreshHeavyIndicator()
+    {
+        view?.SetHeavyChargeAnimation(IsHeavyCharging);
+        view?.SetHeavyChargeIndicator(IsHeavyCharging,
+            IsHeavyCharging ? heavyCharge.Direction : Vector2.zero, HeavyChargeProgress, HeavyChargeStage);
+    }
     private void OnApplicationFocus(bool focused) { if (!focused) { ResetHeavyCharge(); ReleaseTouchGuard(); } }
     private void OnApplicationPause(bool paused) { if (paused) { ResetHeavyCharge(); ReleaseTouchGuard(); } }
 }

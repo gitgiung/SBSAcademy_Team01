@@ -21,6 +21,8 @@ internal sealed class PlayerView
     private LineRenderer heavyChargeIndicator;
     private Material heavyChargeMaterial;
     private Vector2 facingDirection = Vector2.down;
+    private bool guardAnimation;
+    private bool heavyChargeAnimation;
     public Vector2 FacingDirection => facingDirection;
     public RuntimeAnimatorController AnimationController => animator != null ? animator.runtimeAnimatorController : null;
     public bool AnimationAvailable => animator != null && animator.isActiveAndEnabled && AnimationController != null;
@@ -131,9 +133,22 @@ internal sealed class PlayerView
 
     public void SetGuardAnimation(bool isGuarding)
     {
+        guardAnimation = isGuarding;
         defenseVfx.SetGuard(isGuarding);
+        RefreshGuardAnimation();
+    }
+
+    // 차징은 Guard 자세만 사용합니다. 실제 방어 판정과 방어 VFX는 PlayerDefense가 소유합니다.
+    public void SetHeavyChargeAnimation(bool isCharging)
+    {
+        heavyChargeAnimation = isCharging;
+        RefreshGuardAnimation();
+    }
+
+    private void RefreshGuardAnimation()
+    {
         if (HasParameter(IsGuardingParameter, AnimatorControllerParameterType.Bool))
-            animator.SetBool(IsGuardingParameter, isGuarding);
+            animator.SetBool(IsGuardingParameter, guardAnimation || heavyChargeAnimation);
     }
 
     public void RefreshHealth()
@@ -213,6 +228,8 @@ internal sealed class PlayerView
 
     public void Reset()
     {
+        guardAnimation = false;
+        heavyChargeAnimation = false;
         SetHeavyChargeIndicator(false, Vector2.zero, 0f, 0);
         defenseVfx.ResetVfx();
         if (animator != null && animator.runtimeAnimatorController != null)

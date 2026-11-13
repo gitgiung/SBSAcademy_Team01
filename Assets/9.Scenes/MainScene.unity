@@ -32490,7 +32490,7 @@ GameObject:
   - component: {fileID: 1724077530}
   - component: {fileID: 1724077529}
   m_Layer: 5
-  m_Name: Skill
+  m_Name: U_Skill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

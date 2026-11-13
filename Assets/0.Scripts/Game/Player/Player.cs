@@ -337,6 +337,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
         float stackDamage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element)
             * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
+        view.PlayLightAttack("LightAttack", aim.normalized);
         StartCoroutine(CastShots(skill, aim.normalized, stackDamage, true, actionId));
         return true;
     }

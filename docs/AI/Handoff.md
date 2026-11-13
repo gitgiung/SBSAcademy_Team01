@@ -1,5 +1,16 @@
 # 작업 인수인계
 
+## 2026-11-13 기본 Bullet을 흰색·옅은 금색 광탄으로 변경
+
+- 사용자가 추천안 중 작은 광탄(흰 핵·옅은 금색 짧은 꼬리·작은 명중 빛)을 선택하여 구현했다. 시작 상태는 `balancing-exp-and-skill-range`, HEAD `876ad01`, 워킹트리 깨끗함이었다. 기본 공격 이동/피해/자동 타깃/발사 주기/수명/콜라이더는 유지한다.
+- `tools/PixelFxBake/skills/basic.js`에 pixelfx 생성 함수 2개를 추가했다. pixelfx0.3.1, 확인한 원본 커밋 `5294518`. 기존 `export-skills.mjs --only BasicLightBolt,BasicLightHit`로 생성한다. BasicLightBolt는 30fps·12프레임·0.4초 반복, 프레임30×18/시트90×72. BasicLightHit는 30fps·6프레임·0.2초 단발, 프레임20×20/시트40×60. Point/무압축/PPU32. 파일은 `Assets/Resources/LightSkills/Fx` 및 `Frames`이며 기존 LightSkillVisuals.Baked/공용 Sprite 머티리얼을 재사용한다.
+- `BasicBulletVisual`을 기본 `Assets/1.Prefabs/Bullet.prefab`에만 추가했다. Bullet.InitDirection/재사용 초기화/명중에 선택적 시각 호출 5줄을 연결했다. 자식 SpriteRenderer만 발사 방향으로 돌리고 루트0.4배를 자식에서 상쇄해 그림을 기존 스킬과 같은 PPU로 표시한다. 구형 MeshRenderer는 정상 그림 로드 시에만 숨기고 정리 시 원래 활성 상태로 복원한다. 원본 루트 Transform/Collider(radius0.5, 월드반경0.2)/Rigidbody/프리팹 GUID는 그대로다. 기존 FlameBullet 등 시각 컴포넌트가 없는 Bullet은 기존 경로를 유지한다.
+- `BasicBulletHitFx`는 Bullet 반환과 독립적인 짧은 그림이며 콜라이더/피해가 없다. 기존 Managers.Pool을 사용해 재사용하고 준비되지 않은 경우에만 독립 오브젝트로 재생한다. 새 전역 매니저는 만들지 않았다. 명중 호출은 기존 TakeDamage 직전 1회이며, 수명/화면 이탈로 반환할 때 명중 효과는 생성하지 않는다. 비행/명중 애니메이션은 deltaTime에 따라 일시정지와 함께 멈춘다.
+- 검증: 분리 Unity6000.5.0f1에서 기존 프리팹의 새 시각 없음 실패 확인 후 실제 Bullet/PoolManager/PooledObject/시각/LightSkillVisuals 소스를 사용한 assertion harness **15/15 통과**. 시각 교체, 루트/판정 보존, 자식 월드 배율/좌·상 방향, 프레임 진행·delta0 정지·반복, 반환 숨김, 방향/프레임 재사용, 1회 피해11 보존/탄환 반환, 독립 명중 빛 무콜라이더/종료/재사용, 비명중 반환 무효과, 레거시 프리팹 제외를 검사했다. 반복 경계 float 오차로 한 프레임 밀리던 실패를 발견해 작은 프레임 계산 허용치로 수정했다. 에디터 deltaTime=0에서 시간 만료를 검사하려던 검증은 비명중 Despawn 검사로 정정했으므로 실시간 수명 만료 Play 검증으로 보고하지 않는다.
+- 현재 Assembly-CSharp 및 새 `BasicBulletVisualTests` 3건 소스를 Roslyn으로 컴파일 exit0·경고 출력 없음. 분리 Unity에서 실제 Sprite 렌더로 오른쪽/위/왼쪽 광탄과 명중 빛도 확인했다. 새 테스트 소스는 기본/레거시 프리팹 구분, 시각/판정/재사용/정지·반복, 비행/명중 클립 계약이다. 원본 Unity Test Runner 실행 **0개**, 실제 MainScene 전투/해상도·다수 타격·시간 경과·Android·기기·Profiler는 미검증이다. 신규 메타 GUID 오타와 검증 사본의 JSON 모듈 누락은 검증 중 바로잡았다. 원본 설정·씬·다른 프리팹/스킬/데이터/기존 아이콘 작업은 수정하지 않았다.
+- 직접 확인: Play 종료→임포트/컴파일 완료→MainScene Play→공격 가능한 거리에 적을 둔다. 기존 구형 탄환 대신 흰 핵/옅은 금색 짧은 꼬리가 적 방향으로 날아가고, 맞는 순간 약0.2초 작은 빛이 남았다 사라져야 한다. 공격력/속도/맞는 크기/빈도는 기존과 같아야 한다. 반복 발사/일시정지·재개/씬 재시작 때 지난 방향·그림·잔상이 남지 않아야 한다. 이상 시 Console 첫 오류, Player의 bulletPrefab이 기본 Bullet인지, 프리팹 BasicBulletVisual 활성, `Resources/LightSkills/Fx/BasicLightBolt`·`BasicLightHit` 및 Frames JSON 임포트를 확인한다. legacy lightAttackProjectile는 그대로다.
+- 구현 계획은 `docs/superpowers/plans/2026-11-13-basic-light-bolt.md`, 임시 생성 도구/미리보기/검증 프로젝트는 `.utmp`에 있으며 Git 제외다. 커밋·푸시는 하지 않았다.
+
 ## 2026-11-13 보유 아이콘 검은 선 제거·Utility Common 테두리
 
 - 사용자 첨부 화면 기준으로 보유 슬롯의 검은 선을 제거하고 Utility의 카드/아이콘 테두리를 추가했다. 사용자가 처음 말한 Uncommon은 즉시 Common으로 정정했으므로 Common 색 `#B8B2C4`를 적용했다. Utility의 실제 등급/추첨 데이터는 변경하지 않는다.

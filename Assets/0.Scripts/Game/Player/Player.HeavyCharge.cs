@@ -45,7 +45,8 @@ public sealed partial class Player
     }
     public bool TryBeginHeavyCharge()
     {
-        if (heavyCharge == null || !CanAcceptGameplayInput || !HeavyContextValid()) return false;
+        if (heavyCharge == null || !CanAcceptGameplayInput || !HeavyContextValid()
+            || !view.CanPlayLightAttack("LightAttack")) return false;
         int skillId = data.Loadout.GetEquippedSkillId(PlayerSkillButton.Heavy);
         if (!CombatSkillTable.TryGet(skillId, out CombatSkillRecord record)
             || !LightSkillCatalog.TryCreateHeavy(record, out LightSkillCast skill)
@@ -64,11 +65,11 @@ public sealed partial class Player
         LightSkillCast skill = chargedSkill;
         chargedSkill = default;
         LastHeavyCharge = result; RefreshHeavyIndicator();
+        if (!view.CanPlayLightAttack("LightAttack")) return false;
         if (!actions.TryBeginLightAttack(0f, out int actionId)) return false;
         float damage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element) * result.Multiplier
             * data.Loadout.GetAttackSkillDamageMultiplier(skill.Id);
-        view.PlayLightAttack("LightAttack", result.Direction);
-        StartCoroutine(CastShots(skill, result.Direction, damage, true, actionId));
+        BeginManualSkillAnimation(skill, result.Direction, damage, actionId);
         HeavyChargeReleased?.Invoke(result); return true;
     }
     public void CancelHeavyCharge(int chargeId)

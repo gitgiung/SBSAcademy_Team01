@@ -31,6 +31,10 @@ internal sealed class PlayerView
     public bool CanPlayLightAttack(string state) => AnimationAvailable && !string.IsNullOrEmpty(state)
         && animator.HasState(0, AnimationHash(state)) && animator.HasState(0, AnimationHash("Idle"));
 
+    public bool IsPlayingLightAttack(string state) => AnimationAvailable
+        && animator.GetCurrentAnimatorStateInfo(0).fullPathHash == AnimationHash(state)
+        && (!animator.IsInTransition(0) || animator.GetNextAnimatorStateInfo(0).fullPathHash == AnimationHash(state));
+
     public void PlayLightAttack(string state, Vector2 direction)
     {
         SetMovementAnimation(direction, false, false, 1f);
@@ -143,6 +147,11 @@ internal sealed class PlayerView
     {
         heavyChargeAnimation = isCharging;
         RefreshGuardAnimation();
+        if (!isCharging || !AnimationAvailable || animator.IsInTransition(0)) return;
+        var state = animator.GetCurrentAnimatorStateInfo(0);
+        // 공유 Guard 클립은 일반 방어에서 단발로 유지하고, 차징 중에만 반복합니다.
+        if (state.fullPathHash == AnimationHash("Guard") && state.normalizedTime >= 1f)
+            animator.Play(state.fullPathHash, 0, state.normalizedTime % 1f);
     }
 
     private void RefreshGuardAnimation()

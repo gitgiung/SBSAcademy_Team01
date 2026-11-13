@@ -38,6 +38,13 @@ public static class ManualSkillAnimationProbe
 
             Charging(true); Move(); Step();
             Check(State("Guard"), "charging holds Guard after the non-looping clip ends");
+            Charging(true); animator.Update(0);
+            Check(animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f,
+                "charging restarts Guard after each completed cycle");
+            for (int i = 0; i < 40; i++) { Charging(true); animator.Update(.05f); }
+            Charging(true); animator.Update(0);
+            Check(State("Guard") && animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f,
+                "held charging keeps cycling Guard over multiple periods");
             Check(!animator.GetBool("IsDashing"), "charging does not activate dash animation");
             Check(renderer.color == Color.white, "charging does not apply defense tint");
             Check(!root.transform.Find("Defense VFX").GetComponent<SpriteRenderer>().enabled,
@@ -59,10 +66,64 @@ public static class ManualSkillAnimationProbe
             type.GetMethod("SetGuardAnimation").Invoke(view, new object[] { true });
             Charging(false); Step();
             Check(State("Guard"), "clearing charge does not cancel actual guard presentation");
+            Check(animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f,
+                "ordinary guarding retains its non-looping hold");
             Charging(true);
             type.GetMethod("SetGuardAnimation").Invoke(view, new object[] { false });
             Step(); Check(State("Guard"), "defense cleanup does not cancel active charging pose");
             Charging(false); Step(); Check(State("Idle"), "both guard sources cleared return to Idle");
+            var owner = root.AddComponent<Player>();
+            var timingData = new PlayerData();
+            owner.InitializeTiming(view, timingData);
+            Type skillType = typeof(Player).Assembly.GetType("PlayerLightSkill");
+            var beginManual = skillType.GetMethod("BeginManualCast");
+            Check(beginManual != null, "manual casts support animation-timed emission");
+            int emitted = 0;
+            int Begin()
+            {
+                Check(owner.TryBeginLightAttack(0, out int id), "manual action begins");
+                beginManual.Invoke(owner.TimingSkill, new object[] { id, (Action)(() => emitted++) });
+                type.GetMethod("PlayLightAttack").Invoke(view, new object[] { "LightAttack", Vector2.right });
+                return id;
+            }
+            int firstId = Begin();
+            owner.NotifyLightAttackAnimationProgress(firstId, .249f);
+            Check(emitted == 0 && owner.TimingLocked, "windup prevents emission and movement before 0.25");
+            owner.NotifyLightAttackAnimationProgress(firstId, .25f);
+            Check(emitted == 1 && owner.TimingLocked, "impact at 0.25 retains recovery lock");
+            owner.NotifyLightAttackAnimationProgress(firstId, .6f);
+            Check(emitted == 1 && owner.TimingLocked, "progress never duplicates emission or releases recovery");
+            Step();
+            Check(!owner.TimingLocked && emitted == 1, "actual Animator exit releases movement lock");
+            int secondId = Begin();
+            owner.NotifyLightAttackAnimationFinished(firstId);
+            Check(owner.TimingLocked, "stale animation exit cannot unlock the next attack");
+            animator.Update(.24f); animator.Update(0);
+            Check(emitted == 1 && owner.TimingLocked, "actual Animator holds windup at 0.24");
+            animator.Update(.02f); animator.Update(0);
+            Check(emitted == 2 && owner.TimingLocked, "actual Animator emits after crossing 0.25");
+            animator.Update(.48f); animator.Update(0);
+            Check(owner.TimingLocked, "recovery is still locked at motion time 0.74");
+            animator.Update(.02f); animator.Update(0);
+            Check(!owner.TimingLocked, "second attack unlocks at motion completion");
+            Begin();
+            Time.timeScale = 0;
+            owner.NotifyLightAttackAnimationProgress(owner.ActiveLightAttackId, .3f);
+            Check(emitted == 2 && owner.TimingLocked, "pause does not emit or unlock");
+            Time.timeScale = 1;
+            animator.Play("Idle", 0, 0); animator.Update(0);
+            owner.CheckTimingAnimation();
+            Check(emitted == 2 && !owner.TimingLocked, "interrupted windup cancels without a late shot");
+            Begin(); animator.enabled = false; owner.CheckTimingAnimation();
+            Check(!owner.TimingLocked, "disabled Animator cannot strand the action lock");
+            animator.enabled = true;
+            Begin(); animator.Update(1f); animator.Update(0);
+            Check(emitted == 3 && !owner.TimingLocked, "large frame step emits once and completes");
+            Begin(); timingData.IsDead = true; owner.CheckTimingAnimation();
+            Check(emitted == 3 && !owner.TimingLocked, "death cancels pending emission and clears lock");
+            timingData.IsDead = false;
+            Begin(); animator.runtimeAnimatorController = null; owner.CheckTimingAnimation();
+            Check(emitted == 3 && !owner.TimingLocked, "removed controller cancels pending emission and clears lock");
             File.WriteAllText(result, $"PASS {count}/{count}");
             EditorApplication.Exit(0);
         }
@@ -72,6 +133,6 @@ public static class ManualSkillAnimationProbe
             Debug.LogException(error);
             EditorApplication.Exit(1);
         }
-        finally { if (root != null) UnityEngine.Object.DestroyImmediate(root); }
+        finally { Time.timeScale = 1; if (root != null) UnityEngine.Object.DestroyImmediate(root); }
     }
 }

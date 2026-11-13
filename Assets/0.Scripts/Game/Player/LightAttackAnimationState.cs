@@ -17,7 +17,13 @@ public sealed class LightAttackAnimationState : StateMachineBehaviour
     }
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        if (owner != null) owner.NotifyLightAttackAnimationFinished(actionId);
+        if (owner != null)
+        {
+            // 큰 프레임 간격으로 타격 시점을 건너뛰어도 정상 완주한 모션은 한 번 발사합니다.
+            if (stateInfo.normalizedTime >= 1f)
+                owner.NotifyLightAttackAnimationProgress(actionId, stateInfo.length);
+            owner.NotifyLightAttackAnimationFinished(actionId);
+        }
         actionId = 0;
     }
 }

@@ -332,17 +332,29 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             ? data.Loadout.GetEquippedSkillId(PlayerSkillButton.Light) : 0;
         if (id == 0) return false;
         if (!LightSkillCatalog.TryGet(id, out LightSkillCast skill)) return false;
+        if (!view.CanPlayLightAttack("LightAttack")) return false;
         if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
+        if (!view.CanPlayLightAttack("LightAttack"))
+        {
+            CompleteLightAttack(actionId);
+            data.RestoreMP(skill.MpCost);
+            return false;
+        }
         if (aim.sqrMagnitude < 0.0001f)
             aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
         float stackDamage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element)
             * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
-        view.PlayLightAttack("LightAttack", aim.normalized);
-        StartCoroutine(CastShots(skill, aim.normalized, stackDamage, true, actionId));
+        BeginManualSkillAnimation(skill, aim.normalized, stackDamage, actionId);
         return true;
     }
 
-    private IEnumerator CastShots(LightSkillCast skill, Vector2 aim, float damage, bool lockUntilEnd, int actionId)
+    private void BeginManualSkillAnimation(LightSkillCast skill, Vector2 aim, float damage, int actionId)
+    {
+        lightSkill.BeginManualCast(actionId, () => StartCoroutine(CastShots(skill, aim, damage, true)));
+        view.PlayLightAttack("LightAttack", aim);
+    }
+
+    private IEnumerator CastShots(LightSkillCast skill, Vector2 aim, float damage, bool isManual)
     {
         skill = PrepareSkill(skill);
         float projectileSize = 1f + data.StatCards.Value(PlayerStat.Projectile_Size);
@@ -355,12 +367,13 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         {
             crest.Play(crest.DrawSeconds + spacing * (shots - 1) + SunBarrageCrest.LingerSeconds);
             firstSpike = crest.NearestSpike(aim);
-            yield return new WaitForSeconds(crest.DrawSeconds);
+            // 수동 발사는 모션0.25초의 타격 시점에 이미 도달했습니다.
+            if (!isManual) yield return new WaitForSeconds(crest.DrawSeconds);
         }
         for (int i = 0; i < shots; i++)
         {
             if (!isActiveAndEnabled || hasDied || data == null || data.IsDead) break;
-            if (!lockUntilEnd && Time.timeScale <= 0f) yield break;
+            if (!isManual && Time.timeScale <= 0f) yield break;
             if (crest != null) SpawnSunMissile(skill, crest, firstSpike + i, aim, damage, projectileSize);
             else
             {
@@ -370,10 +383,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             }
             if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
         }
-        if (!lockUntilEnd) yield break;
-        float hold = skill.ScatterVolley ? 0.15f : 0.28f + skill.RepeatSpacing * Mathf.Max(0, skill.Hits - 1);
-        if (hold > 0f) yield return new WaitForSeconds(hold);
-        CompleteLightAttack(actionId);
     }
 
     private LightSkillCast PrepareSkill(LightSkillCast skill) => skill.Presented().WithStatUpgrades(
@@ -437,7 +446,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             ownedPassiveTimers[i] = cooldown;
             float stackMul = data.Loadout.GetAttackSkillDamageMultiplier(id);
             float damage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element);
-            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul, false, 0));
+            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul, false));
         }
     }
 

@@ -14,6 +14,7 @@ internal sealed class PlayerLightSkill
     private float impactTime;
     private GameObject projectile;
     private RuntimeAnimatorController controller;
+    private System.Action manualEmission;
     public int ActionId => actionId;
 
     public PlayerLightSkill(Player owner, PlayerData data, PlayerView view)
@@ -21,6 +22,14 @@ internal sealed class PlayerLightSkill
         this.owner = owner; this.data = data; this.view = view;
     }
     private static bool Nonnegative(float value) => value >= 0f && !float.IsNaN(value) && !float.IsInfinity(value);
+    public void BeginManualCast(int id, System.Action emit)
+    {
+        actionId = id;
+        emitted = false;
+        impactTime = .25f;
+        manualEmission = emit;
+        controller = view.AnimationController;
+    }
     public bool TryCast(Vector2 aim, GameObject prefab)
     {
         if (actionId != 0 || !owner.CanAcceptGameplayInput) return false;
@@ -66,8 +75,10 @@ internal sealed class PlayerLightSkill
         emitted = true;
         try
         {
-            Managers.Pool.Pop(projectile, owner.transform.position, Quaternion.identity,
-                initialize: go => go.GetComponent<Bullet>().InitDirection(direction, damage, speed));
+            if (manualEmission != null) manualEmission();
+            else
+                Managers.Pool.Pop(projectile, owner.transform.position, Quaternion.identity,
+                    initialize: go => go.GetComponent<Bullet>().InitDirection(direction, damage, speed));
         }
         catch (System.Exception exception)
         {
@@ -82,7 +93,9 @@ internal sealed class PlayerLightSkill
     }
     public void CheckAnimation()
     {
-        if (actionId != 0 && (!view.AnimationAvailable || view.AnimationController != controller)) Cancel();
+        if (actionId != 0 && (!owner.isActiveAndEnabled || data.IsDead || !view.AnimationAvailable
+            || view.AnimationController != controller
+            || (manualEmission != null && !view.IsPlayingLightAttack("LightAttack")))) Cancel();
     }
     public void Cancel()
     {
@@ -90,6 +103,7 @@ internal sealed class PlayerLightSkill
         actionId = 0;
         projectile = null;
         controller = null;
+        manualEmission = null;
         if (previous != 0) owner.CompleteLightAttack(previous);
     }
 }

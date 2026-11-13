@@ -260,7 +260,8 @@ public sealed class PlayerStatusPanel : MonoBehaviour
             && !string.IsNullOrEmpty(rarity.ColorHex)
             && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color))
             rarityColor = color;
-        cell.Show(skill?.Name, SkillIcon(skill), locked, equipped, level, rarityColor);
+        bool utility = skill != null && skill.DataId >= 30000 && skill.DataId < 40000;
+        cell.Show(skill?.Name, SkillIcon(skill), locked, equipped, level, rarityColor, utility);
     }
     private void ToggleAttackSkill(int index)
     {

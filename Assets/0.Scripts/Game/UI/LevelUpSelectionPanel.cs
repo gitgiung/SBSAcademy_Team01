@@ -217,6 +217,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         internal LevelUpCardData Data { get; private set; }
         private readonly Button select;
         private readonly Image icon;
+        private readonly RectTransform utilityFrame;
         private readonly TMP_Text name;
         private readonly TMP_Text rarity;
         private readonly TMP_Text description;
@@ -226,7 +227,6 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         private readonly TMP_Text activeTag;
         private readonly TMP_Text passiveTag;
         private readonly List<Image> edges = new List<Image>();
-        private readonly List<Image> iconEdges = new List<Image>();
 
         internal Card(RectTransform rect, TMP_FontAsset font, UnityEngine.Events.UnityAction choose, UnityEngine.Events.UnityAction info)
         {
@@ -239,12 +239,12 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             select.transition = Selectable.Transition.None;
             select.onClick.AddListener(choose);
             var iconRoot = Rect(rect, "IconFrame", 405, 12, 190, 70);
-            Border(iconRoot, Color.white, 2);
-            foreach (Transform child in iconRoot)
-                if (child.TryGetComponent<Image>(out var edge)) iconEdges.Add(edge);
-            icon = Image(Rect(iconRoot, "Icon", 75, 35, 850, 430), Color.white);
+            // 그림에 등급 테두리가 포함되어 있으므로 중복 테두리와 안쪽 여백을 만들지 않습니다.
+            icon = Image(Stretch(iconRoot, "Icon"), Color.white);
             icon.type = UnityEngine.UI.Image.Type.Simple;
-            icon.preserveAspect = true;
+            icon.preserveAspect = false;
+            utilityFrame = SkillFrame(iconRoot, "UtilityFrame");
+            utilityFrame.gameObject.SetActive(false);
             name = Text(Rect(rect, "Name", 55, 95, 890, 55), "", font, 35);
             name.fontStyle = FontStyles.Bold;
             Glow(name.gameObject, new Color(1, 1, 1, .25f), 2);
@@ -275,8 +275,12 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             Data = data;
             Root.gameObject.SetActive(data != null);
             if (data == null) return;
-            foreach (var edge in edges) edge.color = data.Accent;
-            foreach (var edge in iconEdges) edge.color = data.Accent;
+            bool utility = data.SkillId >= 30000 && data.SkillId < 40000;
+            Color accent = utility ? CommonSkillFrameColor : data.Accent;
+            foreach (var edge in edges) edge.color = accent;
+            Color glow = utility ? accent : Color.white;
+            Root.GetComponent<Outline>().effectColor = new Color(glow.r, glow.g, glow.b, .4f);
+            utilityFrame.gameObject.SetActive(utility && data.Icon != null);
             icon.sprite = data.Icon;
             icon.enabled = data.Icon != null;
             name.text = data.Name;

@@ -1,5 +1,21 @@
 # 작업 인수인계
 
+## 2026-11-13 보유 아이콘 검은 선 제거·Utility Common 테두리
+
+- 사용자 첨부 화면 기준으로 보유 슬롯의 검은 선을 제거하고 Utility의 카드/아이콘 테두리를 추가했다. 사용자가 처음 말한 Uncommon은 즉시 Common으로 정정했으므로 Common 색 `#B8B2C4`를 적용했다. Utility의 실제 등급/추첨 데이터는 변경하지 않는다.
+- 보유 슬롯의 추가 Outline은 아이콘이 표시된 보유 상태에서 끈다. 프레임이 있는 공격 아이콘은 그림을 64/62배로 약간 확장하고 슬롯 RectMask2D로 바깥을 잘라 원본의 어두운 바깥 1픽셀만 숨긴다. 원본 PNG/meta/GUID는 수정하지 않았으며 색 테두리 4픽셀은 슬롯 경계에 맞춰 남는다. 빈 슬롯/잠김/아이콘 없음의 외곽선은 유지한다.
+- `StatusPanelUI.SkillFrame`으로 어두운 외곽선 없는 Common 4변 테두리를 생성한다. Utility 카드 상단 아이콘과 보유 Utility 슬롯에만 표시하고, 카드의 바깥 4변/글로우도 Common 색으로 표시한다. 카드 이름·설명 글자색과 실제 Rarity 값은 유지한다. PlayerStatusPanel이 30000~39999 ID의 Utility 여부만 뷰에 전달한다. 기존 카드/보유 아이콘 크기 정렬 변경은 유지한다.
+- 검증: 수정 UI 소스를 사용한 별도 Unity 6000.5.0f1 RenderTexture에서 공격 아이콘 2개와 Utility 카드·보유 슬롯을 렌더해 검은 선 제거와 Common 테두리를 눈으로 확인했다. 공격 슬롯의 원본 외곽 마스킹/Outline 비활성, Utility 카드/슬롯 프레임 활성 검사를 통과했다. 현재 Assembly-CSharp Roslyn 컴파일 exit0·경고 출력 없음, diff 공백 검사 통과. 원본 MainScene Play·Unity Test Runner·기기는 미실행이다. 원래 씬·프리팹·폰트·게임 수치·데미지 숫자 분산 철회 상태는 보존했다.
+- 직접 확인: Play 재시작→공격 스킬 보유 후 일시정지 목록에서 테두리 바깥의 검은 선이 없는지 확인. CombatUI / CombatPopupController ⋮→`테스트/원하는 카드 고르기`→급속 회복 등 Utility 카드를 열어 상단 아이콘과 카드 외곽이 Common 회보라색인지 확인하고, 획득 후 전략 슬롯에도 같은 색 테두리가 있는지 확인한다. 그대로면 컴파일 완료/Play 재시작 여부와 Console 첫 오류를 확인한다. 원본 아이콘 PNG를 고칠 필요는 없다.
+
+## 2026-11-13 스킬 아이콘 등급 테두리 정렬·보유 슬롯 확대
+
+- 사용자 첨부 화면 기준으로 카드 상단 아이콘의 중복 테두리를 제거하고 보유 슬롯의 그림 자체를 확대했다. 시작 상태는 `balancing-exp-and-skill-range`, HEAD `f70a2e8`, 워킹트리 깨끗함을 확인했다.
+- `LevelUpSelectionPanel.Card`: PPT 그림 자체에 등급 테두리가 있는데 별도 UI Border와 여백까지 추가하던 구조를 정리했다. IconFrame의 Border/Glow와 iconEdges를 제거하고 Icon을 IconFrame 전체에 Stretch했다. preserveAspect=false로 지정한 영역 끝까지 그림의 등급 테두리가 닿는다. 카드 바깥 테두리·설명·선택 버튼 등은 유지한다.
+- `StatusPanelUI.Cell`의 스킬 상세 슬롯만 Icon을 anchor(0,0)~(1,1) 전체 크기로 확대했다. preserveAspect=false로 바깥 슬롯과 그림의 등급 테두리를 맞춘다. 이름·Lv·장착 글자는 그림 위에 유지하되 확대된 테두리와 붙지 않도록 소폭 안쪽으로 옮겼다. 일반 유물/증강 셀의 그림 배치는 유지했다. 에셋 픽셀/메타/GUID·씬·프리팹·게임 수치·데미지 숫자 코드는 변경하지 않았다.
+- 검증: 현재 Assembly-CSharp를 Bee 응답 기반 Roslyn으로 컴파일 exit0·경고 출력 없음. 분리된 `.utmp/DamageFontProbe` Unity 6000.5.0f1에 실제 수정 UI 소스·원본 아이콘·폰트/TMP 셰이더 사본을 넣고 카드와 보유 슬롯 2개를 RenderTexture로 렌더했다. 카드 아이콘에 자식 테두리 중복이 없고, 카드/보유 아이콘의 anchor가 전체 영역과 일치하며 preserveAspect 레터박스가 없는지 검사 통과. 렌더에서 단일 등급 테두리·확대된 슬롯 그림·이름/Lv 표시 확인. 초기 사본의 TMP 셰이더 누락으로 글자가 빠진 렌더는 셰이더를 보완해 다시 확인했다. 원본 Unity Test Runner 실행0개, 실제 MainScene Play·각종 해상도·기기는 미검증이다. diff 공백 검사 통과. 별도 검증 에디터는 완료 후 종료됐다.
+- 직접 확인: Play 종료→컴파일 완료→MainScene Play→CombatUI / CombatPopupController ⋮→`테스트/원하는 카드 고르기`로 플레어 탄환 카드 확인. 상단 아이콘은 흰 외곽 중복 테두리 없이 금색 테두리 한 겹이어야 한다. 획득 후 일시정지 보유 목록에서 아이콘이 슬롯 전체를 채우고 그림의 등급 테두리가 바깥 테두리까지 닿아야 한다. 이름/Lv/장착 글자도 확인한다. 예전 작은 아이콘이 남으면 Play 재시작 여부·컴파일 완료 여부·Console 첫 오류를 확인한다.
+
 ## 2026-11-13 피해 숫자 위치 분산 철회
 
 - 사용자 요청으로 직전의 피해 숫자 위치 분산 구현을 전부 되돌렸다. DamageNumberDisplay의 오프셋/크기 계산/빈 위치 탐색/연속 피해 샘플 메뉴를 제거하고 기존 피격 위치에서 위로 떠오르는 표시로 복원했다. 직전 추가한 DamageNumberOverlapTests와 meta도 제거했다. 카드·아이콘·엑셀 등 이전 작업과 사용자 변경은 보존했다.

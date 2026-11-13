@@ -10,10 +10,12 @@ public class PlayerData : MonoBehaviour
     public float MoveSpeed => speed * (1f + StatCards.Value(PlayerStat.Move_Speed));
     public float MPRecovery => StatCards.Value(PlayerStat.MP_Regen, mpRecoveryPerSecond);
     public float PickupDistance => experiencePickupDistance * (1f + StatCards.Value(PlayerStat.Pickup_Radius));
-    public float DamageMultiplier => StatCards.Value(PlayerStat.ATK, 1f);
+    public float AttackDamage => attackDamage + StatCards.Increase(PlayerStat.DMG);
+    // 기존 공개 API 호환용입니다. DMG 카드는 이제 공격력을 더하며 최종 피해를 증폭하지 않습니다.
+    public float DamageMultiplier => 1f;
     public float PassiveCooldownMultiplier => 1f - StatCards.Value(PlayerStat.Cooldown);
 
-    public float ScaleAttackDamage(float damage, string element = null) => damage * DamageMultiplier
+    public float ScaleAttackDamage(float damage, string element = null) => damage
         * (string.IsNullOrEmpty(element) || element == "None" || element == "ELEM_NONE"
             ? 1f : 1f + StatCards.Value(PlayerStat.Elm_All_ATK));
 

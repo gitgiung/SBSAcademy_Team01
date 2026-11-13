@@ -65,7 +65,7 @@ public sealed partial class Player
         chargedSkill = default;
         LastHeavyCharge = result; RefreshHeavyIndicator();
         if (!actions.TryBeginLightAttack(0f, out int actionId)) return false;
-        float damage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element) * result.Multiplier
+        float damage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element) * result.Multiplier
             * data.Loadout.GetAttackSkillDamageMultiplier(skill.Id);
         StartCoroutine(CastShots(skill, result.Direction, damage, true, actionId));
         HeavyChargeReleased?.Invoke(result); return true;

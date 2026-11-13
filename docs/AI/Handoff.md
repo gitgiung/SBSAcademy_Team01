@@ -1,5 +1,26 @@
 # 작업 인수인계
 
+## 2026-11-13 기본 탄환 피해를 1로 고정
+
+- 사용자 요청으로 PlayerCombat.TickBasicAttack에서 기본 탄환의 발사 피해를 상수1로 고정했다. 공격력/DMG 카드/속성 피해 보정을 거치지 않는다. 기본 탄환의 발사 조건에서 이제 사용하지 않는 공격력 유효성 검사도 제거했다. 발사 주기/타깃/속도/외형/풀링/MP는 유지한다. 공용 Bullet의 피해 처리와 스킬 발사는 변경하지 않아 수동/자동 스킬은 직전 DMG 공격력 증가를 계속 사용한다. 아래 이전 인수인계의 기본 탄환 공격력 연동 설명은 이번 요청으로 대체된다.
+- 검증: 현재 Assembly-CSharp 소스 Roslyn 컴파일 exit0·오류/경고 출력 없음. 기존 스탯/피해/카드 회귀 검증 LevelUpMixedDraftValidation **12/12 통과**. 이 검증은 기본 탄환 실제 발사/타격 테스트를 포함하지 않는다. 원본 MainScene Play·Unity Test Runner·기기 실행은 미실행이다. 사용자 변경과 이전 작업을 보존하며 씬/프리팹/엑셀/meta는 변경하지 않았다.
+- 직접 확인: Play 종료→컴파일 완료→MainScene Play→기본 탄환의 피해가1인지 확인한다. CombatUI / CombatPopupController ⋮→테스트/원하는 카드 고르기에서 DMG 카드를 여러 번 획득한 뒤에도 기본 탄환은1, 수동/자동 스킬은 증가한 공격력 기준이어야 한다. 이상 시 Console 첫 오류와 해당 탄환이 스킬 투사체가 아닌 기본 Bullet인지 확인한다.
+
+## 2026-11-13 DMG 카드를 최종 피해 증폭에서 공격력 증가로 변경
+
+- 사용자가 PlayerDatatable.xlsx의 기본/카드 시트 키를 ATK→DMG로 변경하고 값도 1/2/3/4/5/6으로 수정했다. 처음에는 이름 변경으로 해석했으나 사용자가 최종 피해 증폭 대신 플레이어 공격력을 더하는 의도라고 명시하여 최종 구현을 그 기준으로 정정했다. 사용자 엑셀은 수정하지 않고 현재 원본에서 PlayerStatTable.json을 내보냈다. 카드 이름은 엑셀의 데미지다.
+- PlayerStat.DMG는 기존 ATK와 같은 enum 값2를 유지해 직렬화된 카드 식별을 보존한다. PlayerStatProgress는 획득 값과 표의 Lv.0 기준값 차이를 Increase로 제공한다. PlayerData.AttackDamage = 원래 attackDamage + DMG 증가분이며 원본 직렬화 공격력은 바꾸지 않는다. 현재 표에서 Lv.1은 +1, Lv.3은 +3, Lv.5는 +5다. 기준값1을 코드에 고정하지 않아 표 기준값이 달라도 차이로 계산한다. 카드 삭제/재획득 시 증가분이 정상 해제/복원된다.
+- 최종 피해의 DMG 배율을 제거하고 기본 Bullet, 표 기반 수동 약/강 공격·자동 발동, 레거시 PlayerLightSkill의 공격력 계수 입력을 AttackDamage로 연결했다. 속성 피해/스킬 스택/강공격 충전/PassiveScale은 유지한다. 고정 피해는 DMG 카드로 증폭되지 않는다. 이전 공개 DamageMultiplier 프로퍼티는 호환용1로 유지하되 전투/상태 UI는 사용하지 않는다. 상태창은 공격력 수치로 표시하고 DMG 카드도 × 표기 없이 표 값을 표시한다. SkillDatatable의 ScalingStat ATK는 별개이므로 변경하지 않았다.
+- 검증: LevelUpMixedDraftValidation **12/12 통과**. 표/JSON 일치, enum2 보존, 단계별 증가·기본 공격력 불변·카드 삭제/재획득·다른 기본 공격력·사용자 정의 표 기준값·고정 피해 비증폭·속성/스킬 레벨 조합을 확인했다. 기본 공격력1/DMG Lv.3/속성 Lv.3/스킬 Lv.3의 예시 피해24.96을 검증했다. 전체 Assembly-CSharp 소스 Roslyn 컴파일 exit0, 오류/경고 출력 없음. 실제 MainScene Play·Unity Test Runner·기기 검증은 미실행이다. 직전 자동 발동0.3 제거와 사용자 엑셀 변경을 보존하며 씬/프리팹/meta는 수정하지 않았다.
+- 직접 확인: Play 종료→컴파일/JSON 임포트 완료→MainScene Play→CombatUI / CombatPopupController ⋮→테스트/원하는 카드 고르기에서 DMG(데미지) 카드를 획득한다. 기본 공격력이1이면 상태창 공격력은 카드마다2/3/4로 증가하며 기본 탄환과 수동/자동 스킬이 이 값을 사용해야 한다. 테스트 카드 삭제 기능으로 DMG를 삭제하면 공격력1로 돌아와야 한다. 불꽃 탄환 Lv.3·DMG Lv.3·속성 피해 Lv.3 조건이면 수동24.96(화면 반올림25), PassiveScale0.2 자동4.992(화면5)다. 치명타/강공격 충전은 비교에서 제외한다. 이상 시 Console 첫 오류, JSON의 DMG 카드 값, 상태창 공격력 및 각 카드 레벨을 확인한다. 엑셀 후속 수정은 Tools > Parse Player Stat Table로 반영한다.
+
+## 2026-11-13 자동 발동의 추가 피해 보정 0.3 제거
+
+- 사용자 요청으로 Player의 PassiveDamageFactor 상수와 TickOwnedPassives의 추가 곱셈을 제거했다. 자동 발동 피해는 기존 스킬 피해·공격력/속성 카드·스킬 레벨 배율에 엑셀 Passive_Scale만 곱한다. 수동 공격, 발동 주기, MP, 씬/프리팹/엑셀 값은 변경하지 않았다. 시작 상태는 balancing-exp-and-skill-range, HEAD e792546, 워킹트리 깨끗함이었다.
+- 기존 TryOwnedPassive의 빈 값/0/유효하지 않은 Passive_Scale에 대한 기본값0.2는 유지한다. 엑셀에 유효한 양수를 입력하면 해당 값이 그대로 적용된다. 기본값 기준 자동 피해는 수동의6%에서20%가 된다.
+- 검증: 현재 Assembly-CSharp 소스를 기존 응답 파일로 Roslyn 컴파일 exit0, 오류/경고 출력 없음. CombatSkillTableValidation은 **28/29 통과**이며 패시브 기본값/엑셀 데이터 검사는 통과했다. 실패1건은 shipped JSON의 Icon이 SkillIcons/SkillIcon_10001인데 테스트가 빈 문자열을 기대하는 기존 불일치다. 해당 검증 프로젝트는 Player.cs를 컴파일하지 않아 이번 변경과 무관하며 아이콘/테스트 기대값은 변경하지 않았다. Assets/tools에서 PassiveDamageFactor 잔여 참조 없음. 실제 MainScene Play·Unity Test Runner·기기는 미실행이다.
+- 직접 확인: Play 종료→컴파일 완료→MainScene Play→CombatUI / CombatPopupController ⋮의 테스트/원하는 카드 고르기에서 같은 공격 스킬을 획득하고 수동/자동 피해를 비교한다. Passive_Scale=0.2이면 같은 조건에서 자동 피해가 수동의20%여야 한다(화면 숫자 반올림 유의). 엑셀에서 값을 바꿀 때는 기존 스킬 표 내보내기로 런타임 JSON에 반영하고 Play를 다시 시작한다. 값이 다르면 Console 첫 오류, JSON의 해당 스킬 PassiveScale, 카드/스킬 레벨과 치명타·강공격 충전 조건을 확인한다. 남은 별도 작업은 아이콘 경로 검증 기대값 정합성 확인과 실제 전투 확인이다.
+
 ## 2026-11-13 Utility 버튼 흰 바깥 배경을 투명으로 복원
 
 - 사용자 요청 당시 Ingame_UI_Button_USkiil.png는 83×91 RGBA지만 알파가 전부255이고 네 모서리도 흰색인 상태였다. 이미지 편집 도구로 바깥 흰 배경만 투명하게 하는 편집을 요청한 뒤, 이전 원본에 보존된 정확한 알파 경계를 사용해 원래 크기로 정밀 반영했다.

@@ -88,8 +88,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private const int FallbackTacticalId = 30009;
     /// <summary>기획 초기 기준: 전략 스킬은 스테이지당 5회.</summary>
     public const int TacticalStageMaxUses = 5;
-    /// <summary>패시브 피해를 현재 산출값의 30%로 맞춥니다.</summary>
-    public const float PassiveDamageFactor = 0.3f;
     private readonly Dictionary<int, int> tacticalUsesRemaining = new Dictionary<int, int>();
     private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
     private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];
@@ -337,7 +335,7 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         if (!TryBeginLightAttack(skill.MpCost, out int actionId)) return false;
         if (aim.sqrMagnitude < 0.0001f)
             aim = view != null && view.FacingDirection.sqrMagnitude > 0.0001f ? view.FacingDirection : Vector2.right;
-        float stackDamage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element)
+        float stackDamage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element)
             * (data.Loadout != null ? data.Loadout.GetAttackSkillDamageMultiplier(skill.Id) : 1f);
         StartCoroutine(CastShots(skill, aim.normalized, stackDamage, true, actionId));
         return true;
@@ -437,8 +435,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
             if (!combat.TryGetClosestEnemyDirection(PrepareSkill(skill).Range, out Vector2 direction)) continue;
             ownedPassiveTimers[i] = cooldown;
             float stackMul = data.Loadout.GetAttackSkillDamageMultiplier(id);
-            float damage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element);
-            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul * PassiveDamageFactor, false, 0));
+            float damage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element);
+            StartCoroutine(CastShots(skill, direction, damage * scale * stackMul, false, 0));
         }
     }
 

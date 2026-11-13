@@ -4,7 +4,7 @@ using UnityEngine;
 
 public enum PlayerStat
 {
-    HP, HP_Regen, ATK, Move_Speed, DEF, MP_Regen, Cooldown, Elm_All_ATK,
+    HP, HP_Regen, DMG, Move_Speed, DEF, MP_Regen, Cooldown, Elm_All_ATK,
     Projectile_Count, Projectile_Size, Skill_Range, XP_Gain, Pickup_Radius
 }
 
@@ -24,7 +24,6 @@ public sealed class PlayerStatCard
         float value = ValueAt(level);
         switch (Stat)
         {
-            case PlayerStat.ATK:
             case PlayerStat.XP_Gain: return $"×{value:0.##}";
             case PlayerStat.HP_Regen: return $"{value:P1}/초";
             case PlayerStat.MP_Regen: return $"{value:0.##}/초";
@@ -66,11 +65,14 @@ public sealed class PlayerStatTable
 /// <summary>한 판의 스탯 카드 선택 상태를 보관합니다.</summary>
 public sealed class PlayerStatProgress
 {
-    private readonly Dictionary<PlayerStat, (int level, float value)> upgrades = new();
+    private readonly Dictionary<PlayerStat, (int level, float value, float baseline)> upgrades = new();
 
     public int Level(PlayerStat stat) => upgrades.TryGetValue(stat, out var entry) ? entry.level : 0;
     public float Value(PlayerStat stat, float baseline = 0f) =>
         upgrades.TryGetValue(stat, out var entry) ? entry.value : baseline;
+
+    public float Increase(PlayerStat stat) =>
+        upgrades.TryGetValue(stat, out var entry) ? entry.value - entry.baseline : 0f;
 
     public bool Remove(PlayerStat stat) => upgrades.Remove(stat);
 
@@ -83,7 +85,7 @@ public sealed class PlayerStatProgress
     public bool TryUpgrade(PlayerStatCard card, int nextLevel)
     {
         if (nextLevel != Level(card.Stat) + 1 || !CanUpgrade(card)) return false;
-        upgrades[card.Stat] = (nextLevel, card.ValueAt(nextLevel));
+        upgrades[card.Stat] = (nextLevel, card.ValueAt(nextLevel), card.ValueAt(0));
         return true;
     }
 

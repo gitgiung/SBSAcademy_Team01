@@ -6,6 +6,7 @@ public class PlayerData : MonoBehaviour
     [SerializeField] private PlayerLoadout loadout = new PlayerLoadout();
     public PlayerLoadout Loadout => loadout ?? (loadout = new PlayerLoadout());
     public PlayerStatProgress StatCards { get; } = new PlayerStatProgress();
+    private float maxHealthBeforeStatCards;
     public float MoveSpeed => speed * (1f + StatCards.Value(PlayerStat.Move_Speed));
     public float MPRecovery => StatCards.Value(PlayerStat.MP_Regen, mpRecoveryPerSecond);
     public float PickupDistance => experiencePickupDistance * (1f + StatCards.Value(PlayerStat.Pickup_Radius));
@@ -18,13 +19,29 @@ public class PlayerData : MonoBehaviour
 
     public bool TryUpgradeStat(PlayerStatCard card, int level)
     {
+        float previousBaseHealth = maxHealth;
+        bool firstHealthCard = card != null && card.Stat == PlayerStat.HP && StatCards.Level(PlayerStat.HP) == 0;
         if (IsDead || !StatCards.TryUpgrade(card, level)) return false;
+        if (firstHealthCard) maxHealthBeforeStatCards = previousBaseHealth;
         if (card.Stat == PlayerStat.HP)
         {
             float previousMaxHealth = maxHealth;
             maxHealth = StatCards.Value(PlayerStat.HP);
             float healthIncrease = Mathf.Max(0f, maxHealth - previousMaxHealth);
             currentHealth = Mathf.Min(currentHealth + healthIncrease, maxHealth);
+            HealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+        return true;
+    }
+
+    /// <summary>해당 스탯 카드의 모든 단계를 제거하고 획득 전 상태로 되돌립니다.</summary>
+    public bool RemoveStatCard(PlayerStat stat)
+    {
+        if (IsDead || !StatCards.Remove(stat)) return false;
+        if (stat == PlayerStat.HP)
+        {
+            maxHealth = maxHealthBeforeStatCards;
+            currentHealth = Mathf.Min(currentHealth, maxHealth);
             HealthChanged?.Invoke(currentHealth, maxHealth);
         }
         return true;

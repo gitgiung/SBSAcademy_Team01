@@ -104,6 +104,29 @@ internal static class Program
             Check(!progress.TryUpgrade(capped, 2));
         });
         PlayerStatCard Card(PlayerStat stat) => statCards.Cards.Single(card => card.Stat == stat);
+        Test("removing a stat resets its level and permits acquiring it again", () =>
+        {
+            var player = new PlayerData();
+            Check(!player.RemoveStatCard(PlayerStat.Projectile_Size));
+            Check(player.TryUpgradeStat(Card(PlayerStat.Projectile_Size), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.Skill_Range), 1));
+            Check(player.RemoveStatCard(PlayerStat.Projectile_Size));
+            Check(player.StatCards.Level(PlayerStat.Projectile_Size) == 0);
+            Check(player.StatCards.Value(PlayerStat.Projectile_Size) == 0f);
+            Check(player.StatCards.Level(PlayerStat.Skill_Range) == 1);
+            Check(player.TryUpgradeStat(Card(PlayerStat.Projectile_Size), 1));
+        });
+        Test("removing HP cards restores the original maximum and clamps health", () =>
+        {
+            var player = new PlayerData { maxHealth = 73f, currentHealth = 60f };
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 2));
+            Check(player.RemoveStatCard(PlayerStat.HP));
+            Check(player.maxHealth == 73f && player.currentHealth <= 73f);
+            Check(player.StatCards.Level(PlayerStat.HP) == 0);
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 1));
+            Check(player.RemoveStatCard(PlayerStat.HP) && player.maxHealth == 73f);
+        });
         Test("PlayerData applies table recovery, health, mitigation and movement", () =>
         {
             var player = new PlayerData { speed = 5f, maxHealth = 100f, currentHealth = 80f, maxMP = 100f };

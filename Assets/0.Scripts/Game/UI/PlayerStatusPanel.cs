@@ -289,8 +289,8 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         else
             loadout.TryEquip(PlayerSkillButton.Tactical, skill.DataId);
     }
-    private static Sprite SkillIcon(Data.SkillData skill) => skill != null && !string.IsNullOrEmpty(skill.IconLabel)
-        ? Managers.Resource.Load<Sprite>(skill.IconLabel) : null;
+    private static Sprite SkillIcon(Data.SkillData skill) => skill != null
+        ? SkillCardIcons.Get(skill.DataId, skill.IconLabel) : null;
     private void RefreshStats()
     {
         if (levelValue != null) levelValue.text = source != null ? $"Lv.{source.CurrentLevel}" : "Lv.—";

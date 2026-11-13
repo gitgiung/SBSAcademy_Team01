@@ -380,6 +380,46 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private LightSkillCast PrepareSkill(LightSkillCast skill) => skill.Presented().WithStatUpgrades(
         (int)data.StatCards.Value(PlayerStat.Projectile_Count), 1f + data.StatCards.Value(PlayerStat.Skill_Range));
 
+#if UNITY_EDITOR
+    [ContextMenu("테스트/스킬 범위·투사체 크기 진단 (Play 중)")]
+    private void DiagnoseSkillScaling()
+    {
+        if (!Application.isPlaying || data == null)
+        {
+            Debug.Log("[SkillScale] Play 중 플레이어에서 실행하세요.", this);
+            return;
+        }
+        float rangeBonus = data.StatCards.Value(PlayerStat.Skill_Range);
+        float sizeBonus = data.StatCards.Value(PlayerStat.Projectile_Size);
+        Debug.Log($"[SkillScale] 기술 범위 Lv{data.StatCards.Level(PlayerStat.Skill_Range)} +{rangeBonus:P0}, "
+            + $"투사체 크기 Lv{data.StatCards.Level(PlayerStat.Projectile_Size)} +{sizeBonus:P0}", this);
+        for (int i = 0; i < data.Loadout.UnlockedAttackSlots; i++)
+        {
+            var owned = data.Loadout.GetAttackSkill(i);
+            if (owned == null || !CombatSkillTable.TryGet(owned.DataId, out var record)
+                || !LightSkillCast.TryFrom(record, out var original)) continue;
+            var prepared = PrepareSkill(original);
+            var clip = LightSkillVisuals.Baked(LightSkillVisuals.BakedClipName(prepared.Id));
+            string expectedScale = clip == null ? "대체 그림 사용"
+                : (prepared.Shape == LightSkillShape.Projectile || clip.ReachUnits <= 0f
+                    ? 1f + sizeBonus : prepared.Range / clip.ReachUnits).ToString("0.###");
+            Debug.Log($"[SkillScale] {prepared.Id} {prepared.Name}: {prepared.Shape}, "
+                + $"범위 {original.Range:0.###} → {prepared.Range:0.###}, 구운 그림 예상 Scale {expectedScale}", this);
+        }
+        foreach (var fx in FindObjectsByType<LightSkillFx>())
+        {
+            if (fx.gameObject.scene != gameObject.scene) continue;
+            var renderer = fx.GetComponent<SpriteRenderer>();
+            var collider = fx.GetComponent<CircleCollider2D>();
+            float worldRadius = collider != null && collider.enabled
+                ? collider.radius * Mathf.Max(Mathf.Abs(fx.transform.lossyScale.x), Mathf.Abs(fx.transform.lossyScale.y)) : 0f;
+            Debug.Log($"[SkillScale] 활성 {fx.name}: localScale={fx.transform.localScale}, "
+                + $"worldScale={fx.transform.lossyScale}, 그림={renderer?.sprite?.name}, "
+                + $"그림 bounds={renderer?.bounds.size}, 투사체 월드 반경={worldRadius:0.###}", fx);
+        }
+    }
+#endif
+
     /// <summary>보유한 약·강 스킬을 표의 패시브 주기마다 같은 모양으로 발사합니다. MP와 입력 잠금은 쓰지 않습니다.</summary>
     private void TickOwnedPassives(float deltaTime)
     {

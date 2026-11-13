@@ -72,6 +72,8 @@ public sealed class PlayerStatProgress
     public float Value(PlayerStat stat, float baseline = 0f) =>
         upgrades.TryGetValue(stat, out var entry) ? entry.value : baseline;
 
+    public bool Remove(PlayerStat stat) => upgrades.Remove(stat);
+
     private bool CanUpgrade(PlayerStatCard card)
     {
         int level = Level(card.Stat);

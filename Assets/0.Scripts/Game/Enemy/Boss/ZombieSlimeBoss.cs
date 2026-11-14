@@ -25,6 +25,7 @@ public sealed class ZombieSlimeBoss : MonoBehaviour
     private void Awake()
     {
         follow = GetComponent<EnemyFollow>();
+        follow.DisableHitKnockback();
         health = GetComponent<EnemyHealth>();
     }
 

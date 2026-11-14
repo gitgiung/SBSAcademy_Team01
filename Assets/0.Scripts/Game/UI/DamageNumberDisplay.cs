@@ -10,7 +10,6 @@ public sealed class DamageNumberDisplay : MonoBehaviour
     [SerializeField] private Camera targetCamera;
     [SerializeField] private Color enemyColor = new Color(1f, .85f, .2f);
     [SerializeField] private Color playerColor = new Color(1f, .25f, .25f);
-    [SerializeField, Min(10f)] private float fontSize = 36f;
     [SerializeField, Min(.1f)] private float lifetime = .8f;
     [SerializeField, Min(0f)] private float riseDistance = 70f;
     [SerializeField] private Vector3 worldOffset = new Vector3(0f, .7f, 0f);
@@ -80,7 +79,7 @@ public sealed class DamageNumberDisplay : MonoBehaviour
 
         TextMeshProUGUI label = number.text;
         label.text = damage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
-        label.fontSize = UiFontScale.Size(Mathf.Max(10f, fontSize));
+        label.fontSize = damage < 32f ? 42f : damage < 62f ? 54f : 66f;
         label.transform.SetAsLastSibling();
         Position(number);
         label.gameObject.SetActive(true);

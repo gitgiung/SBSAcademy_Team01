@@ -113,7 +113,11 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
             body.linearVelocity = Vector2.zero;
             body.angularVelocity = 0f;
         }
-        if (follow != null) follow.enabled = followEnabled;
+        if (follow != null)
+        {
+            follow.ResetHitKnockback();
+            follow.enabled = followEnabled;
+        }
         UpdateHealthUI();
     }
 
@@ -152,7 +156,12 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
     /// </summary>
     public void TakeDamage(float damage)
     {
-        if (damage <= 0f || IsDead || invulnerable || !isActiveAndEnabled)
+        TakeDamage(damage, 1f);
+    }
+
+    public void TakeDamage(float damage, float knockbackDistanceMultiplier)
+    {
+        if (damage <= 0f || float.IsNaN(damage) || IsDead || invulnerable || !isActiveAndEnabled)
             return;
 
         CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
@@ -164,6 +173,8 @@ public sealed class EnemyHealth : MonoBehaviour, IDamageable
             Die();
             return;
         }
+
+        if (follow != null) follow.ApplyHitKnockback(damage, Mathf.Max(0f, knockbackDistanceMultiplier));
 
         // 피격 시 흰색 반짝임 효과
         if (hitFlash != null) StopCoroutine(hitFlash);

@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 2147834492816138337}
   - component: {fileID: 5012734025126114590}
   - component: {fileID: 7034928495129297484}
+  - component: {fileID: 8075110320281315536}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Untagged
@@ -107,6 +108,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
   lifeTime: 3
   enemyTag: Enemy
+--- !u!114 &8075110320281315536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7471816246809313549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8ebc72319ec4758adcc6502ce408461, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BasicBulletVisual
 --- !u!58 &5012734025126114590
 CircleCollider2D:
   m_ObjectHideFlags: 0

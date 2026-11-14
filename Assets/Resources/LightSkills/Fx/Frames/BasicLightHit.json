@@ -1,0 +1,13 @@
+{
+ "name": "BasicLightHit",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 0,
+ "frameWidth": 20,
+ "frameHeight": 20,
+ "columns": 2,
+ "count": 6,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

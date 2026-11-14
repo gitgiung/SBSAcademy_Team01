@@ -7,12 +7,21 @@ public sealed class EnemyFollow : MonoBehaviour
 {
     [SerializeField, Min(0f)] public float moveSpeed = 2f;
     [SerializeField, Min(0f)] private float stoppingDistance = 0.5f;
+    [SerializeField, Min(0f)] private float knockbackDistancePerDamage = 0.15f;
+
+    private const float KnockbackDuration = 0.12f;
+    private const float MaxKnockbackDistance = 1.25f;
 
     private Rigidbody2D body;
     private Transform target;
     private CollisionMovement2D movement;
+    private Vector2 lastChaseDirection;
+    private Vector2 knockbackRemaining;
+    private float knockbackTimeRemaining;
+    private bool knockbackDisabled;
 
     public Transform Target => target;
+    internal bool MovedByHitKnockback { get; private set; }
 
     private void Awake()
     {
@@ -29,6 +38,7 @@ public sealed class EnemyFollow : MonoBehaviour
 
     public void SetTarget(Transform newTarget)
     {
+        if (target != newTarget) lastChaseDirection = Vector2.zero;
         target = newTarget;
     }
 
@@ -41,6 +51,17 @@ public sealed class EnemyFollow : MonoBehaviour
     private void FixedUpdate()
     {
         body.linearVelocity = Vector2.zero;
+        MovedByHitKnockback = knockbackTimeRemaining > 0f;
+
+        if (MovedByHitKnockback)
+        {
+            float elapsed = Mathf.Min(Time.fixedDeltaTime, knockbackTimeRemaining);
+            Vector2 knockbackStep = knockbackRemaining * (elapsed / knockbackTimeRemaining);
+            knockbackRemaining -= knockbackStep;
+            knockbackTimeRemaining -= elapsed;
+            movement.Move(knockbackStep);
+            return;
+        }
 
         if (target == null || !target.gameObject.activeInHierarchy)
             return;
@@ -53,7 +74,39 @@ public sealed class EnemyFollow : MonoBehaviour
             return;
 
         float step = Mathf.Min(Mathf.Max(0f, moveSpeed) * Time.fixedDeltaTime, remaining);
-        MoveTo(body.position + offset / distance * step);
+        Vector2 moved = MoveTo(body.position + offset / distance * step);
+        if (moved.sqrMagnitude > 0.00000001f) lastChaseDirection = moved.normalized;
+    }
+
+    internal void ApplyHitKnockback(float damage, float distanceMultiplier)
+    {
+        if (knockbackDisabled || !isActiveAndEnabled || movement == null ||
+            target == null || !target.gameObject.activeInHierarchy || knockbackDistancePerDamage <= 0f)
+            return;
+
+        Vector2 direction = lastChaseDirection;
+        if (direction == Vector2.zero)
+            direction = ((Vector2)target.position - body.position).normalized;
+        if (direction == Vector2.zero) return;
+
+        float distance = Mathf.Min(damage * knockbackDistancePerDamage, MaxKnockbackDistance) * distanceMultiplier;
+        float remainingLimit = Mathf.Max(knockbackRemaining.magnitude, MaxKnockbackDistance * distanceMultiplier);
+        knockbackRemaining = Vector2.ClampMagnitude(knockbackRemaining - direction * distance, remainingLimit);
+        knockbackTimeRemaining = KnockbackDuration;
+    }
+
+    public void DisableHitKnockback()
+    {
+        knockbackDisabled = true;
+        ResetHitKnockback();
+    }
+
+    internal void ResetHitKnockback()
+    {
+        MovedByHitKnockback = false;
+        lastChaseDirection = Vector2.zero;
+        knockbackRemaining = Vector2.zero;
+        knockbackTimeRemaining = 0f;
     }
 
     /// <summary>Also used by boss movement while following is disabled during a pattern.</summary>
@@ -64,6 +117,7 @@ public sealed class EnemyFollow : MonoBehaviour
 
     private void OnDisable()
     {
+        ResetHitKnockback();
         if (body != null) body.linearVelocity = Vector2.zero;
     }
 

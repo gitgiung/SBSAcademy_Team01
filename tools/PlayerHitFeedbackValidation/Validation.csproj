@@ -10,7 +10,7 @@
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../Assets/0.Scripts/Game/Player/Test/PlayerHitFeedback*.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Player/Presentation/PlayerHitFeedback*.cs" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

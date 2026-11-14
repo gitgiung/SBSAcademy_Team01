@@ -35,6 +35,48 @@ internal static class Program
         table = CombatSkillWorkbook.Read(workbookPath);
         var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
             File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+        Test("workbook reimport preserves every runtime field except authored icon paths", () =>
+        {
+            Equal(shipped.skills.Count, table.skills.Count);
+            foreach (var expected in shipped.skills)
+            {
+                var actual = Skill(expected.Id);
+                foreach (var field in typeof(CombatSkillRecord).GetFields())
+                {
+                    if (field.IsStatic || field.Name == "Icon") continue;
+                    if (!Equals(field.GetValue(expected), field.GetValue(actual)))
+                        throw new Exception($"{expected.Id} {field.Name}: JSON={field.GetValue(expected)}, workbook={field.GetValue(actual)}");
+                }
+            }
+        });
+        foreach (int id in new[] { 10011, 20007, 20009 })
+        {
+            Test($"skill {id} scales range at every range card level", () =>
+            {
+                var record = shipped.skills.Single(s => s.Id == id);
+                Equal(true, LightSkillCast.TryFrom(record, out var skill));
+                for (int level = 1; level <= 5; level++)
+                {
+                    float multiplier = 1f + level * 0.1f;
+                    var upgraded = skill.Presented().WithStatUpgrades(0, multiplier);
+                    Equal(record.Range * multiplier, upgraded.Range);
+                    Equal(record.Width * multiplier, upgraded.Width);
+                    Equal(record.Angle, upgraded.Angle);
+                }
+            });
+        }
+        foreach (int id in new[] { 10006, 10009 })
+        {
+            Test($"projectile {id} keeps range independent of range cards", () =>
+            {
+                var record = shipped.skills.Single(s => s.Id == id);
+                Equal(true, LightSkillCast.TryFrom(record, out var skill));
+                var upgraded = skill.Presented().WithStatUpgrades(2, 1.5f);
+                Equal(LightSkillShape.Projectile, upgraded.Shape);
+                Equal(record.Range, upgraded.Range);
+                Equal(record.Projectiles + 2, upgraded.Projectiles);
+            });
+        }
         Test("acquired skill is owned once and not automatically equipped", () =>
         {
             var loadout = new PlayerLoadout(); int changes = 0; loadout.Changed += () => changes++;
@@ -234,16 +276,17 @@ internal static class Program
             Equal(5f, s.CostAmount); Equal(7f, s.Range); Equal(.5f, s.Width);
             Equal(8f, s.BaseValue); Equal(1.2f, s.Factor); Equal("Projectile", s.AreaType);
         });
-        Test("utility workbook row keeps its name while effect cells stay blank", () =>
+        Test("utility workbook restores the runtime healing definition", () =>
         {
             var s = Skill(30001);
-            Equal("재생 치유", s.Name); Equal("", Field(s, "EffectType")); Equal("", s.TargetType);
+            Equal("재생 치유", s.Name); Equal("HealOverTime", Field(s, "EffectType")); Equal("Self", s.TargetType);
+            Equal(5f, s.EffectDuration); Equal(5, s.Hits); Equal(.04f, s.Factor);
         });
         Test("heavy armor and knockback", () =>
         {
             Equal(false, Field(Skill(20001), "SuperArmor"));
             Equal(true, Field(Skill(20015), "SuperArmor"));
-            Equal("", Field(Skill(20001), "CrowdControl"));
+            Equal("Knockback", Field(Skill(20001), "CrowdControl"));
             Equal("None", Field(Skill(10001), "StatusEffectId"));
             Equal(0f, Field(Skill(10001), "EffectDuration"));
         });
@@ -293,7 +336,7 @@ internal static class Program
         });
         Test("area radius and length remain independent", () =>
         {
-            Equal(0f, Field(Skill(20001), "Radius"));
+            Equal(2.2f, Field(Skill(20001), "Radius"));
             Equal(7f, Field(Skill(10001), "Length"));
             Equal(0f, Field(Skill(10001), "Radius"));
         });

@@ -18,9 +18,9 @@
     <Compile Include="../../Assets/0.Scripts/Framework/Editor/CombatSkillTableExporter.cs" Link="CombatSkillTableExporter.cs" />
     <Compile Include="../../Assets/0.Scripts/Game/UI/LevelUpSkillDraft*.cs" Link="LevelUpSkillDraft.cs" />
     <Compile Include="../../Assets/0.Scripts/Game/UI/LevelUpSkillReward*.cs" Link="LevelUpSkillReward.cs" />
-    <Compile Include="../../Assets/0.Scripts/Game/Player/PlayerLoadout.cs" Link="PlayerLoadout.cs" />
-    <Compile Include="../../Assets/0.Scripts/Game/Player/LightSkillCatalog.cs" Link="LightSkillCatalog.cs" />
-    <Compile Include="../../Assets/0.Scripts/Game/Player/PlayerHeavyCharge.cs" Link="PlayerHeavyCharge.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Player/Data/PlayerLoadout.cs" Link="PlayerLoadout.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Player/Attacks/LightSkillCatalog.cs" Link="LightSkillCatalog.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Player/Attacks/PlayerHeavyCharge.cs" Link="PlayerHeavyCharge.cs" />
     <Compile Include="../../Assets/0.Scripts/Framework/Data/Data.Contents.cs" Link="Data.Contents.cs" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

@@ -72,6 +72,10 @@ internal static class Program
         {
             Check(statCards.Cards.Length == 13);
             Check(statCards.Cards.Select(card => card.Stat).Distinct().Count() == 13);
+            var damage = statCards.Cards.Single(card => card.Stat == PlayerStat.DMG);
+            Check((int)PlayerStat.DMG == 2);
+            Check(damage.Values.SequenceEqual(new[] { 1f, 2f, 3f, 4f, 5f, 6f }));
+            Check(damage.FormatValue(3) == "4");
             Check(statCards.Cards.All(card => card.Weight == 1));
             var regen = statCards.Cards.Single(card => card.Stat == PlayerStat.HP_Regen);
             Check(Math.Abs(regen.Values[1] - .001f) < 1e-6);
@@ -104,6 +108,29 @@ internal static class Program
             Check(!progress.TryUpgrade(capped, 2));
         });
         PlayerStatCard Card(PlayerStat stat) => statCards.Cards.Single(card => card.Stat == stat);
+        Test("removing a stat resets its level and permits acquiring it again", () =>
+        {
+            var player = new PlayerData();
+            Check(!player.RemoveStatCard(PlayerStat.Projectile_Size));
+            Check(player.TryUpgradeStat(Card(PlayerStat.Projectile_Size), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.Skill_Range), 1));
+            Check(player.RemoveStatCard(PlayerStat.Projectile_Size));
+            Check(player.StatCards.Level(PlayerStat.Projectile_Size) == 0);
+            Check(player.StatCards.Value(PlayerStat.Projectile_Size) == 0f);
+            Check(player.StatCards.Level(PlayerStat.Skill_Range) == 1);
+            Check(player.TryUpgradeStat(Card(PlayerStat.Projectile_Size), 1));
+        });
+        Test("removing HP cards restores the original maximum and clamps health", () =>
+        {
+            var player = new PlayerData { maxHealth = 73f, currentHealth = 60f };
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 2));
+            Check(player.RemoveStatCard(PlayerStat.HP));
+            Check(player.maxHealth == 73f && player.currentHealth <= 73f);
+            Check(player.StatCards.Level(PlayerStat.HP) == 0);
+            Check(player.TryUpgradeStat(Card(PlayerStat.HP), 1));
+            Check(player.RemoveStatCard(PlayerStat.HP) && player.maxHealth == 73f);
+        });
         Test("PlayerData applies table recovery, health, mitigation and movement", () =>
         {
             var player = new PlayerData { speed = 5f, maxHealth = 100f, currentHealth = 80f, maxMP = 100f };
@@ -127,15 +154,41 @@ internal static class Program
         Test("PlayerData composes damage and applies XP before fractional carry", () =>
         {
             var player = new PlayerData { experiencePickupDistance = 3f };
-            Check(player.TryUpgradeStat(Card(PlayerStat.ATK), 1));
+            Check(player.TryUpgradeStat(Card(PlayerStat.DMG), 1));
             Check(player.TryUpgradeStat(Card(PlayerStat.Elm_All_ATK), 1));
-            Check(Math.Abs(player.ScaleAttackDamage(100f) - 110f) < 1e-4);
-            Check(Math.Abs(player.ScaleAttackDamage(100f, "ELEM_FIRE") - 121f) < 1e-4);
+            Check(player.AttackDamage == player.attackDamage + 1f);
+            Check(Math.Abs(player.ScaleAttackDamage(100f) - 100f) < 1e-4);
+            Check(Math.Abs(player.ScaleAttackDamage(100f, "ELEM_FIRE") - 110f) < 1e-4);
             Check(player.TryUpgradeStat(Card(PlayerStat.XP_Gain), 1));
             Check(player.TryCollectExperience(10f, out float first) && first == 10f);
             Check(player.TryCollectExperience(10f, out float second) && second == 11f);
             Check(player.TryUpgradeStat(Card(PlayerStat.Pickup_Radius), 1));
             Check(Math.Abs(player.PickupDistance - 3.3f) < 1e-5);
+        });
+
+        Test("DMG adds the table increase once and removal restores the original attack", () =>
+        {
+            var player = new PlayerData { attackDamage = 1f };
+            var damage = statCards.Cards.Single(card => card.Stat == PlayerStat.DMG);
+            var element = statCards.Cards.Single(card => card.Stat == PlayerStat.Elm_All_ATK);
+            for (int level = 1; level <= 3; level++)
+            {
+                Check(player.TryUpgradeStat(damage, level));
+                Check(player.TryUpgradeStat(element, level));
+                Check(player.AttackDamage == 1f + level);
+                Check(player.attackDamage == 1f);
+            }
+            Check(player.ScaleAttackDamage(8f) == 8f, "fixed damage must not receive DMG amplification");
+            Check(Math.Abs(player.ScaleAttackDamage(8f + player.AttackDamage * 1.2f, "ELEM_FIRE")
+                * PlayerLoadout.DamageMultiplierForStack(3) - 24.96f) < 1e-4);
+            Check(player.RemoveStatCard(PlayerStat.DMG));
+            Check(player.AttackDamage == 1f);
+            Check(player.TryUpgradeStat(damage, 1) && player.AttackDamage == 2f);
+            var differentBase = new PlayerData { attackDamage = 10f };
+            Check(differentBase.TryUpgradeStat(damage, 1) && differentBase.AttackDamage == 11f);
+            var custom = new PlayerStatCard { Stat = PlayerStat.DMG, Values = new[] { 5f, 7f } };
+            var customPlayer = new PlayerData { attackDamage = 10f };
+            Check(customPlayer.TryUpgradeStat(custom, 1) && customPlayer.AttackDamage == 12f);
         });
 
         Test("bonus table uses supplied values and does not fill missing rows", () =>

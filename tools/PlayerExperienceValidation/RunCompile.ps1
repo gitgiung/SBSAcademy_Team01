@@ -28,7 +28,7 @@ try {
             } else { $_ }
         }
         $additionalSources = @()
-        if ($assemblyName -eq 'Assembly-CSharp') { $additionalSources = @(Get-ChildItem 'Assets/0.Scripts/Game/Player/Data/PlayerExperience*.cs') }
+        if ($assemblyName -eq 'Assembly-CSharp') { $additionalSources = @(Get-ChildItem 'Assets/0.Scripts/Game/Player' -Filter '*.cs' -Recurse) }
         elseif ($assemblyName -eq 'Enemy.Runtime') { $additionalSources = @(Get-ChildItem 'Assets/0.Scripts/Game/Enemy/NormalEnemy/Survival*.cs') }
         if ($additionalSources.Count -gt 0) {
             foreach ($newSource in $additionalSources) {

@@ -71,7 +71,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         Text(Rect(stats, "Heading", 80, 10, 400, 35), "스탯", font, 30, Color.black, TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
         levelValue = Text(Rect(stats, "PlayerLevel", 490, 10, 450, 35), "", font, 30, Color.black, TextAlignmentOptions.Right);
         levelValue.textWrappingMode = TextWrappingModes.NoWrap;
-        string[] labels = { "체력", "체력 재생", "피해량", "이동속도", "방어력", "MP", "MP 회복", "재사용 대기시간",
+        string[] labels = { "체력", "체력 재생", "공격력", "이동속도", "방어력", "MP", "MP 회복", "재사용 대기시간",
             "속성 피해량(전체)", "투사체 개수", "투사체 크기", "방어막 체력", "기술 범위", "경험치 획득", "획득 반경" };
         for (int i = 0; i < labels.Length; i++)
         {
@@ -260,7 +260,8 @@ public sealed class PlayerStatusPanel : MonoBehaviour
             && !string.IsNullOrEmpty(rarity.ColorHex)
             && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color))
             rarityColor = color;
-        cell.Show(skill?.Name, SkillIcon(skill), locked, equipped, level, rarityColor);
+        bool utility = skill != null && skill.DataId >= 30000 && skill.DataId < 40000;
+        cell.Show(skill?.Name, SkillIcon(skill), locked, equipped, level, rarityColor, utility);
     }
     private void ToggleAttackSkill(int index)
     {
@@ -289,8 +290,8 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         else
             loadout.TryEquip(PlayerSkillButton.Tactical, skill.DataId);
     }
-    private static Sprite SkillIcon(Data.SkillData skill) => skill != null && !string.IsNullOrEmpty(skill.IconLabel)
-        ? Managers.Resource.Load<Sprite>(skill.IconLabel) : null;
+    private static Sprite SkillIcon(Data.SkillData skill) => skill != null
+        ? SkillCardIcons.Get(skill.DataId, skill.IconLabel) : null;
     private void RefreshStats()
     {
         if (levelValue != null) levelValue.text = source != null ? $"Lv.{source.CurrentLevel}" : "Lv.—";
@@ -299,7 +300,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         statValues[0].text = $"{source.currentHealth:0.#} / {source.maxHealth:0.#}";
         var stats = source.StatCards;
         statValues[1].text = $"{stats.Value(PlayerStat.HP_Regen):P1}/초";
-        statValues[2].text = $"×{source.DamageMultiplier:0.##}";
+        statValues[2].text = $"{source.AttackDamage:0.##}";
         statValues[3].text = $"{source.MoveSpeed:0.##}";
         statValues[4].text = $"{stats.Value(PlayerStat.DEF):0.##}";
         statValues[5].text = $"{source.CurrentMP:0.#} / {source.maxMP:0.#}";

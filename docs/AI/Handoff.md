@@ -1,5 +1,19 @@
 # 작업 인수인계
 
+## 2026-11-12 ElevenLabs API 키 적용
+
+- Cursor Marketplace `elevenlabs` 플러그인 설치. 프로젝트 루트 `.env`에 `ELEVENLABS_API_KEY` 저장, `.gitignore`에 `.env` 추가. Windows 사용자 환경 변수에도 동일 키 설정.
+- `GET /v1/user`로 키 유효성 확인됨(구독 creator·active). 키 값은 문서·로그에 적지 않음. Unity 씬·코드 변경 없음.
+- 직접 확인: Cursor를 한 번 재시작한 뒤 ElevenLabs MCP/스킬로 TTS·효과음 등을 요청한다. 실패 시 MCP 로그인(OAuth) 또는 `.env`의 키·환경 변수를 확인한다. 채팅에 키를 붙여 넣었으므로 노출이 걱정되면 ElevenLabs에서 키를 재발급한다.
+
+## 2026-11-12 현재 main으로 Android APK 빌드
+
+- 브랜치 main, HEAD `9a871df`. 원본 프로젝트는 Unity 6000.5.0f1이 이미 열고 있어서 같은 프로젝트를 다시 열지 않았다. `Assets`·`Packages`·`ProjectSettings`만 `C:\utmp\sbs`로 복사한 뒤, 저장된 Android 빌드 프로필로 배치 빌드했다. 프로필의 Development Build가 켜져 있어 결과 APK는 debuggable이다. 씬·코드·ProjectSettings는 바꾸지 않았고, 빌드 후 원본 `git status`는 깨끗했다.
+- 산출물: `Builds/Android/ZombieSoul.apk` (84,040,306바이트). Unity 로그 `Build Finished, Result: Success.` 포함 씬은 Title, Load, Lobby, Main이다.
+- APK 내용: 패키지 `com.SoZome.ZombieSoul`, versionName 1.0, versionCode 1, minSdk 26, targetSdk 36, `arm64-v8a`만, `android.permission.VIBRATE` 포함, activity `screenOrientation`은 userLandscape(가로 좌우). `aapt dump badging`으로 확인했다.
+- 기기: 빌드 전후 `adb devices`가 비어 있어 설치와 실행은 하지 않았다. Play·실기기 조작은 미검증이다.
+- 직접 확인: APK를 폰으로 옮기거나 USB 디버깅 후 `adb install -r Builds\Android\ZombieSoul.apk`. 안드로이드 8.0 이상, 64비트 기기. 예전 서명이 다르면 기존 ZombieSoul을 지운 뒤 설치한다. 정상은 가로 화면으로 타이틀이 뜨고 터치로 진행되는 것이다. 이상 시 설치 오류 문구, 기기 ABI, Logcat 첫 예외를 확인한다.
+
 ## 2026-11-12 3D를 제외한 브랜치를 메인에 합침
 
 - `feature/boss-appear-6-times`와 `iOS-Build-Test`는 같은 커밋이라 한 번에 합쳤다. 3분마다 보스 등장, 시간별 강화, 화면 안전 영역, 모바일 조작 위치, 전략 쿨타임 표시가 들어왔다.

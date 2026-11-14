@@ -223,6 +223,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Enemy.Runtime::EnemyFollow
   moveSpeed: 4
   stoppingDistance: 0.5
+  knockbackDistancePerDamage: 0.15
 --- !u!114 &1385214210470336019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -235,7 +236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c342803638bd6544977d012e6f17267, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Enemy.Runtime::EnemyHealth
-  maxHealth: 18
+  maxHealth: 96
   hitFlashDuration: 0.1
   hitColor: {r: 1, g: 0, b: 0, a: 1}
   healthSlider: {fileID: 0}

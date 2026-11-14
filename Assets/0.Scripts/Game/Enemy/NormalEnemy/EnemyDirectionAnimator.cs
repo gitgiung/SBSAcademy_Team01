@@ -13,6 +13,7 @@ public sealed class EnemyDirectionAnimator : MonoBehaviour
 
     [SerializeField] private Animator animator;
 
+    private EnemyFollow follow;
     private Vector3 lastPosition;
     private Vector2 facingDirection = Vector2.down;
 
@@ -20,6 +21,7 @@ public sealed class EnemyDirectionAnimator : MonoBehaviour
     {
         if (animator == null)
             animator = GetComponent<Animator>();
+        follow = GetComponent<EnemyFollow>();
         lastPosition = transform.position;
     }
 
@@ -35,7 +37,7 @@ public sealed class EnemyDirectionAnimator : MonoBehaviour
 
         Vector2 delta = transform.position - lastPosition;
         lastPosition = transform.position;
-        bool moving = delta.sqrMagnitude > 0.000001f;
+        bool moving = delta.sqrMagnitude > 0.000001f && (follow == null || !follow.MovedByHitKnockback);
         if (moving)
             facingDirection = SnapOctant(delta);
 

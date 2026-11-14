@@ -20,6 +20,10 @@ public sealed class ResourceGaugePreview : MonoBehaviour
     private PlayerData playerData;
     private int lastLevel;
     private float flashElapsed = FlashDuration;
+    private const float MpFlashDuration = 0.4f;
+    private float mpFlashUntil;
+
+    internal void FlashInsufficientMp() => mpFlashUntil = Time.unscaledTime + MpFlashDuration;
 
     internal void Bind(PlayerData data, Slider healthSlider, Slider mpSlider, Slider expSlider)
     {
@@ -40,6 +44,10 @@ public sealed class ResourceGaugePreview : MonoBehaviour
         float deltaTime = Time.unscaledDeltaTime;
         hp?.Update(hpSpeed, deltaTime);
         mp?.Update(mpSpeed, deltaTime);
+        float mpFlashRemaining = mpFlashUntil - Time.unscaledTime;
+        bool showMpFlash = mpFlashRemaining > 0f &&
+            Mathf.FloorToInt((MpFlashDuration - mpFlashRemaining) / FlashInterval) % 2 == 0;
+        mp?.ShowWarning(showMpFlash);
         if (exp == null || playerData == null) return;
 
         int level = playerData.CurrentLevel;
@@ -60,6 +68,8 @@ public sealed class ResourceGaugePreview : MonoBehaviour
     private void OnDisable()
     {
         flashElapsed = FlashDuration;
+        mpFlashUntil = 0f;
+        mp?.ShowWarning(false);
         hp?.Reset();
         mp?.Reset();
         exp?.Reset();
@@ -79,6 +89,7 @@ public sealed class ResourceGaugePreview : MonoBehaviour
         private readonly Image original;
         private readonly Image white;
         private readonly Image colored;
+        private Image warning;
         private float shown;
         private float lastDamageTarget;
         private float hold;
@@ -151,6 +162,16 @@ public sealed class ResourceGaugePreview : MonoBehaviour
             DrawFill(colored, Mathf.Min(shown, target));
         }
 
+        public void ShowWarning(bool visible)
+        {
+            if (visible && warning == null)
+            {
+                warning = CreateFill("Resource Warning", new Color(1f, 0.12f, 0.12f, 0.85f));
+                warning.transform.SetSiblingIndex(original.transform.GetSiblingIndex() + 1);
+            }
+            if (warning != null) DrawFill(warning, visible ? 1f : 0f);
+        }
+
         public void DrawFullFlash(bool isWhite, Material flashMaterial)
         {
             if (slider == null || original == null) return;
@@ -183,6 +204,7 @@ public sealed class ResourceGaugePreview : MonoBehaviour
             Reset();
             if (white != null) Destroy(white.gameObject);
             if (colored != null) Destroy(colored.gameObject);
+            if (warning != null) Destroy(warning.gameObject);
         }
 
         private Image CreateFill(string name, Color color)

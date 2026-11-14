@@ -122,6 +122,7 @@ public sealed class BossController : MonoBehaviour
     private void Awake()
     {
         follow = GetComponent<EnemyFollow>();
+        follow.DisableHitKnockback();
         health = GetComponent<EnemyHealth>();
         body = GetComponent<Rigidbody2D>();
         if (animator == null) animator = GetComponent<Animator>();

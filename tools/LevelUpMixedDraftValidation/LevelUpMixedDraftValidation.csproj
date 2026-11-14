@@ -22,7 +22,7 @@
     <Compile Include="../../Assets/0.Scripts/Game/Player/Data/PlayerExperience*.cs" />
     <Compile Include="../../Assets/0.Scripts/Game/Enemy/NormalEnemy/SurvivalExperienceBonus.cs" />
     <Compile Include="../../Assets/0.Scripts/Game/Enemy/NormalEnemy/SurvivalBalanceSettings.cs" />
-    <Compile Include="../../Assets/0.Scripts/Game/Player/PlayerLoadout.cs" />
+    <Compile Include="../../Assets/0.Scripts/Game/Player/Data/PlayerLoadout.cs" />
     <Compile Include="../../Assets/0.Scripts/Framework/Data/Data.Contents.cs" />
     <Compile Include="../../Assets/0.Scripts/Game/UI/LevelUpSkillDraft.cs" Link="LevelUpSkillDraft.cs" />
     <Compile Include="../../Assets/0.Scripts/Game/UI/LevelUp/ILevelUpReward.cs" Link="ILevelUpReward.cs" />

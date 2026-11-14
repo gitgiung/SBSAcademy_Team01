@@ -29,14 +29,17 @@ public sealed class PlayerTacticalSkillButton : MonoBehaviour, IPointerDownHandl
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (eventData.button == PointerEventData.InputButton.Left && owner != null)
+        if (eventData.button == PointerEventData.InputButton.Left && CanPress())
             owner.TryUseTacticalSkill();
     }
 
     public void OnSubmit(BaseEventData eventData)
     {
-        if (owner != null) owner.TryUseTacticalSkill();
+        if (CanPress()) owner.TryUseTacticalSkill();
     }
+
+    private bool CanPress() => owner != null && owner.GetEquippedTacticalUsesRemaining() > 0 &&
+        (!TryGetComponent(out Button button) || button.IsInteractable());
 
     private void OnEnable()
     {
@@ -97,12 +100,12 @@ public sealed class PlayerTacticalSkillButton : MonoBehaviour, IPointerDownHandl
     {
         EnsureUsesLabel();
         if (usesLabel == null) return;
-        int uses = owner != null ? owner.GetEquippedTacticalUsesRemaining() : Player.TacticalStageMaxUses;
+        int uses = owner != null ? owner.GetEquippedTacticalUsesRemaining() : 0;
         if (!force && uses == lastShownUses) return;
         lastShownUses = uses;
         usesLabel.text = "x" + uses;
         usesLabel.enabled = true;
         if (TryGetComponent(out Button button))
-            button.interactable = owner == null || uses > 0;
+            button.interactable = uses > 0;
     }
 }

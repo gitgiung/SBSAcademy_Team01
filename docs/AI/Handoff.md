@@ -1,5 +1,20 @@
 # 작업 인수인계
 
+## 2026-11-14 몬스터 6단계 혼합 스폰 구현
+
+- 사용자 승인: `_3min`=0–3분용부터 `_18min`=15–18분용까지 6단계. 각 3분 경계부터 90초에 걸쳐 이전/현재 단계를 혼합한다. 네 종류의 초반/후반 가중치 초기값은 모두 1이며 Inspector에서 조절한다. 이는 승인된 플레이테스트 초기값이고 최종 밸런스 확정값은 아니다.
+- `EnemySpawnProgression`이 단계/종류 비율을 계산하고 기존 `EnemySpawnDirector`의 가중 스케줄러가 사용한다. 비율은 30초 웨이브마다 갱신한다. 3:00 새 단계 0% → 3:30 약33% → 4:00 약67% → 4:30 100%. 이미 필드에 나온 적은 바꾸지 않는다. 스폰 예산·130 활성 제한·18분 종료·XP·보스전/전투 일시정지 계약은 유지했다.
+- `EnemySpawnDirectorEditor`에 폴더 자동 등록과 웨이브별 실제 프리팹/비율 미리보기를 추가했다. Temp_enemy의 4종류 × 6단계 = 24개를 한 번에 연결한다. 누락/중복/필수 컴포넌트 오류면 기존 설정을 유지하고, 성공 시 기존 전환 시간/종류별 가중치를 보존한다. Undo 지원. Play 중 편집은 막고 현재 웨이브의 비율을 표시한다.
+- `Assets/1.Prefabs/Enemy Spawn System.prefab`의 Director에 혼합 모드와 24개 참조만 추가했다. MainScene은 새 설정을 상속하며 기존 수동 waves Override는 보존했다. 씬·몬스터 프리팹·기존 GUID·ProjectSettings·패키지 변경 없음. 수동 모드/기존 공개 API도 유지했다.
+- 실제 상태: main / `2bbb71e`, 커밋·푸시·브랜치 전환 없음. 이 대화 시작 시 워킹트리는 깨끗했고, 구현 시작 때는 앞 턴의 설계/Handoff 변경만 있었다. 현재 관련 코드·스폰 프리팹·테스트·도구·문서가 미커밋 상태다.
+- 검증(이번 변경에 실제 실행): `.NET` 계산/Director **23/23**, 에셋/상속/GUID 검사 **6/6**, Unity 6000.5.0f1 실제 Combat/Enemy 코드와 24개 프리팹을 복사한 격리 프로젝트의 **EditMode 21/21**, 실패0·생략0. 등록/직렬화 왕복·Undo·누락/중복 원자성·실제 EnemySpawner 혼합/진행정지/큰 Tick/cap·기존 7:3 수동 웨이브 회귀 포함. Unity Roslyn 실제 참조로 Combat/Enemy/Boss/Encounter/Assembly-CSharp/Editor **6개 어셈블리 오류0·경고0**. .NET 대역 빌드에는 Unity 직렬화 필드의 기존 미할당/조건부 미사용 경고가 있다.
+- 테스트 선행: 신규 계산/Director 22개는 기능 없음으로 실패하고 수동 기준1개는 통과한 뒤 구현 후23개 통과했다. 에셋 연결 전 모드 미설정 실패도 확인했다. 별도 리뷰의 테스트 폴더 정리 위험은 기존 동명 폴더 삭제로 21개 중1개 실패를 재현하고 고유 폴더/생성 소유권 추적으로 수정한 뒤21/21 통과했다. 게임 로직·직렬화에 남은 차단 지적은 없다.
+- 검증 도구: `tools/EnemyStageMixingValidation/{Run.ps1,ValidateAssets.ps1,RunCompile.ps1,RunUnity.ps1}`. 격리 Unity는 `.utmp/stagemix`에서 실행했다. 처음 샌드박스 내 실행은 Licensing Client 연결이 실패했고, 해당 검증 프로세스의 PID/프로젝트 경로를 확인해 그 프로세스만 종료한 뒤 샌드박스 밖에서 성공했다. 사용자의 원본 프로젝트/Unity 프로세스는 열거나 종료하지 않았다. 결과 XML/로그는 생성물이며 인수인계의 유일한 근거로 쓰지 않는다.
+- 미검증: 실제 MainScene Play에서의 전체 풀/보스 통합과 난이도·화면·성능, Android 빌드·기기. 이번 Unity 실행은 EditMode이며 PlayMode 실행0개다. 90초/균등 비율의 밸런스 적합성은 실제 플레이로 판단한다.
+- 직접 확인: Play 종료·컴파일 완료 → MainScene → Hierarchy `Enemy Spawn System` → Inspector `Enemy Spawn Director`. `몬스터 구성 모드=StageMixing`, 단계 혼합 설정 `Transition Seconds=90` 확인. 아래 미리보기 웨이브1은 `_3min`만 각각25%, 웨이브8(3:30)은 `_3min` 합계약67%/`_6min` 약33%, 웨이브10(4:30)은 `_6min`만, 웨이브34(16:30)는 `_18min`만 나와야 한다. 다시 연결하려면 **폴더에서 24개 자동 등록 · 단계 혼합 사용**. 종류별 Early/Late Weight로 초반/후반 비율을 조절하고 씬 또는 의도한 프리팹 변경을 저장한다.
+- 실제 Play 확인: `Tools > Play From Title` 해제 → MainScene Play → 현재 웨이브 미리보기/새 생성 적 이름 확인. 이전 적 잔류는 정상이며 보스전 진행시간 정지 중에는 혼합도 멈춘다. 오류 시 Console 첫 오류, 모드/단계 슬롯/가중치 끝점 합계/전환 시간, 씬의 새 필드 Override 및 기존 풀·플레이어·카메라·스포너 참조를 확인한다. 자세한 설정·정상 결과는 `docs/AI/EnemySpawning.md`.
+- 다음: 실제 MainScene 플레이로 강화 단계와 종류 비율을 조정한다. 36개 수동 웨이브를 다시 작성하거나 기존 시스템을 재구현하지 않는다. 설계/계획은 `docs/superpowers/specs/2026-11-14-enemy-stage-mixing-design.md`, `docs/superpowers/plans/2026-11-14-enemy-stage-mixing.md`.
+
 ## 2026-11-12 ElevenLabs API 키 적용
 
 - Cursor Marketplace `elevenlabs` 플러그인 설치. 프로젝트 루트 `.env`에 `ELEVENLABS_API_KEY` 저장, `.gitignore`에 `.env` 추가. Windows 사용자 환경 변수에도 동일 키 설정.

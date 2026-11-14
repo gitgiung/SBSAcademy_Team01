@@ -1411,8 +1411,24 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1388604590}
     - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: fieldItems.bombChance
+      value: 0.002
+      objectReference: {fileID: 0}
+    - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: offscreenRecycleMargin
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: fieldItems.magnetChance
+      value: 0.002
+      objectReference: {fileID: 0}
+    - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: fieldItems.healPackChance
+      value: 0.005
+      objectReference: {fileID: 0}
+    - target: {fileID: 1507086781546711270, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: fieldItems.healPackHealthRatio
+      value: 0.25
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: player
@@ -1581,6 +1597,34 @@ PrefabInstance:
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: waves.Array.data[35].enemies.Array.size
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[0].lateWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[1].lateWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[2].lateWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[3].lateWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[0].earlyWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[1].earlyWeight
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.types.Array.data[2].earlyWeight
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: waves.Array.data[0].enemies.Array.data[0].prefab

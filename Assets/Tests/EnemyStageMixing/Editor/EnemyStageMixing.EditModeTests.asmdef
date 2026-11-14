@@ -1,0 +1,6 @@
+{
+  "name": "EnemyStageMixing.EditModeTests",
+  "references": ["Enemy.Runtime"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

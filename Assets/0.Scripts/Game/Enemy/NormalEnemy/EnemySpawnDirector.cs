@@ -15,6 +15,8 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     [SerializeField, Min(0)] private int spawnerCount = 1;
     [SerializeField, Min(.01f)] private float offscreenMargin = 1f;
     [Header("웨이브별 적 구성")]
+    [SerializeField] private EnemyRosterMode rosterMode;
+    [SerializeField] private EnemySpawnProgression stageMixing = new EnemySpawnProgression();
     [Tooltip("Element 0부터 Wave Seconds 간격으로 적용합니다. 목록이 끝나면 마지막 구성을 반복합니다.")]
     [SerializeField] private EnemySpawnWave[] waves = Array.Empty<EnemySpawnWave>();
     [SerializeField, HideInInspector, FormerlySerializedAs("minutes")]
@@ -23,6 +25,8 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     [SerializeField] private SurvivalBalanceSettings settings = new SurvivalBalanceSettings();
     [SerializeField] private bool logWaveMetrics;
     public SurvivalBalanceSettings Settings => settings ?? (settings = new SurvivalBalanceSettings());
+    public EnemyRosterMode RosterMode => rosterMode;
+    public EnemySpawnProgression StageMixing => stageMixing;
     public float ElapsedTime => (float)elapsed;
     public int CurrentMinute => (int)(elapsed / 60d);
     public bool IsPaused => paused;
@@ -123,13 +127,21 @@ public sealed class EnemySpawnDirector : MonoBehaviour
 
     private void ConfigureSpawners()
     {
-        int index = UsesWaves
+        bool mixing = rosterMode == EnemyRosterMode.StageMixing;
+        int index = mixing ? Settings.WaveIndex(elapsed) : UsesWaves
             ? Math.Min(Settings.WaveIndex(elapsed), waves.Length - 1)
             : Math.Min(CurrentMinute, legacyMinutes.Length - 1);
         if (configuredRosterIndex == index) return;
 
         GameObject[] types;
-        if (UsesWaves)
+        if (mixing)
+        {
+            stageMixing.BuildRoster(index * (double)Settings.waveSeconds, Settings.Duration, out types, out spawnWeights);
+            spawnCredits = new long[spawnWeights.Length];
+            totalWeight = 0;
+            foreach (int weight in spawnWeights) totalWeight += weight;
+        }
+        else if (UsesWaves)
         {
             EnemySpawnWave.Entry[] entries = waves[index].Enemies;
             spawnWeights = new int[entries.Length];
@@ -178,6 +190,8 @@ public sealed class EnemySpawnDirector : MonoBehaviour
 
     private bool HasValidRosters()
     {
+        if (rosterMode == EnemyRosterMode.StageMixing) return stageMixing != null && stageMixing.IsValid;
+        if (rosterMode != EnemyRosterMode.ManualWaves) return false;
         if (UsesWaves)
         {
             foreach (EnemySpawnWave wave in waves)
@@ -216,7 +230,7 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     private void FailConfiguration()
     {
         if (spawnerTemplate != null) spawnerTemplate.gameObject.SetActive(false);
-        Debug.LogError("EnemySpawnDirector: 풀, 플레이어, 카메라, 스포너, 웨이브 프리팹과 가중치, 생존 설정을 확인하세요.", this);
+        Debug.LogError("EnemySpawnDirector: 풀, 플레이어, 카메라, 스포너, 선택한 모드의 프리팹·가중치·단계 전환 시간, 생존 설정을 확인하세요.", this);
         enabled = false;
     }
     private void OnDestroy()

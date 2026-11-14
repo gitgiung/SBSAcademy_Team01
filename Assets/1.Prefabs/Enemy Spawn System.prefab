@@ -66,6 +66,50 @@ MonoBehaviour:
   spawnerTemplate: {fileID: 0}
   spawnerCount: 5
   offscreenMargin: 10
+  rosterMode: 1
+  stageMixing:
+    transitionSeconds: 90
+    types:
+    - typeName: Enemy_movespeed2
+      earlyWeight: 1
+      lateWeight: 1
+      stagePrefabs:
+      - {fileID: 5300548243203222094, guid: d6b4ca0105cbe174793c4928b2157a38, type: 3}
+      - {fileID: 5300548243203222094, guid: 325673e77e0746a45838630b0bd5eb1e, type: 3}
+      - {fileID: 5300548243203222094, guid: af88969abe8191c48a5ccf413b09d3a0, type: 3}
+      - {fileID: 5300548243203222094, guid: 2979f549a4f0cd24fb9dac1c1ab20904, type: 3}
+      - {fileID: 5300548243203222094, guid: 71d048949797a5d4c95a3f243bac5c83, type: 3}
+      - {fileID: 5300548243203222094, guid: 1c31c57364bf18542b166653b06fce68, type: 3}
+    - typeName: Enemy_movespeed3
+      earlyWeight: 1
+      lateWeight: 1
+      stagePrefabs:
+      - {fileID: 5300548243203222094, guid: c2a479ad6af7a87408aaeac291ec16e1, type: 3}
+      - {fileID: 5300548243203222094, guid: b56bb27bb8656f74389d202c5c6a45d6, type: 3}
+      - {fileID: 5300548243203222094, guid: 7a96b23ce96db0c46af6aadecb310a4d, type: 3}
+      - {fileID: 5300548243203222094, guid: 2bcb65305c91fb341a9baec26a407b57, type: 3}
+      - {fileID: 5300548243203222094, guid: a1a8617b48cdadb4490446150e6f7ad2, type: 3}
+      - {fileID: 5300548243203222094, guid: 42f4e0faa8f54244dbe9d4a68f037f8f, type: 3}
+    - typeName: Enemy_movespeed4
+      earlyWeight: 1
+      lateWeight: 1
+      stagePrefabs:
+      - {fileID: 5300548243203222094, guid: 43d77806225ff1548810157dcccfaddd, type: 3}
+      - {fileID: 5300548243203222094, guid: 7ac4fd14fab4a6148a5a8e8f5bc3c95e, type: 3}
+      - {fileID: 5300548243203222094, guid: 842a9e285e375464bb6efc39de4ad9f5, type: 3}
+      - {fileID: 5300548243203222094, guid: 153b50e0c810f6a47befe772822bb1e8, type: 3}
+      - {fileID: 5300548243203222094, guid: 54241cf708ac8be429c9473a6c1683be, type: 3}
+      - {fileID: 5300548243203222094, guid: 248f632a367515b4b98639489c704d5b, type: 3}
+    - typeName: ZombieHound
+      earlyWeight: 1
+      lateWeight: 1
+      stagePrefabs:
+      - {fileID: 1000001, guid: d67517578fa31e745910ffbe6367a466, type: 3}
+      - {fileID: 1000001, guid: f72a3c0d144359b4ab18328b5860783a, type: 3}
+      - {fileID: 1000001, guid: 66f3fe2e2c4d2d44f80e0f6f596cb4d3, type: 3}
+      - {fileID: 1000001, guid: babd425c36f38ae42b89d062cde90420, type: 3}
+      - {fileID: 1000001, guid: b528b3271ea5c3d4aa0e4084440ac3bb, type: 3}
+      - {fileID: 1000001, guid: 60563cc559a4b514095616e4ca4d7633, type: 3}
   waves:
   - enemies:
     - prefab: {fileID: 5300548243203222094, guid: a74c86675a9f61543b9c183add0dec10, type: 3}

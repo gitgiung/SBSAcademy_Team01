@@ -1,5 +1,15 @@
 # 작업 인수인계
 
+## 2026-11-14 Test·balancing-exp-and-skill-range를 main에 병합
+
+- 사용자 요청으로 fetch한 origin/Test(81d51b2c)와 origin/balancing-exp-and-skill-range(e584f85c)를 main에 통합했다. 시작 main은 9a871df7, 작업 트리는 깨끗했다. 작업 중 외부 Git 조작으로 생성된 병합 커밋 9eabc66(Test)·3746ad6(밸런싱)을 보존하고 남은 공격 partial 연결과 이 기록은 후속 커밋으로 남긴다. 이번 세션에서는 push하지 않았다. 두 브랜치가 모두 HEAD의 조상임을 확인했다.
+- 충돌은 Bullet·Player·이 문서 3개. 기본탄 그림과 Test의 적중 섬광/풀 초기화를 함께 유지했다. Player 폴더 분리·MP 부족 표시·전략 미장착 차단을 유지하고, 수동 공격 모션/타격 시점/후딜·AttackDamage 계산·패시브 배율 변경·범위 진단을 Attacks/Player.Attacks.cs에 연결했다. 문서는 양쪽 기록 보존. 씬·프리팹·meta·설정은 브랜치의 변경을 병합했으며 Unity로 재저장하지 않았다.
+- 실제 검증: Unity 6000.5.0f1 Roslyn 격리 컴파일 6개(Combat.Runtime, Enemy.Runtime, Boss.Runtime, Encounter.Runtime, Assembly-CSharp, Assembly-CSharp-Editor) 오류 0. 오래된 Bee 캐시의 이름/누락 소스·참조를 .utmp/MergeValidation 사본 응답 파일에서 보완했다. 원본 Library DLL은 덮어쓰지 않았다. Unity 임포트·전체 빌드 성공을 의미하지 않는다.
+- 실제 콘솔 검증: PlayerHitFeedback 7/7, DashCooldown 8/8, LevelUpMixedDraft 12/12, PlayerLoadout 6/6 통과. CombatSkillTable 28/29 통과, 1개 실패: shipped JSON 검사에서 Icon 빈 문자열을 기대하지만 실제 SkillIcons/SkillIcon_10001이다. 해당 Program.cs와 배포 JSON은 origin/balancing-exp-and-skill-range와 동일하여 이번 충돌 해결로 생긴 차이는 없다. 기존 기대값 불일치를 후속 작업으로 남긴다. SDK 10 복원 문제를 피해 임시 SDK 9.0.315 선택/오프라인 NuGet 설정으로 실행했다.
+- git diff --check는 이번 충돌 해결 변경에서 통과. Test에서 들어온 폰트 YAML의 기존 후행 공백 6개는 원본 보존. Unity PlayMode/EditMode 실행 0개, 원본 Unity 임포트·Play·셰이더·Android 빌드/기기 미검증.
+- 직접 확인: Play 종료 → Unity 임포트/컴파일 완료 및 Console 오류 확인 → Tools > Play From Title 해제 → MainScene Play. 기본 자동탄 그림·적중 섬광과 일반 적 피격 밀림 확인 → CombatUI > CombatPopupController > 테스트/원하는 카드 고르기로 약·강공격 장착 → N_Attack/C_Attack 입력. 모션 뒤 발사·후딜 종료 후 이동 복귀, MP 부족 시 MP 바 점멸, 미장착 전략 차단, 차징 자세 비반복 유지가 정상이다.
+- 다음: Unity 임포트/Play 통합 확인, 스킬 표의 기존 아이콘 기대값 정리. 이상 시 Console 첫 오류, Player Missing Script, 공격 Animator/클립, MP Slider·Projectile Hit Flash 참조, 장착 슬롯/MP, Resources/SkillIcons와 표의 경로를 확인한다.
+
 ## 2026-11-13 Player 스크립트 정리
 
 - `Assets/0.Scripts/Game/Player`를 Attacks, Defense, Input, Movement, Presentation, Data로 정리했다. `Player.cs`는 763줄에서 278줄로 줄이고 공격, 전략, 피격·패링, 이동, 입력, 공격 연출 및 MP 버튼 표시를 partial 파일로 분리했다. 기존 공개 API와 직렬화 필드, 기존 스크립트 GUID 32개를 유지했다. 옮겨진 경로를 쓰는 검증 도구도 갱신했다.

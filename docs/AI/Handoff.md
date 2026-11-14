@@ -63,6 +63,190 @@
 - 기존 `CollisionMovement2D`를 사용하며, 비활성화 및 재대여 시 남은 밀림과 방향을 초기화한다. 보스 3종은 각 컨트롤러 초기화에서 피격 밀림을 끈다. 치명타로 체력이 0이 되는 경우에는 기존 즉시 사망 경로를 탄다.
 - Unity 6000.5.0f1 Roslyn으로 기존 컴파일 스크립트의 7개 어셈블리 컴파일 성공. Unity Play 및 자동 테스트 실행 0개. 다음은 MainScene에서 피해 차이에 따른 이동 거리, 벽 접촉, 연속 피격, 보스 패턴과의 체감 확인이다.
 - 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 살아남는 일반 몬스터에 피해가 다른 공격을 각각 맞힌다. 접근하던 반대 방향으로 큰 피해일수록 멀리 밀리고, 벽 앞에서는 벽을 통과하지 않으며, 밀림 후 추적을 재개하면 정상이다. 이상 시 Console 첫 오류, 대상이 피격 후 생존했는지, `Enemy Follow`의 거리 값과 몸체 콜라이더를 확인한다.
+## 2026-11-13 차징 Guard 반복 제거
+
+- 사용자 요청으로 직전 Guard 주기 재시작 코드만 제거했다. 차징 중 Guard는 다시 한 번 재생한 뒤 마지막 자세를 유지한다. 약/강공격0.25초 발사·모션 종료 이동 해제, 차징 규칙, 일반 가드/대시는 유지한다. 아래 Guard 반복 추가 기록은 이번 요청으로 대체된다.
+- 기존 반복 구현에서 단발 유지 회귀 실패를 확인한 뒤 제거했고 실제 Animator 복사본 회귀 **41/41 통과**, 최신 원본 Assembly-CSharp Roslyn 컴파일 exit0·오류/경고 출력 없음. 원본 MainScene 화면·실제 입력/스킬 발사 통합·기기는 미검증. 시작 HEAD8092221, balancing-exp-and-skill-range. 기존 NanumGothic Combat SDF.asset 사용자 변경 보존. 씬/프리팹/클립/Animator/meta 변경 없음.
+- 직접 확인: 컴파일 완료 → MainScene Play → 강공격 길게 누르기. Guard가 한 번 재생된 뒤 마지막 자세에 머물러야 한다. 해제 후 공격 모션0.25초 발사 및 모션 종료 이동 복구 확인. 이상 시 Console 첫 오류와 Animator Guard 상태를 확인한다.
+
+## 2026-11-13 차징 중 Guard 모션 반복
+
+- 사용자 요청으로 PlayerView.SetHeavyChargeAnimation에서 차징 중 Guard가 한 주기를 마치면 초과 진행률을 보존해 다음 주기로 재생한다. 실제 Guard 클립/Animator 자산의 Loop Time은 변경하지 않아 일반 방어의 단발 후 자세 유지, 대시 Charge, 수동 공격0.25초 발사/모션 종료 이동 해제를 보존한다. 차징 취소/해제 시 반복을 중지하며 기존 흐름으로 복귀한다. 일시정지에서는 기존 Player.Update의 차징 갱신 중단에 따라 모션도 정지한다.
+- 변경 전 반복 실패를 실제 Animator 검증으로 확인하고 수정 후 기존38개+반복/여러 주기/일반 Guard 단발 유지3개를 합쳐 **41/41 통과**. 최신 원본 Assembly-CSharp Roslyn 컴파일 exit0·오류/경고 출력 없음. 검증은 기존처럼 실제 표시/행동 잠금 소스와 Animator를 사용하되 주변 Player/Data는 대역이다. 원본 MainScene Play·실제 화면·기기 미검증. 기존 미커밋 선딜/후딜 변경을 보존했으며 씬/프리팹/클립/meta 수정 없음.
+- 직접 확인: 컴파일 완료 → MainScene Play → 강공격 스킬 장착 → 강공격 버튼을 길게 누른다. Guard 모션이 마지막 프레임에 멈추지 않고 반복되어야 한다. 손을 떼면 Attack,0.25초에 발사, 모션 끝에 이동 복구. 차징 취소 후 반복이 남지 않고 일반 가드/대시는 기존 방식이어야 한다. 이상 시 Console 첫 오류, 실제 플레이어 Animator Guard 상태와 차징 유지 여부를 확인한다.
+
+## 2026-11-13 수동 약·강공격 선딜/후딜을 애니메이션에 연결
+
+- 사용자 확정: 둘 다 공격 모션0.25초에 실제 발사하고 모션 끝에 이동 허용. 강공격 차징은 직전 Guard 방식 유지. 현재 클립0.75초/속도1이면 선딜0.25초·발사 뒤 후딜약0.5초다. 고정 실시간 타이머가 아니라 Animator 모션 진행을 따른다.
+- 기존 PlayerLightSkill에 표 기반 수동 발사 콜백을 등록해 LightAttackAnimationState의 실행 ID/진행/종료를 공유한다. 수동 약공격과 강공격 해제는 모션 시작 때 MP/공격 스냅샷을 확정하고0.25초 진행 알림에서 발사 코루틴을1회 시작한다. CastShots의 고정 후딜/행동 잠금 해제를 제거해 모션 종료만 이동을 허용한다. 긴 연사의 남은 발사는 종료 후에도 이어질 수 있다. 차징·피해·자동 발동은 유지한다. 수동 태양 탄막은0.25초 발사를 지키도록 문양 그리기의 추가 대기를 생략하며 자동 발동의 기존 대기는 유지한다.
+- 정상 완주한 모션이 큰 프레임 간격으로 타격 시점을 건너뛰면 종료 알림 직전에 진행을 보충해1회 발사한다. 중간에 끊긴 모션은 미발사 예약을 취소한다. Animator 비활성화/Controller 제거/교체/모션 이탈/사망/비활성화에서도 잠금을 정리한다. 오래된 ID의 종료는 새 공격을 해제하지 않는다. 애니메이션 사용 불가 시 약공격은 시작하지 않고, MP 알림 중 무효화되면 시작 전 비용만 환불한다.
+- 검증: 추가한 회귀에서 변경 전 표 기반 애니메이션 발사 API 누락 실패를 확인. 실제 PlayerView·PlayerLightSkill·PlayerActionGate·LightAttackAnimationState와 기존 Animator/클립을 검증 복사본에서 실행해 **38/38 통과**.0.249/0.25초 경계·실제 Animator0.24/0.26초·0.74초 잠금/종료 해제·중복·이전 ID·일시정지·중단·비활성화·큰 프레임 간격·사망·Controller 제거와 직전 Guard/대시15개 회귀 포함. 주변 Player/Data는 대역이고 실제 입력/스킬 발사 코루틴/피해/MP 통합은 미검증이다. 원본 최신 소스 Roslyn Assembly-CSharp 컴파일 exit0·오류/경고 출력 없음. 실제 MainScene 화면/Unity Test Runner/Android 기기는 미실행. 검증 소스/절차는 tools/ManualSkillAnimationValidation에 보존했다.
+- 시작 HEAD89c4748, balancing-exp-and-skill-range, 시작 워킹트리 깨끗함. 씬/프리팹/Animator/클립/meta/엑셀 변경 없음. 현재 변경은 런타임5파일·검증 도구·계획·인수인계다.
+- 직접 확인: Play 종료 → 컴파일 완료 → MainScene Play → 스킬을 약/강 버튼에 장착 → 이동 입력을 누른 채 약공격. 공격 모션 시작부터 멈추고 약0.25초 후 발사, 약0.75초 모션 종료 후 이동해야 한다. 강공격은 누르는 동안 기존 Guard 차징, 해제 후 같은0.25초 발사/모션 종료 이동을 확인한다. 연사 스킬도 발사 횟수와 무관하게 모션 끝에 이동해야 한다. 선딜 중 일시정지/복귀·사망·재시작, 차징 취소와 기존 대시도 확인한다. 이상 시 Console 첫 오류, Animator LightAttack 상태/속도/StateMachineBehaviour 연결, IsInputLocked와 Player의 활성 상태를 확인한다. 다음 우선순위는 원본 MainScene에서 이 절차로 실제 발사·모바일 조작을 확인하는 것이다.
+
+## 2026-11-13 수동 약·강공격 모션 연결
+
+- 사용자 확정: 약공격 시 Attack, 강공격 차징 중 Guard, 강공격 시전 시 Attack. 최초 Change → Charge 정정 뒤, Charge가 대시용임을 확인한 사용자가 차징을 Guard로 변경했다. 현재 Animator에서 공격 모션 상태 이름은 LightAttack이므로 해당 기존 상태를 재생한다.
+- TryCastLightSkill과 TryReleaseHeavyCharge의 수동 발사 직전에 PlayerView.PlayLightAttack을 연결했다. 발사 시점·코루틴·피해·MP·강공격 배율·행동 잠금 종료와 자동 발동은 유지한다. 강공격 표시 갱신에서 차징 시작/취소/자동 취소/해제/초기화 시 SetHeavyChargeAnimation을 동기화한다. PlayerView는 실제 가드와 차징 표시를 합성해 기존 IsGuarding Animator 조건만 재사용하며, 차징이 실제 방어 판정·가드 VFX·색 변경을 활성화하지 않는다. Charge 대시/Animator 자산/씬/프리팹/meta는 수정하지 않았다.
+- 검증: 실제 PlayerView/PlayerDefenseVfx와 기존 Animator·클립을 검증 복사본에서 실행, 회귀 **15/15 통과**. API 누락 실패를 수정 전에 확인했고 수정 후 Guard 유지·취소·즉시 공격 전환·공격 복귀/재시작·리셋·방어 효과 비활성·대시·가드/차징 독립 해제를 검증했다. 주변 Player/Data는 대역이므로 전체 입력·발사·MP·피해 통합 검증은 아니다. 영속 검증 소스/절차는 tools/ManualSkillAnimationValidation에 있다. 최신 원본 소스 목록에 BasicBulletVisual/BasicBulletHitFx/SkillCardIcons를 포함한 Assembly-CSharp Roslyn 컴파일 exit0, 오류/경고 출력 없음. 초기 오래된 응답 파일의 누락 소스 오류는 목록 보완 후 해소했다. 원본 MainScene Play·실제 화면·기기 미검증.
+- 현재 balancing-exp-and-skill-range, 시작 HEAD c313992. 기존 사용자 MainScene.unity 및 NanumGothic Combat SDF.asset 변경을 보존했다. 테스트 라이선스 IPC 대기에서 검증 프로세스 종료가 자동 검토로 한 번 거절되어, 프로젝트 경로·진입점·PID·시작 시각을 대조한 뒤 해당 검증 프로세스만 종료/재실행해 검증을 완료했다. 사용자 에디터 종료 없음.
+- 직접 확인: Play 종료 → 컴파일 완료 → MainScene Play → 스킬을 약/강 버튼에 장착 → 약공격 시 공격 모션, 강공격을 누르는 동안 Guard 자세, 손을 떼면 공격 모션 확인. 차징 취소/포커스 상실 뒤 Guard가 남지 않는지, 대시는 기존 Charge인지 확인한다. 차징만으로 가드 이펙트나 방어 판정이 생기면 안 된다. 문제 시 Console 첫 오류와 플레이어 Animator Controller, IsGuarding/IsDashing 및 LightAttack·Guard 상태를 확인한다. 다음 작업은 이 원본 씬 확인이며, 이전 조사 항목의 연결 미구현 설명은 이번 작업으로 대체한다.
+
+## 2026-11-13 약공격·강공격 시전 모션 누락 조사
+
+- 사용자 보고에 따라 현재 호출 경로를 정적으로 추적했다. 약공격 TryCastLightSkill과 강공격 TryReleaseHeavyCharge는 모두 CastShots로 직접 진입하며 PlayerView.PlayLightAttack을 호출하지 않는다. 기존 PlayerLightSkill.TryCast 안에는 모션 재생 호출이 남아 있지만 현재 Player 입력 경로에서는 해당 시전 메서드를 호출하지 않는다. 표 기반 발사와 캐릭터 시전 모션의 연결 누락을 확인했다. CombatSkillTable.json의 AnimationName도 빈 값이므로 표 값만으로 모션이 자동 연결되지는 않는다.
+- 이번 요청은 원인 설명으로 처리해 런타임 코드/씬/프리팹은 수정하지 않았다. 시작 HEAD c313992, 브랜치 balancing-exp-and-skill-range. 사용자 MainScene.unity 및 NanumGothic Combat SDF.asset 변경 보존. 실행 테스트 0개, Unity Play/컴파일 미실행. 실제 화면에서 보고된 현상을 재현한 결과가 아닌 소스 조사 결과다.
+- 후속: 수동 약/강공격에 기존 캐릭터 시전 모션을 연결하고 자동 발동은 별도로 유지해야 한다. 기존 LightAttackAnimationState는 레거시 lightSkill 실행 ID에 결합되어 있어 재생 호출만 추가하기 전에 발사 타이밍/행동 잠금 종료와의 관계를 검증한다.
+- 직접 확인: MainScene Play → 공격 스킬을 약/강 버튼에 장착 → 약공격 및 강공격 충전 후 해제 → 투사체/스킬 효과와 별도로 캐릭터 몸의 시전 자세 전환 여부를 본다. Animator 창에서 LightAttack 진입 여부 및 Console 첫 오류를 함께 확인한다.
+
+## 2026-11-13 기본 탄환 피해를 1로 고정
+
+- 사용자 요청으로 PlayerCombat.TickBasicAttack에서 기본 탄환의 발사 피해를 상수1로 고정했다. 공격력/DMG 카드/속성 피해 보정을 거치지 않는다. 기본 탄환의 발사 조건에서 이제 사용하지 않는 공격력 유효성 검사도 제거했다. 발사 주기/타깃/속도/외형/풀링/MP는 유지한다. 공용 Bullet의 피해 처리와 스킬 발사는 변경하지 않아 수동/자동 스킬은 직전 DMG 공격력 증가를 계속 사용한다. 아래 이전 인수인계의 기본 탄환 공격력 연동 설명은 이번 요청으로 대체된다.
+- 검증: 현재 Assembly-CSharp 소스 Roslyn 컴파일 exit0·오류/경고 출력 없음. 기존 스탯/피해/카드 회귀 검증 LevelUpMixedDraftValidation **12/12 통과**. 이 검증은 기본 탄환 실제 발사/타격 테스트를 포함하지 않는다. 원본 MainScene Play·Unity Test Runner·기기 실행은 미실행이다. 사용자 변경과 이전 작업을 보존하며 씬/프리팹/엑셀/meta는 변경하지 않았다.
+- 직접 확인: Play 종료→컴파일 완료→MainScene Play→기본 탄환의 피해가1인지 확인한다. CombatUI / CombatPopupController ⋮→테스트/원하는 카드 고르기에서 DMG 카드를 여러 번 획득한 뒤에도 기본 탄환은1, 수동/자동 스킬은 증가한 공격력 기준이어야 한다. 이상 시 Console 첫 오류와 해당 탄환이 스킬 투사체가 아닌 기본 Bullet인지 확인한다.
+
+## 2026-11-13 DMG 카드를 최종 피해 증폭에서 공격력 증가로 변경
+
+- 사용자가 PlayerDatatable.xlsx의 기본/카드 시트 키를 ATK→DMG로 변경하고 값도 1/2/3/4/5/6으로 수정했다. 처음에는 이름 변경으로 해석했으나 사용자가 최종 피해 증폭 대신 플레이어 공격력을 더하는 의도라고 명시하여 최종 구현을 그 기준으로 정정했다. 사용자 엑셀은 수정하지 않고 현재 원본에서 PlayerStatTable.json을 내보냈다. 카드 이름은 엑셀의 데미지다.
+- PlayerStat.DMG는 기존 ATK와 같은 enum 값2를 유지해 직렬화된 카드 식별을 보존한다. PlayerStatProgress는 획득 값과 표의 Lv.0 기준값 차이를 Increase로 제공한다. PlayerData.AttackDamage = 원래 attackDamage + DMG 증가분이며 원본 직렬화 공격력은 바꾸지 않는다. 현재 표에서 Lv.1은 +1, Lv.3은 +3, Lv.5는 +5다. 기준값1을 코드에 고정하지 않아 표 기준값이 달라도 차이로 계산한다. 카드 삭제/재획득 시 증가분이 정상 해제/복원된다.
+- 최종 피해의 DMG 배율을 제거하고 기본 Bullet, 표 기반 수동 약/강 공격·자동 발동, 레거시 PlayerLightSkill의 공격력 계수 입력을 AttackDamage로 연결했다. 속성 피해/스킬 스택/강공격 충전/PassiveScale은 유지한다. 고정 피해는 DMG 카드로 증폭되지 않는다. 이전 공개 DamageMultiplier 프로퍼티는 호환용1로 유지하되 전투/상태 UI는 사용하지 않는다. 상태창은 공격력 수치로 표시하고 DMG 카드도 × 표기 없이 표 값을 표시한다. SkillDatatable의 ScalingStat ATK는 별개이므로 변경하지 않았다.
+- 검증: LevelUpMixedDraftValidation **12/12 통과**. 표/JSON 일치, enum2 보존, 단계별 증가·기본 공격력 불변·카드 삭제/재획득·다른 기본 공격력·사용자 정의 표 기준값·고정 피해 비증폭·속성/스킬 레벨 조합을 확인했다. 기본 공격력1/DMG Lv.3/속성 Lv.3/스킬 Lv.3의 예시 피해24.96을 검증했다. 전체 Assembly-CSharp 소스 Roslyn 컴파일 exit0, 오류/경고 출력 없음. 실제 MainScene Play·Unity Test Runner·기기 검증은 미실행이다. 직전 자동 발동0.3 제거와 사용자 엑셀 변경을 보존하며 씬/프리팹/meta는 수정하지 않았다.
+- 직접 확인: Play 종료→컴파일/JSON 임포트 완료→MainScene Play→CombatUI / CombatPopupController ⋮→테스트/원하는 카드 고르기에서 DMG(데미지) 카드를 획득한다. 기본 공격력이1이면 상태창 공격력은 카드마다2/3/4로 증가하며 기본 탄환과 수동/자동 스킬이 이 값을 사용해야 한다. 테스트 카드 삭제 기능으로 DMG를 삭제하면 공격력1로 돌아와야 한다. 불꽃 탄환 Lv.3·DMG Lv.3·속성 피해 Lv.3 조건이면 수동24.96(화면 반올림25), PassiveScale0.2 자동4.992(화면5)다. 치명타/강공격 충전은 비교에서 제외한다. 이상 시 Console 첫 오류, JSON의 DMG 카드 값, 상태창 공격력 및 각 카드 레벨을 확인한다. 엑셀 후속 수정은 Tools > Parse Player Stat Table로 반영한다.
+
+## 2026-11-13 자동 발동의 추가 피해 보정 0.3 제거
+
+- 사용자 요청으로 Player의 PassiveDamageFactor 상수와 TickOwnedPassives의 추가 곱셈을 제거했다. 자동 발동 피해는 기존 스킬 피해·공격력/속성 카드·스킬 레벨 배율에 엑셀 Passive_Scale만 곱한다. 수동 공격, 발동 주기, MP, 씬/프리팹/엑셀 값은 변경하지 않았다. 시작 상태는 balancing-exp-and-skill-range, HEAD e792546, 워킹트리 깨끗함이었다.
+- 기존 TryOwnedPassive의 빈 값/0/유효하지 않은 Passive_Scale에 대한 기본값0.2는 유지한다. 엑셀에 유효한 양수를 입력하면 해당 값이 그대로 적용된다. 기본값 기준 자동 피해는 수동의6%에서20%가 된다.
+- 검증: 현재 Assembly-CSharp 소스를 기존 응답 파일로 Roslyn 컴파일 exit0, 오류/경고 출력 없음. CombatSkillTableValidation은 **28/29 통과**이며 패시브 기본값/엑셀 데이터 검사는 통과했다. 실패1건은 shipped JSON의 Icon이 SkillIcons/SkillIcon_10001인데 테스트가 빈 문자열을 기대하는 기존 불일치다. 해당 검증 프로젝트는 Player.cs를 컴파일하지 않아 이번 변경과 무관하며 아이콘/테스트 기대값은 변경하지 않았다. Assets/tools에서 PassiveDamageFactor 잔여 참조 없음. 실제 MainScene Play·Unity Test Runner·기기는 미실행이다.
+- 직접 확인: Play 종료→컴파일 완료→MainScene Play→CombatUI / CombatPopupController ⋮의 테스트/원하는 카드 고르기에서 같은 공격 스킬을 획득하고 수동/자동 피해를 비교한다. Passive_Scale=0.2이면 같은 조건에서 자동 피해가 수동의20%여야 한다(화면 숫자 반올림 유의). 엑셀에서 값을 바꿀 때는 기존 스킬 표 내보내기로 런타임 JSON에 반영하고 Play를 다시 시작한다. 값이 다르면 Console 첫 오류, JSON의 해당 스킬 PassiveScale, 카드/스킬 레벨과 치명타·강공격 충전 조건을 확인한다. 남은 별도 작업은 아이콘 경로 검증 기대값 정합성 확인과 실제 전투 확인이다.
+
+## 2026-11-13 Utility 버튼 흰 바깥 배경을 투명으로 복원
+
+- 사용자 요청 당시 Ingame_UI_Button_USkiil.png는 83×91 RGBA지만 알파가 전부255이고 네 모서리도 흰색인 상태였다. 이미지 편집 도구로 바깥 흰 배경만 투명하게 하는 편집을 요청한 뒤, 이전 원본에 보존된 정확한 알파 경계를 사용해 원래 크기로 정밀 반영했다.
+- 버튼 바깥2486픽셀의 완전 투명 및 반투명 테두리를 원래대로 복원했다. 현재 불투명 버튼 내부 픽셀은 모두 보존해 별·파란색·이전 x5 제거 상태를 유지한다. 흰색과 섞인 경계는 이전 원본 색/알파를 복원해 흰 번짐을 피했다. 현재 meta bytes/GUID와 사용자 Sprite Mode 설정도 그대로다.
+- 검증: 83×91 유지, 원본 경계 알파 동일, 불투명 내부 픽셀 동일, meta bytes 동일 검사 통과 및 수정 PNG 눈으로 확인. Unity 임포트/Play는 미실행이다. 직접 확인: Unity 임포트 완료→MainScene Play→전략 버튼 바깥에 흰 사각형 없이 게임 화면이 비쳐야 한다. 흰 배경이 남으면 임포트 완료 여부·버튼 Sprite 참조·UI Image 자체의 흰 배경 오브젝트 여부를 확인한다.
+
+## 2026-11-13 Utility 버튼 원본 그림의 x5 제거
+
+- 사용자 요청으로 `Assets/2.Resources/UI/실제 사용 UI/Ingame_UI_Button_USkiil.png`의 오른쪽 아래 x5 글자와 검은 외곽선을 제거했다. 이미지 편집 도구에 글자만 제거하고 별/원형 테두리/투명 배경을 보존하도록 요청했다. 생성된 정리 결과에서 필요한 부분만 원본 캔버스에 합성했다.
+- 원본 83×91 RGBA 크기·전체 알파 채널·meta bytes/GUID를 보존했다. 변경 픽셀369개가 글자 영역 x36~64/y52~70 안에만 있는지 확인했으며 그 밖의 별/테두리/배경 픽셀은 동일하다. 수정 PNG를 눈으로 확인했다. 코드/프리팹/씬/실제 전략 사용 횟수는 변경하지 않았다. Unity 임포트·Play는 미실행이다.
+- 직접 확인: Unity 이미지 임포트 완료→MainScene Play→전략 버튼 확인. 별과 파란 원형 버튼은 기존 모양이고 원본에 그려진 x5만 없어야 한다. 이전 글자가 남으면 임포트 완료 여부와 버튼 Sprite가 이 파일인지 확인한다. 별도로 실행 중에 표시하는 남은 횟수 텍스트는 이번 이미지 편집 대상이 아니다.
+
+## 2026-11-13 기본 Bullet을 흰색·옅은 금색 광탄으로 변경
+
+- 사용자가 추천안 중 작은 광탄(흰 핵·옅은 금색 짧은 꼬리·작은 명중 빛)을 선택하여 구현했다. 시작 상태는 `balancing-exp-and-skill-range`, HEAD `876ad01`, 워킹트리 깨끗함이었다. 기본 공격 이동/피해/자동 타깃/발사 주기/수명/콜라이더는 유지한다.
+- `tools/PixelFxBake/skills/basic.js`에 pixelfx 생성 함수 2개를 추가했다. pixelfx0.3.1, 확인한 원본 커밋 `5294518`. 기존 `export-skills.mjs --only BasicLightBolt,BasicLightHit`로 생성한다. BasicLightBolt는 30fps·12프레임·0.4초 반복, 프레임30×18/시트90×72. BasicLightHit는 30fps·6프레임·0.2초 단발, 프레임20×20/시트40×60. Point/무압축/PPU32. 파일은 `Assets/Resources/LightSkills/Fx` 및 `Frames`이며 기존 LightSkillVisuals.Baked/공용 Sprite 머티리얼을 재사용한다.
+- `BasicBulletVisual`을 기본 `Assets/1.Prefabs/Bullet.prefab`에만 추가했다. Bullet.InitDirection/재사용 초기화/명중에 선택적 시각 호출 5줄을 연결했다. 자식 SpriteRenderer만 발사 방향으로 돌리고 루트0.4배를 자식에서 상쇄해 그림을 기존 스킬과 같은 PPU로 표시한다. 구형 MeshRenderer는 정상 그림 로드 시에만 숨기고 정리 시 원래 활성 상태로 복원한다. 원본 루트 Transform/Collider(radius0.5, 월드반경0.2)/Rigidbody/프리팹 GUID는 그대로다. 기존 FlameBullet 등 시각 컴포넌트가 없는 Bullet은 기존 경로를 유지한다.
+- `BasicBulletHitFx`는 Bullet 반환과 독립적인 짧은 그림이며 콜라이더/피해가 없다. 기존 Managers.Pool을 사용해 재사용하고 준비되지 않은 경우에만 독립 오브젝트로 재생한다. 새 전역 매니저는 만들지 않았다. 명중 호출은 기존 TakeDamage 직전 1회이며, 수명/화면 이탈로 반환할 때 명중 효과는 생성하지 않는다. 비행/명중 애니메이션은 deltaTime에 따라 일시정지와 함께 멈춘다.
+- 검증: 분리 Unity6000.5.0f1에서 기존 프리팹의 새 시각 없음 실패 확인 후 실제 Bullet/PoolManager/PooledObject/시각/LightSkillVisuals 소스를 사용한 assertion harness **15/15 통과**. 시각 교체, 루트/판정 보존, 자식 월드 배율/좌·상 방향, 프레임 진행·delta0 정지·반복, 반환 숨김, 방향/프레임 재사용, 1회 피해11 보존/탄환 반환, 독립 명중 빛 무콜라이더/종료/재사용, 비명중 반환 무효과, 레거시 프리팹 제외를 검사했다. 반복 경계 float 오차로 한 프레임 밀리던 실패를 발견해 작은 프레임 계산 허용치로 수정했다. 에디터 deltaTime=0에서 시간 만료를 검사하려던 검증은 비명중 Despawn 검사로 정정했으므로 실시간 수명 만료 Play 검증으로 보고하지 않는다.
+- 현재 Assembly-CSharp 및 새 `BasicBulletVisualTests` 3건 소스를 Roslyn으로 컴파일 exit0·경고 출력 없음. 분리 Unity에서 실제 Sprite 렌더로 오른쪽/위/왼쪽 광탄과 명중 빛도 확인했다. 새 테스트 소스는 기본/레거시 프리팹 구분, 시각/판정/재사용/정지·반복, 비행/명중 클립 계약이다. 원본 Unity Test Runner 실행 **0개**, 실제 MainScene 전투/해상도·다수 타격·시간 경과·Android·기기·Profiler는 미검증이다. 신규 메타 GUID 오타와 검증 사본의 JSON 모듈 누락은 검증 중 바로잡았다. 원본 설정·씬·다른 프리팹/스킬/데이터/기존 아이콘 작업은 수정하지 않았다.
+- 직접 확인: Play 종료→임포트/컴파일 완료→MainScene Play→공격 가능한 거리에 적을 둔다. 기존 구형 탄환 대신 흰 핵/옅은 금색 짧은 꼬리가 적 방향으로 날아가고, 맞는 순간 약0.2초 작은 빛이 남았다 사라져야 한다. 공격력/속도/맞는 크기/빈도는 기존과 같아야 한다. 반복 발사/일시정지·재개/씬 재시작 때 지난 방향·그림·잔상이 남지 않아야 한다. 이상 시 Console 첫 오류, Player의 bulletPrefab이 기본 Bullet인지, 프리팹 BasicBulletVisual 활성, `Resources/LightSkills/Fx/BasicLightBolt`·`BasicLightHit` 및 Frames JSON 임포트를 확인한다. legacy lightAttackProjectile는 그대로다.
+- 구현 계획은 `docs/superpowers/plans/2026-11-13-basic-light-bolt.md`, 임시 생성 도구/미리보기/검증 프로젝트는 `.utmp`에 있으며 Git 제외다. 커밋·푸시는 하지 않았다.
+
+## 2026-11-13 보유 아이콘 검은 선 제거·Utility Common 테두리
+
+- 사용자 첨부 화면 기준으로 보유 슬롯의 검은 선을 제거하고 Utility의 카드/아이콘 테두리를 추가했다. 사용자가 처음 말한 Uncommon은 즉시 Common으로 정정했으므로 Common 색 `#B8B2C4`를 적용했다. Utility의 실제 등급/추첨 데이터는 변경하지 않는다.
+- 보유 슬롯의 추가 Outline은 아이콘이 표시된 보유 상태에서 끈다. 프레임이 있는 공격 아이콘은 그림을 64/62배로 약간 확장하고 슬롯 RectMask2D로 바깥을 잘라 원본의 어두운 바깥 1픽셀만 숨긴다. 원본 PNG/meta/GUID는 수정하지 않았으며 색 테두리 4픽셀은 슬롯 경계에 맞춰 남는다. 빈 슬롯/잠김/아이콘 없음의 외곽선은 유지한다.
+- `StatusPanelUI.SkillFrame`으로 어두운 외곽선 없는 Common 4변 테두리를 생성한다. Utility 카드 상단 아이콘과 보유 Utility 슬롯에만 표시하고, 카드의 바깥 4변/글로우도 Common 색으로 표시한다. 카드 이름·설명 글자색과 실제 Rarity 값은 유지한다. PlayerStatusPanel이 30000~39999 ID의 Utility 여부만 뷰에 전달한다. 기존 카드/보유 아이콘 크기 정렬 변경은 유지한다.
+- 검증: 수정 UI 소스를 사용한 별도 Unity 6000.5.0f1 RenderTexture에서 공격 아이콘 2개와 Utility 카드·보유 슬롯을 렌더해 검은 선 제거와 Common 테두리를 눈으로 확인했다. 공격 슬롯의 원본 외곽 마스킹/Outline 비활성, Utility 카드/슬롯 프레임 활성 검사를 통과했다. 현재 Assembly-CSharp Roslyn 컴파일 exit0·경고 출력 없음, diff 공백 검사 통과. 원본 MainScene Play·Unity Test Runner·기기는 미실행이다. 원래 씬·프리팹·폰트·게임 수치·데미지 숫자 분산 철회 상태는 보존했다.
+- 직접 확인: Play 재시작→공격 스킬 보유 후 일시정지 목록에서 테두리 바깥의 검은 선이 없는지 확인. CombatUI / CombatPopupController ⋮→`테스트/원하는 카드 고르기`→급속 회복 등 Utility 카드를 열어 상단 아이콘과 카드 외곽이 Common 회보라색인지 확인하고, 획득 후 전략 슬롯에도 같은 색 테두리가 있는지 확인한다. 그대로면 컴파일 완료/Play 재시작 여부와 Console 첫 오류를 확인한다. 원본 아이콘 PNG를 고칠 필요는 없다.
+
+## 2026-11-13 스킬 아이콘 등급 테두리 정렬·보유 슬롯 확대
+
+- 사용자 첨부 화면 기준으로 카드 상단 아이콘의 중복 테두리를 제거하고 보유 슬롯의 그림 자체를 확대했다. 시작 상태는 `balancing-exp-and-skill-range`, HEAD `f70a2e8`, 워킹트리 깨끗함을 확인했다.
+- `LevelUpSelectionPanel.Card`: PPT 그림 자체에 등급 테두리가 있는데 별도 UI Border와 여백까지 추가하던 구조를 정리했다. IconFrame의 Border/Glow와 iconEdges를 제거하고 Icon을 IconFrame 전체에 Stretch했다. preserveAspect=false로 지정한 영역 끝까지 그림의 등급 테두리가 닿는다. 카드 바깥 테두리·설명·선택 버튼 등은 유지한다.
+- `StatusPanelUI.Cell`의 스킬 상세 슬롯만 Icon을 anchor(0,0)~(1,1) 전체 크기로 확대했다. preserveAspect=false로 바깥 슬롯과 그림의 등급 테두리를 맞춘다. 이름·Lv·장착 글자는 그림 위에 유지하되 확대된 테두리와 붙지 않도록 소폭 안쪽으로 옮겼다. 일반 유물/증강 셀의 그림 배치는 유지했다. 에셋 픽셀/메타/GUID·씬·프리팹·게임 수치·데미지 숫자 코드는 변경하지 않았다.
+- 검증: 현재 Assembly-CSharp를 Bee 응답 기반 Roslyn으로 컴파일 exit0·경고 출력 없음. 분리된 `.utmp/DamageFontProbe` Unity 6000.5.0f1에 실제 수정 UI 소스·원본 아이콘·폰트/TMP 셰이더 사본을 넣고 카드와 보유 슬롯 2개를 RenderTexture로 렌더했다. 카드 아이콘에 자식 테두리 중복이 없고, 카드/보유 아이콘의 anchor가 전체 영역과 일치하며 preserveAspect 레터박스가 없는지 검사 통과. 렌더에서 단일 등급 테두리·확대된 슬롯 그림·이름/Lv 표시 확인. 초기 사본의 TMP 셰이더 누락으로 글자가 빠진 렌더는 셰이더를 보완해 다시 확인했다. 원본 Unity Test Runner 실행0개, 실제 MainScene Play·각종 해상도·기기는 미검증이다. diff 공백 검사 통과. 별도 검증 에디터는 완료 후 종료됐다.
+- 직접 확인: Play 종료→컴파일 완료→MainScene Play→CombatUI / CombatPopupController ⋮→`테스트/원하는 카드 고르기`로 플레어 탄환 카드 확인. 상단 아이콘은 흰 외곽 중복 테두리 없이 금색 테두리 한 겹이어야 한다. 획득 후 일시정지 보유 목록에서 아이콘이 슬롯 전체를 채우고 그림의 등급 테두리가 바깥 테두리까지 닿아야 한다. 이름/Lv/장착 글자도 확인한다. 예전 작은 아이콘이 남으면 Play 재시작 여부·컴파일 완료 여부·Console 첫 오류를 확인한다.
+
+## 2026-11-13 피해 숫자 위치 분산 철회
+
+- 사용자 요청으로 직전의 피해 숫자 위치 분산 구현을 전부 되돌렸다. DamageNumberDisplay의 오프셋/크기 계산/빈 위치 탐색/연속 피해 샘플 메뉴를 제거하고 기존 피격 위치에서 위로 떠오르는 표시로 복원했다. 직전 추가한 DamageNumberOverlapTests와 meta도 제거했다. 카드·아이콘·엑셀 등 이전 작업과 사용자 변경은 보존했다.
+- 숫자 중첩이 원인이었다는 사용자 확인은 유지하되, 표시 위치 분산 방식은 채택하지 않는다. 대체 방식은 아직 미정이다. 아래 위치 분산 구현/검증 기록은 철회 전 이력이며 현재 동작이 아니다.
+- 확인: DamageNumberDisplay가 HEAD 소스와 동일한지 비교하고 diff 공백 검사 및 기존 정렬 검사를 실행한다. Unity Play/자동 테스트는 새로 실행하지 않았다. 직접 확인은 Play 종료→컴파일 완료→MainScene Play→같은 적 연속 타격이며, 숫자가 좌우로 분산되지 않고 기존 위치에서 떠올라야 한다. 계속 분산되면 Play 재시작/컴파일 완료 및 Console 첫 오류를 확인한다.
+
+## 2026-11-13 연속 피해 숫자 중첩 원인 확인·표시 위치 분산 (철회된 이력)
+
+- 사용자 직접 확인: 소수점 글리프 문제가 아니라 이전 피해 숫자와 다음 피해 숫자가 동시에 같은 위치에 표시돼 겹친 현상이다. 아래의 미해결 기록은 이 확인과 재현으로 해소됐다.
+- 기존 DamageNumberDisplay는 같은 피격 위치의 숫자를 같은 좌표에서 생성했다. 동일 위치에 6개를 표시하는 실제 Unity 재현에서 **15쌍 전부 겹침**을 확인했다.
+- 새 숫자의 실제 TMP preferred 크기와 기존 숫자의 현재 표시 위치를 비교해 가까운 빈 위치를 찾는다. 중심→좌우→위쪽 순서로 후보를 검사하며 화면 좌우 폭을 고려한다. 기존 숫자는 재배치하지 않고 새 숫자에 고정 오프셋을 주므로 같은 위치의 숫자가 떠오르는 동안 간격이 유지된다. 풀 재사용 때 오프셋을 초기화하고 긴 숫자의 Rect 크기도 확보한다. 폰트·표시 정밀도(`0.#`)·피해값·수명·상승 속도·동시 표시 한도·팝업 뒤 정렬은 유지했다. 새 전역 매니저 없음. 원본 씬·프리팹·공용 폰트 및 사용자 변경은 건드리지 않았다.
+- 에디터 전용 `샘플 연속 피해 숫자 표시 (Play 중)` 메뉴를 추가했다. 같은 위치에 0.16/1.16/10.16/123.4 피해를 동시에 표시한다. 현재 형식상 화면에는 0.2/1.2/10.2/123.4가 표시되는 것이 정상이다.
+- 검증: 원본과 분리된 `.utmp/DamageFontProbe` Unity 6000.5.0f1에서 수정 전 6개/15쌍 중첩 → 수정 후 6개/0쌍. 프리팹과 같은 fontSize42·riseDistance140으로 최종 재실행해 6회→6개/0쌍, 48회→48개/0쌍, 49회→한도48개/0쌍 **3/3 사례 통과**. 실제 DamageNumberDisplay 소스를 복사해 호출하고 프로젝트와 같은 폰트/TMP를 사용했으며 게임 의존성만 최소 대역으로 분리했다. 이는 별도 Unity assertion harness 결과이며 원본 프로젝트 Test Runner 실행 수가 아니다. `DamageNumberOverlapTests`에 3개 NUnit 사례(6/48/49회, 재사용 및 상승 후 간격 검사)도 추가했지만 원본 Test Runner 실행은 **0개**다.
+- 현재 프로젝트 Assembly-CSharp와 새 NUnit 소스를 Roslyn으로 컴파일 exit0·경고 출력 없음 확인. `tools/ValidateDamageNumberSorting.ps1` 통과(Order -1, 두 씬 Overlay Canvas4개 뒤). diff 공백 검사 통과. 원래 MainScene 전투 화면·다양한 해상도/급격한 카메라 줌·실기기·Android·성능 Profiler는 미검증이다. 극단적으로 많은 숫자는 위쪽으로 여러 줄 배치될 수 있어 실제 전투 가독성 확인이 남는다. 별도 검증 에디터는 실행 완료 후 종료됐다.
+- 직접 확인: Play 종료→임포트/컴파일 완료→MainScene Play→Hierarchy의 DamageNumberDisplay 컴포넌트 ⋮→`샘플 연속 피해 숫자 표시 (Play 중)`. 네 숫자가 겹치지 않고 좌우/위로 나뉘어 떠올라 사라져야 한다. 같은 적을 연속/동시 타격해도 이전 숫자와 새 숫자가 같은 글자처럼 합쳐 보이지 않아야 한다. 안 되면 Console 첫 오류, 같은 스크립트/컴포넌트가 중복 생성됐는지, Play 재시작 여부와 표시 한도/폰트 크기를 확인한다. 수치 반올림은 기존대로다.
+
+## 2026-11-13 소수 데미지 숫자 겹침 조사 (미해결)
+
+- 사용자 보고: 0.16 같은 소수의 소수점이 1 위치와 겹쳐 보임. 추가 확인으로 HP/MP나 상태창이 아닌 **피격 대상 위로 떠오르는 데미지 숫자**임을 확인했다.
+- 표시 경로는 DamageNumberDisplay.Show → TextMeshProUGUI이며 프리팹의 폰트는 NanumGothic Combat SDF(동적, 원본 NanumGothic-Regular.ttf)다. 현재 문자열 형식은 `0.#`/InvariantCulture라 0.16은 0.2로 반올림된다. 실제 화면에서 0.16이 그대로 보이는지, 다른 숫자가 겹쳐 0.16처럼 보이는지 추가 화면 증거가 필요하다. 동일 위치 연속 타격은 숫자 오브젝트 간 위치가 겹칠 가능성도 있으나 아직 원인으로 확정하지 않았다.
+- 원본 TTF를 Pillow/FreeType로 읽어 0·.·1·6의 advance와 문자열 길이를 확인했으며 0.16 길이는 각 글자 길이의 합으로 정상이다. 사용자 변경 중인 공용 폰트/씬/프리팹은 수정하지 않았다.
+- 별도 `.utmp/DamageFontProbe` 최소 Unity 프로젝트를 만들고 같은 Unity 6000.5.0f1/로컬 uGUI2.5 패키지, 동일 폰트 및 TMP 설정 사본으로 실제 TextMeshProUGUI 배치를 측정했다. 첫 실행은 검증 사본에 TMP Settings가 없어 NullReferenceException으로 실패했고 TMP Resources 사본을 추가한 두 번째 실행은 완료됐다. 0.16/0.2/1.16/10.16/111.1/0.01 총 6문자열의 glyph origin/advance/quad 좌우 경계를 측정했으며 소수점과 다음 숫자의 경계 겹침은 없었다. 예: 0.16에서 점의 오른쪽 -14.76469, 다음 1의 왼쪽 0.7830315. 이는 배치 측정이며 원래 게임 화면의 재현/시각 검증 통과를 뜻하지 않는다. Unity 테스트 러너 실행0개, 런타임 수정 없음.
+- 원본 에디터와 같은 프로젝트를 두 번째로 열지 않았다. 원본 창은 최소화 상태로 UI 읽기에 실패해 실제 게임 화면 확인이 안 됐다. 다음은 사용자가 겹친 숫자의 화면 캡처를 제공하면 실제 문자열·글리프 내부 겹침·여러 피해 숫자 간 중첩을 구분하는 것이다. 필요 시 MainScene Play에서 공격 직후 에디터 Pause → 런타임 DamageNumbers/DamageNumber의 TMP Text/폰트/정렬과 활성 숫자 위치를 비교한다. 정상은 소수점과 숫자가 분리되고 실제 포맷대로 한 자리 소수가 보이는 것. 원본 화면 재현 없이 공용 폰트 수치나 데미지 표시 정밀도를 임의 변경하지 않는다.
+
+## 2026-11-13 PPT 원본 스킬 아이콘 연결
+
+- 사용자 요청으로 `Document/스킬_개요.pptx`의 스킬 그림을 카드 선택창과 보유 목록에 연결했다. PPT 6~8장에 있는 46개 그림이 기존 `Assets/2.Resources/Art/SkillIcons/Skill_<ID>.png`와 bytes 동일함을 확인하고, 그림 옆의 이름/ID까지 대조했다. 기존 파일과 meta를 `Assets/Resources/SkillIcons/`로 함께 이동하여 PNG/meta bytes 및 GUID를 보존했다. 원본 PPT와 원래 폴더의 별도 SkillIcon_* 및 등급 테두리는 수정하지 않았다.
+- `SkillCardIcons.Get`을 추가하고 CombatPopupController.CreateSkillCard와 PlayerStatusPanel.SkillIcon에서 사용한다. 명시된 아이콘의 기존 캐시/Resources 로드를 우선하고, 없으면 Resources의 Skill_<ID> 원본 그림을 쓴다. 따라서 Icon 46개가 비어 있는 현재 JSON에서도 아이콘을 표시하며, JSON/엑셀 재변환 없이 작동한다. 현재 전투 수치/JSON/엑셀/씬/설정/폰트는 변경하지 않았다. 새로운 매니저/싱글톤/Addressables 설정은 추가하지 않았다. 스탯 카드는 대응 PPT 그림이 없어 기존 표시를 유지한다.
+- 실제 검증: 새 검증 도구를 구현 전에 실행해 조회 도우미 소스 없음으로 실패 확인, 구현 후 에셋 연결 전에는 로딩 5건 통과/파일 검사 1건 실패, 에셋 이동과 ID 대응 검사 추가 후 `tools/SkillIconValidation/Run.ps1` **7/7 통과**. PPT 원본 hash, 그림 옆 이름과 ID 대응 46건, Sprite Single/Point 설정, 빈 키/커스텀 우선/기존 키 폴백/없는 아이콘을 검사한다. 기존 `CombatSkillTableValidation` **29/29**, `PlayerLoadoutValidation` **6/6**도 새로 실행해 통과했다. 전체 합계 **42/42**는 .NET 경계 검증이며 Unity 테스트 수가 아니다.
+- 현재 Bee 응답 파일을 바탕으로 새 도우미와 Unity 테스트를 추가한 Assembly-CSharp를 Roslyn으로 컴파일해 exit 0·경고 출력 없음·DLL 생성 확인. 새 Unity 테스트 소스는 카드/보유 목록의 동일 아이콘 3건 및 실제 Resources의 46개 스킬 기본 그림 1건이다. 실제 Unity 테스트 실행 **0개**, Unity 임포트/Play 화면·Android 빌드·기기는 미검증이다. diff 공백 검사 통과. 기존 사용자의 미커밋 변경은 보존했다.
+- 직접 확인: Play 종료 → 임포트/컴파일 완료 → MainScene Play → CombatUI / CombatPopupController ⋮ → `테스트/원하는 카드 고르기`에서 화염 부채/용암 분출/재생 치유를 열어 PPT와 같은 아이콘 확인 → 획득 후 일시정지 보유 목록에도 같은 그림 확인. 스탯 카드는 아이콘이 없어도 정상이다. 안 보이면 Console 첫 오류, `Assets/Resources/SkillIcons/Skill_<ID>.png`의 Sprite Single 임포트, 실제 ID, 컴파일 완료 여부를 확인한다. `SkillCardIconTests`로 실제 Resources 로드와 UI 연결을 추가 확인할 수 있다. 상세 출처·조회 우선순위는 `docs/AI/SkillIcons.md` 참고.
+
+## 2026-11-13 현재 게임 JSON을 엑셀 실제 입력에 복원
+
+- 사용자 승인으로 `Document/SkillDatatable.xlsx`의 실제 입력 열과 `Area_Typetable`을 현재 `Assets/Resources/Data/CombatSkillTable.json` 기준으로 복원했다. 강공격의 MP/차징/사거리/피해/넉백 등 누락값과 전략 스킬의 효과/대상/지속시간/피해·회복 계수 등 차이를 해소했다. 강공격 110셀, 전략 169셀, 범위 시트 82셀을 복원·추가했으며 약공격은 실제 변환값이 일치하여 입력 변경이 필요하지 않았다. 강공격 Q1/Q2에 투사체 개수 헤더도 추가하고 Q열 폭을 맞췄다.
+- 범위 시트에 없던 강공격 20001~20005와 전략 30001~30010의 15행을 추가했다. 기존 행 순서/ID·수식·아이콘 경로·영문 이름·AJ:AO 참고 열·기타 시트는 보존했다. 기존 ID/개수 수식이 추가 행을 재계산하도록 Excel fullCalcOnLoad/forceFullCalc를 설정했다. 실제 숫자는 C# float로 동일하게 읽히는 짧은 소수(2.2, 0.55 등)로 기록했다.
+- 새 회귀 검사 `workbook reimport preserves every runtime field except authored icon paths`를 추가하여 기존 변환기로 읽은 46개 스킬의 **모든 공개 런타임 필드**를 JSON과 대조한다. 엑셀의 기존 아이콘 경로는 JSON의 빈 아이콘보다 구체적인 작성 내용이므로 유지하고 그 필드만 일치 검사에서 제외했다. 재변환 시 전투 수치는 같고 아이콘 경로는 엑셀 값이 들어간다. 현재 운영 JSON 파일은 bytes 동일하게 보존했으며 `--export`/Unity 메뉴로 덮어쓰지 않았다.
+- 실제 검증: 복원 전 새 검사에서 20001 CostType 누락으로 실패(전체 28/29). 복원 후 동등성 검사는 통과했지만 빈 전략 효과/빈 넉백/0인 망치 반경을 기대하던 구 검사 3개가 실패해, 현재 게임의 HealOverTime·Knockback·반경2.2를 검사하도록 갱신했다. 최종 `tools/CombatSkillTableValidation/Run.ps1` **29/29 통과**. 입력 셀 이외 기존 셀/수식 보존 검사·ZIP 무결성 검사 통과. 저장 파일 재임포트·강공격/전략/범위 시트 렌더 확인. 헤더 폭 조정은 셀 값 없이 Q열 너비만 변경했다. Unity 에디터 메뉴 실행·Play·Android·기기 검증은 미실행이다.
+- 이번 변경은 엑셀/검증 소스/이 문서뿐이다. 기존 Player/카드 도구/씬·설정·폰트·빌드 프로필 등 미커밋 변경과 사용자 변경은 보존했다. 재현·복원용 임시 파일은 `.utmp/SkillWorkbook`이며 Git 제외다.
+- 직접 확인: Excel에서 `HeavySkilltable!I3:Z3`의 화염 망치 MP10·Charge·차징0.5·사거리2.2·기본피해15·계수1.5 확인. `Area_Typetable`의 화염 망치 반경2.2, `UtilitySkilltable`의 재생 치유 Self/HealOverTime·지속5·5타·HP 계수0.04 확인. 이제 Unity `Tools > Parse Combat Skill Table`로 다시 변환해도 기존 전투 수치를 재현할 수 있다. 변환 후 Play를 재시작(CombatSkillTable 정적 캐시 때문에 실행 중 재변환만으로는 갱신 안 됨)하고 강공격 화염 망치 장착→차징/발동, 전략 재생 치유를 확인한다. 정상은 기존 MP·차징·피해/회복 유지다. 실패하면 Console 첫 오류, 엑셀 저장 여부/선택한 파일, JSON의 해당 ID, 강공격 장착과 MP, Play 재시작 여부를 확인한다. 화염 돌진/화염 십자는 기존처럼 시전 미지원이다.
+
+## 2026-11-13 Projectile 표기 수정
+
+- 사용자 요청으로 SkillDatatable.xlsx의 오타를 `Projectile`로 수정했다. 약공격 시트 P열 13셀, Area_Typetable E열 13셀, AreaType C10의 총 27셀이다. 공통 문자열 한 항목만 교체하여 기존 셀·수식·스타일·다른 파일 부품은 유지했다.
+- 최종 XLSX XML에서 오타 잔존 0건, ZIP 무결성 정상, sharedStrings.xml 외 부품 동일 확인. Artifact Tool 작성 및 AreaType 미리보기로 표기 확인. 코드/게임 수치 변경 없음. 변환기의 과거 오타 입력 호환 처리는 유지했다. Unity 컴파일·Play·엑셀 앱 재열기는 미실행이다.
+- 직접 확인: Excel에서 Document/SkillDatatable.xlsx 열기 → AreaType C10, LightSkilltable P3, Area_Typetable E3이 Projectile인지 확인. 복구 경고가 나오면 저장하지 말고 해당 경고를 확인한다.
+
+## 2026-11-13 SkillDatatable 약·강공격 범위·투사체 크기 명시
+
+- 사용자 요청으로 `Document/SkillDatatable.xlsx`의 `LightSkilltable` 21개와 `HeavySkilltable` 15개 스킬에 AJ:AO 참고 열을 추가했다. 기본 범위 반경(유닛), 각도(도), 범위/투사체 너비(유닛), 기본 사거리/범위 길이(유닛), 투사체 기본 그림 배율, 크기 기준·카드 적용 설명이다. 카드 미적용 기준이며 해당하지 않는 값은 빈칸이다.
+- 원본 엑셀의 강공격 입력/범위 시트에는 현재 게임 데이터의 일부 수치가 없다. 임의로 원본 입력을 채우거나 변환 결과를 바꾸지 않고 `Assets/Resources/Data/CombatSkillTable.json`의 현재 값을 **참고 스냅샷**으로 명시했다. AJ:AO는 게임 입력 열이 아니며 이 열을 수정해도 게임 크기가 변경되지 않는다. 수치 변경을 게임에 연결하는 작업은 이번 요청 범위에 없다.
+- 투사체 그림의 기본 배율은 현재 구현 기준 1배이며 스킬별 그림 자체 크기는 서로 다르다. 판정 보정용 Width와 그림 너비를 혼동하지 않도록 구분하고 기본 충돌 반경도 설명에 표시했다. 화염 연사의 실제 투사체 구현, 고리 안쪽 반경, 전용 그림, 화염 돌진/화염 십자의 시전 미지원도 명시했다. 원래 O열 사거리와 반경은 같은 의미가 아님에 유의한다.
+- 원본 파일 잠금으로 첫 저장은 거부됐으나 사용자가 Excel을 닫았다고 확인한 뒤 원본 저장 성공. Artifact Tool로 새 셀을 작성하고 새 열만 원본 ZIP에 합쳐 원래 셀·수식·기타 시트/부품 내용을 보존했다. 스타일 원래 네임스페이스·항목 인덱스도 유지했다. 임시 빌더/미리보기/백업은 `.utmp/SkillWorkbook`이며 Git 제외다.
+- 검증: 최종 파일을 다시 열어 **36개 스킬의 반경·각도·너비·사거리 전수 대조 통과**. 기존 셀·수식 동등성 및 변경하지 않은 ZIP 부품 동일성 검사 통과. 약·강공격 추가 영역 PNG 렌더로 헤더/숫자/설명 확인, 수치는 소수 둘째 자리 표시. Excel 앱 재열기·Unity 재변환·게임 Play는 미실행이다. 코드/JSON/씬은 이번 작업에서 변경하지 않았다.
+- 직접 확인: Excel에서 SkillDatatable.xlsx 열기 → LightSkilltable/HeavySkilltable 선택 → 이름 상자에 `AJ1:AO23`(약) 또는 `AJ1:AO17`(강) 입력. 화염 부채는 반경3·각도80, 홍염 화살은 너비0.4·사거리8·그림1배, 플레어 탄환은 너비0.7·사거리8·그림1배여야 한다. 기존 데이터 열/다른 시트가 그대로 보여야 한다. 복구 경고가 뜨거나 숫자가 다르면 저장하지 말고 경고와 해당 셀을 확인한다. 게임 배율 미적용 의심은 위 사용자 확인으로 해소됐고 수치 조정은 별도 요청을 기다린다.
+
+## 2026-11-13 스킬 범위·투사체 크기 미증가 보고 결론
+
+- 사용자 직접 확인 결과: 화염 부채·홍염 화살·플레어 탄환의 카드 배율은 적용되고 있었다. 기본 크기가 작고 카드 한 단계 증가량이 10%여서 시각적으로 변화를 체감하기 어려웠던 문제다. 아래의 미해결/배율 누락 의심 기록은 조사 당시 상태이며 이 확인으로 해소됐다.
+- 배율 누락 수정은 필요하지 않다. 기본 크기·카드 증가율을 바꾸라는 요청은 없으므로 수치와 게임 동작을 유지했다. 기본 크기나 단계별 증가율 조정은 별도의 밸런스 결정이다.
+- 이번 갱신은 사용자 확인 결과 문서화만 수행했다. 컴파일·테스트·Unity Play를 새로 실행하지 않았다. 기존 카드 선택/삭제 테스트 도구와 진단은 유지한다.
+
+## 2026-11-13 원하는 카드 고르기에 스탯·삭제 추가
+
+- 사용자 요청으로 CombatPopupController의 `테스트/원하는 카드 고르기` 창을 확장했다. 검색 가능한 스탯 증가 카드 목록이 스킬 위에 표시되며 현재 단계·다음 단계·다음 수치를 보여 준다. 누르면 실제 레벨업 카드 한 장을 띄우고 기존 `CreateStatOffer → TryUpgradeStat` 경로로 적용한다. 최대 단계는 선택 비활성이다.
+- 각 스킬 옆 `삭제`는 기존 `PlayerLoadout.RemoveSkill`로 보유·스택·장착을 제거한다. 미보유 스킬은 삭제 비활성이다. 스탯 옆 `전체 단계 삭제`는 해당 스탯만 Lv0/기본값으로 돌리고 재획득을 허용한다. HP는 첫 HP 카드 직전 최대 HP를 보관했다가 복원하고 현재 HP를 최대값 이하로 제한한다. 다른 스탯/스킬은 유지한다. 삭제 후 이미 발동한 이펙트는 원래 수명까지 남는다.
+- Play 중 전투 진행 상태에서만 사용하고 자동 레벨업/완료 처리 중에는 경고 후 거절한다. 삭제 시 열려 있던 테스트 카드는 닫아 오래된 선택지 적용을 피한다. 스킬·스탯 선택/삭제 UI는 에디터 전용이며 게임용 삭제 버튼은 추가하지 않았다.
+- 시작부터 있었던 이전 진단 코드/테스트/인수인계 수정과 MainScene, URP·Graphics/Project/ShaderGraph 설정, NanumGothic Combat SDF, 신규 Windows Build Profile 사용자 변경을 보존했다. 씬·설정·폰트·프리팹 저장 없이 코드만 수정했다.
+- 검증: 삭제 API가 없는 상태에서 새 테스트의 컴파일 실패를 확인한 후 구현. `LevelUpMixedDraftValidation` **11/11**, `PlayerLoadoutValidation` **6/6**, `CombatSkillTableValidation` **28/28** 실제 통과. 새 검사는 스탯 삭제/다른 스탯 유지/재획득, HP 원래 최대값 복원/현재 HP 제한/반복 획득·삭제다. 현재 Bee 응답 파일과 .NET Roslyn으로 수정된 Assembly-CSharp C# 컴파일 exit 0, 경고 출력 없음. diff 공백 검사 통과. Unity 임포트·창 클릭·Play와 Unity 테스트 러너는 미실행이다. 원래 범위/크기 버그는 아직 미해결이다.
+- 직접 확인: 컴파일 완료 → MainScene Play → Hierarchy `CombatUI` → CombatPopupController ⋮ → `테스트/원하는 카드 고르기`. `기술 범위` 또는 `투사체 크기` 검색 → 카드 버튼 → 게임 화면의 카드 선택 → 다시 창을 열어 Lv1과 다음 Lv2 확인. 반복하여 Lv5까지 올리면 최대/선택 불가여야 한다. `전체 단계 삭제` 후 Lv0으로 돌아오고 다시 Lv1 획득이 가능해야 한다. 원하는 공격 스킬을 획득·장착 후 해당 행 `삭제`를 누르면 보유/장착이 사라지고 다시 획득할 수 있어야 한다. HP 삭제 시 원래 최대 HP로 복원돼야 한다.
+- 오류 시 Console 첫 오류와 자동 레벨업 진행 여부를 확인한다. 카드 선택 후 단계가 그대로면 선택 완료 여부·대상 플레이어를 확인한다. 스킬 삭제 후 남은 그림은 수명 종료를 기다리고 새로운 자동 발동이 멈추는지 확인한다. 원래 크기 버그 재현에는 위 방법으로 카드를 올린 뒤 기존 `[SkillScale]` 진단을 실행한다.
+
+## 2026-11-13 자동·수동 공통 증상 추가 확인·진단 메뉴
+
+- 사용자 확인: 화염 부채의 기술 범위, 플레어 탄환·홍염 화살의 투사체 크기는 **자동·수동 모두** 증가하지 않는다. 상태창 카드 수치는 아직 미확인이다. 앞선 일본어 질문은 잘못이며 이후 한국어로만 안내한다.
+- `Player`에 에디터 전용 ContextMenu `테스트/스킬 범위·투사체 크기 진단 (Play 중)` 추가. 카드 레벨/보너스, 보유 스킬의 원래·보정 범위와 구운 그림 예상 Scale, 현재 활성 LightSkillFx의 실제 local/worldScale·스프라이트·bounds·월드 충돌 반경을 Console `[SkillScale]`로 출력한다. 자동 실행/매 프레임 로그/공격 동작 변경 없음. 실제 수정은 아직 아니며 원인 미확정 상태다.
+- 확인 순서: MainScene Play → 해당 카드 획득 → 스킬이 보일 때 게임 일시정지 → Hierarchy 플레이어 선택 → Inspector Player 컴포넌트 ⋮ → 위 진단 메뉴. Console의 `[SkillScale]` 로그에서 카드 레벨과 계산 배율, 활성 이펙트 실제 배율을 비교한다. 활성 이펙트 줄이 없으면 해당 스킬이 화면에 있을 때 다시 일시정지해 실행한다. 카드 Lv0이면 선택/저장 경로, Lv가 올랐는데 예상 배율이 다르면 계산 경로, 예상은 정상인데 실제가 다르면 생성/표시 경로를 조사한다. Console 첫 오류도 함께 확인한다.
+- Unity 창은 최소화 상태로 읽기 실패하여 실제 재현·Unity 테스트 실행은 여전히 미완료다. 기존 소스 검증 28/28 기록과 Unity 테스트 소스 5건은 아래 기록 참고.
+
+## 2026-11-13 범위·투사체 크기 카드 미반영 조사 (미해결)
+
+- 사용자 보고: 화염 부채(10011)는 기술 범위 카드, 플레어 탄환(10006)·홍염 화살(10009)은 투사체 크기 카드가 화면에 반영되지 않음. 용암분출(20007)·불기둥(20009)은 정상. 자동/수동 발동 여부와 획득 후 상태창 수치는 아직 확인 필요.
+- 실제 시작 상태: `balancing-exp-and-skill-range`, HEAD `9a871df`, `git status --short` 비어 있음. 씬·프리팹·설정·런타임 코드는 변경하지 않았다. 열린 Unity 창 제목에는 MainScene과 미저장 표시가 있었으며 저장·Play 전환을 하지 않았다.
+- 코드 추적: 수동 약공격·강공격과 보유 패시브는 모두 `CastShots → PrepareSkill → LightSkillFx.Play`를 사용한다. 기술 범위는 비투사체의 Range/Width에, 투사체 크기는 Play의 projectileSize 인자를 통해 localScale에 반영된다. 구운 투사체의 월드 충돌 반경도 transform 배율을 받는다. PoolManager는 initialize 콜백 전에 기본 크기를 복원하므로 그 순서에서 덮어쓰는 증거는 없다. 현재 소스에서 배율 누락 원인을 확인하지 못했고 임의의 수정은 하지 않았다.
+- 추가 검증: `tools/CombatSkillTableValidation/Program.cs`에 실제 배포 JSON을 쓰는 5개 검사 추가. 범위 카드 1~5단계에서 세 범위 스킬의 Range/Width 증가와 Angle 보존, 두 투사체의 사거리 보존·발수 증가 확인. `tools/CombatSkillTableValidation/Run.ps1` 실제 실행 **28/28 통과**. 이 검증은 Unity 렌더링 검증이 아니다.
+- `Assets/Tests/EnemyPhysics/LightSkillScaleTests.cs`에 실제 Resources 그림으로 범위 크기 증가 3건·투사체 그림과 월드 충돌 반경 증가 2건 추가. 각 카드 1~5단계, 재사용, 기본 크기 복귀를 검사한다. 실제 Unity 테스트 실행은 **0개**, 실패 재현은 아직 없음. .NET SDK 9 Roslyn과 현재 Library/Bee의 Assembly-CSharp 응답 파일을 사용하여 테스트를 포함한 Assembly-CSharp 컴파일 성공(exit 0, 출력 DLL 확인). Unity 전체 재컴파일/임포트·Play·Android는 미검증. 임시 컴파일 출력은 `.utmp/SkillScale`이며 Git 제외.
+- 다음 우선순위: 원래 실행 환경에서 자동/수동 발동 여부와 카드 획득 후 상태창의 기술 범위/투사체 크기 수치를 확인하고 원래 증상을 재현한다. `Window > General > Test Runner`에서 LightSkillScaleTests 5건을 실행해 그림·충돌 크기 경로를 구분한다. 테스트는 녹색으로 시작할 수 있으므로 아직 결함을 잡는 회귀 테스트라고 단정하지 않는다.
+- 직접 확인: Play를 끝낼 수 있는 시점에 컴파일 완료 → `Tools > Play From Title` 해제 → `MainScene` Play → 화염 부채/홍염 화살/플레어 탄환 보유 또는 장착 → 레벨업에서 해당 카드 선택 전후 비교. 카드 첫 단계는 +10%, 마지막 단계는 +50%다. 정상 결과는 다음 발동의 그림 크기와 범위/투사체 충돌 크기가 함께 증가하는 것. 상태창 수치가 오르는데 그림 크기가 그대로면 해당 발동의 LightSkillFx Transform Scale과 Console 첫 오류를 기록한다. Unity 화면 자동 캡처는 관리자 창의 FrameArrived timeout으로 실패하여 실제 화면 재현을 확인하지 못했다.
 
 ## 2026-11-12 3D를 제외한 브랜치를 메인에 합침
 

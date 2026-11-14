@@ -93,8 +93,6 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
     private float tacticalCooldownDuration;
     /// <summary>기획 초기 기준: 전략 스킬은 스테이지당 5회.</summary>
     public const int TacticalStageMaxUses = 5;
-    /// <summary>패시브 피해를 현재 산출값의 30%로 맞춥니다.</summary>
-    public const float PassiveDamageFactor = 0.3f;
     private readonly Dictionary<int, int> tacticalUsesRemaining = new Dictionary<int, int>();
     private readonly int[] ownedPassiveIds = new int[PlayerLoadout.AttackCapacity];
     private readonly float[] ownedPassiveTimers = new float[PlayerLoadout.AttackCapacity];

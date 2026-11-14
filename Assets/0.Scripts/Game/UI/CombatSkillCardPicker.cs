@@ -36,7 +36,7 @@ public sealed class CombatSkillCardPicker : EditorWindow
     private void OnGUI()
     {
         EditorGUILayout.HelpBox(
-            "Play 중 전투가 진행될 때 항목을 누르면 그 스킬만 레벨업 카드로 열립니다. 카드를 고르면 보유에 등록됩니다.",
+            "스킬·스탯을 누르면 해당 카드만 열립니다. 스탯은 다음 단계로 증가합니다. 삭제는 스킬의 보유·장착 또는 스탯의 모든 단계를 제거합니다.",
             MessageType.Info);
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -54,6 +54,24 @@ public sealed class CombatSkillCardPicker : EditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         string current = null;
         string query = (filter ?? "").Trim();
+        PlayerData playerData = target != null && EditorApplication.isPlaying ? target.CardTestPlayerData : null;
+        EditorGUILayout.LabelField("스탯 증가 카드", EditorStyles.boldLabel);
+        foreach (var card in PlayerStatTable.LoadCards())
+        {
+            if (query.Length > 0 && (card.Name == null || card.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)
+                && card.Stat.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0) continue;
+            int level = playerData != null ? playerData.StatCards.Level(card.Stat) : 0;
+            bool canUpgrade = card.Values != null && level + 1 < card.Values.Length
+                && card.ValueAt(level + 1) > card.ValueAt(level);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUI.DisabledScope(playerData == null || !canUpgrade))
+                    if (GUILayout.Button($"{card.Name}  Lv{level} → " + (canUpgrade ? $"Lv{level + 1} ({card.FormatValue(level + 1)})" : "최대")))
+                        target.ShowChosenStatCard(card.Stat);
+                using (new EditorGUI.DisabledScope(playerData == null || level == 0))
+                    if (GUILayout.Button("전체 단계 삭제", GUILayout.Width(100f))) target.RemoveTestStatCard(card.Stat);
+            }
+        }
         foreach (CombatSkillRecord skill in skills)
         {
             if (!Matches(skill, query)) continue;
@@ -67,10 +85,21 @@ public sealed class CombatSkillCardPicker : EditorWindow
             string rarity = string.IsNullOrEmpty(skill.Rarity) ? "등급 없음" : skill.Rarity;
             string note = skill.Id >= 30000 && skill.Id < 40000 && !TacticalSkillEffect.IsSupported(skill.EffectType)
                 ? "  (시전 미연결)" : "";
-            using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying || target == null))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button($"{skill.Id}  {skill.Name}  ·  {rarity}{note}"))
-                    target.ShowChosenSkillCard(skill.Id);
+                using (new EditorGUI.DisabledScope(playerData == null))
+                    if (GUILayout.Button($"{skill.Id}  {skill.Name}  ·  {rarity}{note}"))
+                        target.ShowChosenSkillCard(skill.Id);
+                bool owned = false;
+                if (playerData != null)
+                {
+                    for (int i = 0; i < playerData.Loadout.UnlockedAttackSlots; i++)
+                        if (playerData.Loadout.GetAttackSkill(i)?.DataId == skill.Id) owned = true;
+                    for (int i = 0; i < PlayerLoadout.TacticalCapacity; i++)
+                        if (playerData.Loadout.GetTacticalSkill(i)?.DataId == skill.Id) owned = true;
+                }
+                using (new EditorGUI.DisabledScope(!owned))
+                    if (GUILayout.Button("삭제", GUILayout.Width(52f))) target.RemoveTestSkillCard(skill.Id);
             }
         }
         EditorGUILayout.EndScrollView();

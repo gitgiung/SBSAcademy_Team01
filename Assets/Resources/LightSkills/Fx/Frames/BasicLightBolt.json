@@ -1,0 +1,13 @@
+{
+ "name": "BasicLightBolt",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": true,
+ "reach": 0,
+ "frameWidth": 30,
+ "frameHeight": 18,
+ "columns": 3,
+ "count": 12,
+ "pivotX": 0.7,
+ "pivotY": 0.5
+}

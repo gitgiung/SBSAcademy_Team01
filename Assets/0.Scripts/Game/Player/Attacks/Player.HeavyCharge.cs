@@ -45,7 +45,8 @@ public sealed partial class Player
     }
     public bool TryBeginHeavyCharge()
     {
-        if (heavyCharge == null || !CanAcceptGameplayInput || !HeavyContextValid()) return false;
+        if (heavyCharge == null || !CanAcceptGameplayInput || !HeavyContextValid()
+            || !view.CanPlayLightAttack("LightAttack")) return false;
         int skillId = data.Loadout.GetEquippedSkillId(PlayerSkillButton.Heavy);
         if (!CombatSkillTable.TryGet(skillId, out CombatSkillRecord record)
             || !LightSkillCatalog.TryCreateHeavy(record, out LightSkillCast skill)) return false;
@@ -68,10 +69,11 @@ public sealed partial class Player
         LightSkillCast skill = chargedSkill;
         chargedSkill = default;
         LastHeavyCharge = result; RefreshHeavyIndicator();
+        if (!view.CanPlayLightAttack("LightAttack")) return false;
         if (!actions.TryBeginLightAttack(0f, out int actionId)) return false;
-        float damage = data.ScaleAttackDamage(skill.Damage(data.attackDamage), skill.Element) * result.Multiplier
+        float damage = data.ScaleAttackDamage(skill.Damage(data.AttackDamage), skill.Element) * result.Multiplier
             * data.Loadout.GetAttackSkillDamageMultiplier(skill.Id);
-        StartCoroutine(CastShots(skill, result.Direction, damage, true, actionId));
+        BeginManualSkillAnimation(skill, result.Direction, damage, actionId);
         HeavyChargeReleased?.Invoke(result); return true;
     }
     public void CancelHeavyCharge(int chargeId)
@@ -109,8 +111,12 @@ public sealed partial class Player
         if (IsHeavyCharging) view.SetMovementAnimation(heavyCharge.Direction, false, false, dashDuration);
         RefreshHeavyIndicator();
     }
-    private void RefreshHeavyIndicator() => view?.SetHeavyChargeIndicator(IsHeavyCharging,
-        IsHeavyCharging ? heavyCharge.Direction : Vector2.zero, HeavyChargeProgress, HeavyChargeStage);
+    private void RefreshHeavyIndicator()
+    {
+        view?.SetHeavyChargeAnimation(IsHeavyCharging);
+        view?.SetHeavyChargeIndicator(IsHeavyCharging,
+            IsHeavyCharging ? heavyCharge.Direction : Vector2.zero, HeavyChargeProgress, HeavyChargeStage);
+    }
     private void OnApplicationFocus(bool focused) { if (!focused) { ResetHeavyCharge(); ReleaseTouchGuard(); } }
     private void OnApplicationPause(bool paused) { if (paused) { ResetHeavyCharge(); ReleaseTouchGuard(); } }
 }

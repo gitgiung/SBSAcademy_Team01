@@ -13,6 +13,7 @@ public class Bullet : MonoBehaviour, IPoolable
     private PooledObject pooled;
     private Rigidbody2D body;
     internal System.Action<Vector3> HitFlash { get; set; }
+    private BasicBulletVisual visual;
 
     [Header("태그 설정")]
     public string enemyTag = "Enemy";
@@ -32,6 +33,7 @@ public class Bullet : MonoBehaviour, IPoolable
         remainingLife = Mathf.Max(0f, DeleteTime);
         isHit = false;
         initialized = true;
+        visual?.Play(direction);
     }
 
     public void OnPoolRent()
@@ -52,6 +54,7 @@ public class Bullet : MonoBehaviour, IPoolable
         // 풀의 초기화는 최초 Awake보다 먼저 호출될 수 있습니다.
         if (pooled == null) pooled = GetComponent<PooledObject>();
         if (body == null) body = GetComponent<Rigidbody2D>();
+        if (visual == null) visual = GetComponent<BasicBulletVisual>();
     }
 
     private void ResetState()
@@ -63,6 +66,7 @@ public class Bullet : MonoBehaviour, IPoolable
         isHit = false;
         initialized = false;
         HitFlash = null;
+        visual?.Stop();
         if (body != null)
         {
             body.linearVelocity = Vector2.zero;
@@ -96,6 +100,7 @@ public class Bullet : MonoBehaviour, IPoolable
         uint hitLease = pooled != null ? pooled.LeaseVersion : 0;
         try
         {
+            visual?.ShowHit();
             if (collision.TryGetComponent<IDamageable>(out var damageableTarget))
             {
                 var hitFlash = HitFlash;

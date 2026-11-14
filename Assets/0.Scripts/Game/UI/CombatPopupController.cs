@@ -410,7 +410,7 @@ public sealed class CombatPopupController : MonoBehaviour
         return new LevelUpCardData
         {
             SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
-            Icon = string.IsNullOrEmpty(skill.Icon) ? null : Managers.Resource.Load<Sprite>(skill.Icon),
+            Icon = SkillCardIcons.Get(skill.Id, skill.Icon),
             ActiveDescription = description, ActiveButtonLabel = skill.Id >= 30000 ? "Skill" : skill.Id >= 20000 ? "C" : "N",
             FlavorText = skill.Explanation
         };
@@ -683,6 +683,64 @@ public sealed class CombatPopupController : MonoBehaviour
     private void OpenChosenSkillPicker()
     {
         CombatSkillCardPicker.Open(this);
+    }
+
+    public PlayerData CardTestPlayerData
+    {
+        get { ResolveStatusPlayer(); return statusPlayer != null ? statusPlayer.data : null; }
+    }
+
+    private bool CanEditTestCards()
+    {
+        if (!Application.isPlaying || !CanShow() || levelUpPopup == null
+            || automaticLevelUp || completionPending || CardTestPlayerData == null)
+        {
+            Debug.LogWarning("카드 변경은 Play 중 전투가 진행될 때 가능합니다. 자동 레벨업을 마친 뒤 다시 시도하세요.", this);
+            return false;
+        }
+        return true;
+    }
+
+    public void ShowChosenStatCard(PlayerStat stat)
+    {
+        if (!CanEditTestCards()) return;
+        PlayerData playerData = CardTestPlayerData;
+        PlayerStatCard card = null;
+        foreach (var candidate in PlayerStatTable.LoadCards())
+            if (candidate.Stat == stat) { card = candidate; break; }
+        int level = playerData.StatCards.Level(stat);
+        if (card == null || card.Values == null || level + 1 >= card.Values.Length
+            || card.ValueAt(level + 1) <= card.ValueAt(level))
+        {
+            Debug.LogWarning("이미 최대 단계이거나 선택할 수 없는 스탯 카드입니다.", this);
+            return;
+        }
+        EnsureLevelUpPanel();
+        if (levelUpPanel == null) return;
+        var offer = CreateStatOffer(playerData, card);
+        levelUpPanel.SetChoices(new List<LevelUpCardData> { offer.Card },
+            index => { if (index == 0) offer.Apply(); });
+        OpenLevelUpPanel();
+    }
+
+    public void RemoveTestSkillCard(int skillId)
+    {
+        if (!CanEditTestCards()) return;
+        if (CardTestPlayerData.Loadout.RemoveSkill(skillId))
+        {
+            if (levelUpPopup.gameObject.activeSelf) CompleteLevelUp();
+            Debug.Log($"테스트 스킬 카드 {skillId}의 보유·스택·장착을 제거했습니다. 이미 발동한 효과는 수명 종료까지 남습니다.", this);
+        }
+    }
+
+    public void RemoveTestStatCard(PlayerStat stat)
+    {
+        if (!CanEditTestCards()) return;
+        if (CardTestPlayerData.RemoveStatCard(stat))
+        {
+            if (levelUpPopup.gameObject.activeSelf) CompleteLevelUp();
+            Debug.Log($"테스트 스탯 카드 {stat}의 모든 단계를 제거했습니다.", this);
+        }
     }
 
     /// <summary>테스트용. 지정한 스킬 한 장만 레벨업 카드로 열고, 고르면 기존 획득 경로로 등록합니다.</summary>

@@ -78,7 +78,7 @@ internal sealed class PlayerCombat
     private void TickBasicAttack(float deltaTime)
     {
         if (bulletPrefab == null || !Nonnegative(data.attackRange) || data.attackRange == 0f
-            || !Nonnegative(data.attackCooldown) || !Nonnegative(data.attackDamage) || !Nonnegative(data.bulletSpeed)) return;
+            || !Nonnegative(data.attackCooldown) || !Nonnegative(data.bulletSpeed)) return;
         attackTimer = Mathf.Max(0f, attackTimer - deltaTime);
         if (attackTimer > 0f || !bulletPrefab.TryGetComponent<Bullet>(out _)) return;
 
@@ -88,7 +88,7 @@ internal sealed class PlayerCombat
         if (pool == null) return;
 
         Vector2 direction = target.position - owner.position;
-        float damage = data.ScaleAttackDamage(data.attackDamage);
+        const float damage = 1f; // 기본 탄환은 플레이어 공격력·카드 보정과 무관하게 고정 피해를 줍니다.
         float speed = data.bulletSpeed;
         attackTimer = Mathf.Max(.01f, data.attackCooldown);
         pool.Pop(bulletPrefab, owner.position, Quaternion.identity,

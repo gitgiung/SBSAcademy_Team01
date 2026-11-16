@@ -1455,6 +1455,10 @@ PrefabInstance:
       value: 19
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
+      propertyPath: stageMixing.transitionSeconds
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: waves.Array.data[0].enemies.Array.size
       value: 3
       objectReference: {fileID: 0}
@@ -1612,7 +1616,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: stageMixing.types.Array.data[3].lateWeight
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2996440706355701037, guid: 9a13f34050f64f34a9368196a7f84241, type: 3}
       propertyPath: stageMixing.types.Array.data[0].earlyWeight
@@ -3655,7 +3659,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 454019994}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 291768112d29c1b4780383724399149c, type: 3}
   m_Name: 

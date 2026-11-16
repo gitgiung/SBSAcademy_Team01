@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 /// <summary>일반 적/XP의 씬 소유권과 lease를 추적합니다. 저장은 기존 Managers.Pool을 사용합니다.</summary>
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(1000)]
-public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawnDiagnostics, IEnemyExperienceDropper
+public sealed partial class SceneEnemyPool : MonoBehaviour, IEnemySpawnPool, IEnemySpawnDiagnostics, IEnemyExperienceDropper, IBossDefeatDropper
 {
     public const int MaxActiveEnemies = 130;
     private const float RecycleInterval = 0.25f;

@@ -547,6 +547,20 @@ static class Program
             pool.FieldItems.maxFieldItems = 0;
             Check(!pool.TryDropFieldItem(FieldItemKind.Bomb, default), "제한 0");
         });
+        Test("보스 자석은 드랍 확률이 0이고 필드가 가득 차도 사망 위치에 생성됨", () =>
+        {
+            NewPlayer();
+            SceneEnemyPool pool = NewPool(0f, 0f, 0f);
+            pool.FieldItems.maxFieldItems = 1;
+            Check(pool.TryDropFieldItem(FieldItemKind.HealPack, default), "필드에 기존 아이템 생성 실패");
+            Check(pool.TryDropBossMagnet(new Vector3(8f, -2f, 0f)), "보스 자석 생성 실패");
+            Equal(2, pool.ActiveFieldItemCount, "필드 아이템 수");
+            FieldItemPickup magnet = Items().Find(item => item.Kind == FieldItemKind.Magnet);
+            Check(magnet != null, "자석 없음");
+            Near(8f, magnet.transform.position.x, "x");
+            Near(-2f, magnet.transform.position.y, "y");
+            Check(!pool.TryDropFieldItem(FieldItemKind.Bomb, default), "일반 아이템 한도 우회");
+        });
         Test("힐팩 획득 시 최대 체력 × 비율만큼 회복 요청", () =>
         {
             PlayerData player = NewPlayer(); SceneEnemyPool pool = NewPool();

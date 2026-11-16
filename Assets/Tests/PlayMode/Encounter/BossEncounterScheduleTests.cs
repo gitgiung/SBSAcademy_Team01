@@ -138,6 +138,7 @@ public sealed class BossEncounterScheduleTests
         var prefabs = new GameObject[6];
         for (int i = 0; i < 6; i++) prefabs[i] = Prefab("Boss " + (i + 1));
         var encounter = Encounter(Schedule(times, prefabs));
+        var pool = (EncounterTestPool)director.SpawnPool;
         for (int i = 0; i < 6; i++)
         {
             director.Tick(10000);
@@ -145,7 +146,12 @@ public sealed class BossEncounterScheduleTests
             Assert.That(encounter.Phase, Is.EqualTo(EncounterPhase.BossFight));
             var health = ActiveBoss(encounter);
             Assert.That(health.name, Does.StartWith("Boss " + (i + 1)));
+            Assert.That(pool.BossMagnetPositions.Count, Is.EqualTo(i));
+            var defeatPosition = new Vector3(i + 1, 4f, 0f);
+            health.transform.position = defeatPosition;
             health.TakeDamage(health.MaxHealth);
+            Assert.That(pool.BossMagnetPositions.Count, Is.EqualTo(i + 1));
+            Assert.That(pool.BossMagnetPositions[i], Is.EqualTo(defeatPosition));
             Assert.That(director.IsPaused, Is.False);
         }
         Assert.That(encounter.Phase, Is.EqualTo(EncounterPhase.AfterBoss));
@@ -447,8 +453,16 @@ public sealed class EncounterTestPlayer : MonoBehaviour, IContactDamageReceiver
     public void TakeContactDamage(float damage, GameObject source) { }
 }
 
-public sealed class EncounterTestPool : MonoBehaviour, IEnemySpawnPool
+public sealed class EncounterTestPool : MonoBehaviour, IEnemySpawnPool, IBossDefeatDropper
 {
+    public readonly List<Vector3> BossMagnetPositions = new List<Vector3>();
+
+    public bool TryDropBossMagnet(Vector3 position)
+    {
+        BossMagnetPositions.Add(position);
+        return true;
+    }
+
     public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, UnityEngine.SceneManagement.Scene scene) => false;
     public bool TrySpawn(GameObject prefab, Vector3 position, Transform target, UnityEngine.SceneManagement.Scene scene, Action<GameObject> spawned) => false;
     public void ReturnEnemy(GameObject enemy) => enemy.SetActive(false);

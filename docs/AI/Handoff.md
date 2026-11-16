@@ -1,5 +1,17 @@
 # 작업 인수인계
 
+## 2026-11-16 기본 자동탄 공격력 연동
+
+- `PlayerCombat`의 기본 자동탄은 발사 시 `PlayerData.AttackDamage`를 읽는다. Inspector의 기본 공격력과 런 중 `데미지` 스탯 카드 증가분을 합산한 값이다. 발사된 탄환은 그 시점의 값을 보관한다. 장착 패시브 탄환은 기존 스킬 표의 피해를 사용한다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → `Player > PlayerData > 공격 설정 > Attack Damage`를 4로 설정 → 일반 적에게 기본 자동탄을 맞혀 4 표시 확인. `CombatPopupController`의 컴포넌트 메뉴 `테스트/원하는 카드 고르기`에서 `데미지` 카드의 첫 단계를 선택하면 다음 자동탄은 5가 된다. 이상 시 Console 첫 오류, Player의 Bullet Prefab, 스탯 화면의 공격력과 피해 숫자를 확인한다.
+- `tools/LevelUpMixedDraftValidation/Run.ps1` 14/14 통과. 실제 스탯 표를 사용해 증가량 합산과 제거 후 복원을 검증했다. 발사와 충돌 핸들러에 4 → 5가 전달되는 Unity 회귀 테스트를 추가했으며 Unity 테스트와 MainScene Play는 미실행이다.
+
+## 2026-11-16 보스 처치 자석 드랍
+
+- `BossEncounterController`에서 실제로 처치된 보스의 위치를 필드 아이템 풀에 전달한다. 일정의 각 회차 또는 기존 단일 보스를 처치하면 자석 한 개가 생성된다. 보스 자석은 확률과 동시 개수 제한을 우회하고, 일반 몬스터 드랍은 기존 확률과 한도를 사용한다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → Hierarchy `Boss Encounter` → `Boss Encounter Controller`의 ⋮ → `다음 보스 즉시 소환`. 등장 연출 후 보스를 처치하면 사망 위치에 자석 한 개가 생긴다. 가까이 가면 같은 씬의 경험치가 끌려온다. 이상 시 Console 첫 오류와 `Enemy Spawn System > Scene Enemy Pool` 활성 상태, Director의 Pool Provider를 확인한다.
+- `tools/FieldItemValidation/Run.ps1` 47/47 통과. 확률 0이고 필드가 가득 찬 경우에도 자석이 지정 위치에 생기는지 확인했다. 회차별 1회 전달과 사망 위치를 확인하는 Unity PlayMode 단언을 추가했으며 Unity 컴파일·테스트·MainScene Play는 미실행이다.
+
 ## 2026-11-16 플레이어 피격 숫자 보정
 
 - `Player.TakeDamage`의 숫자 표시 이벤트가 원래 공격력을 전달하던 경로를 수정했다. `PlayerData.ApplyDamage`에서 방어력·방어막과 남은 체력을 반영해 구한 실제 HP 감소량을 넘긴다. 방어막이 모두 흡수하면 플레이어 숫자가 표시되지 않는다. 피격 연출 이벤트는 기존 방식으로 전달된다.

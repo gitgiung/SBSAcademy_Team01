@@ -88,7 +88,7 @@ internal sealed class PlayerCombat
         if (pool == null) return;
 
         Vector2 direction = target.position - owner.position;
-        const float damage = 1f; // 기본 탄환은 플레이어 공격력·카드 보정과 무관하게 고정 피해를 줍니다.
+        float damage = data.AttackDamage;
         float speed = data.bulletSpeed;
         attackTimer = Mathf.Max(.01f, data.attackCooldown);
         pool.Pop(bulletPrefab, owner.position, Quaternion.identity,

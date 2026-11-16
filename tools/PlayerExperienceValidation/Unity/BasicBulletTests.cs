@@ -55,6 +55,25 @@ public class BasicBulletTests
     }
 
     [Test]
+    public void BasicBulletHitsWithCurrentAttackDamageIncludingStatCards()
+    {
+        var receiver = enemy.AddComponent<BasicBulletDamageReceiver>();
+        var collider = enemy.GetComponent<Collider2D>();
+        data.attackDamage = 4f;
+        data.attackCooldown = 1f;
+
+        combat.Tick(.1f);
+        Object.FindFirstObjectByType<Bullet>().SendMessage("OnTriggerEnter2D", collider);
+        Assert.That(receiver.LastDamage, Is.EqualTo(4f));
+
+        var card = new PlayerStatCard { Stat = PlayerStat.DMG, Values = new[] { 0f, 1f } };
+        Assert.That(data.TryUpgradeStat(card, 1), Is.True);
+        combat.Tick(1f);
+        Object.FindFirstObjectByType<Bullet>().SendMessage("OnTriggerEnter2D", collider);
+        Assert.That(receiver.LastDamage, Is.EqualTo(5f));
+    }
+
+    [Test]
     public void BasicBulletRequiresEnemyInRangeAndRunningCombat()
     {
         enemy.transform.position = Vector3.right * (data.attackRange + 2f);
@@ -72,4 +91,11 @@ public class BasicBulletTests
         combat.Tick(.1f);
         Assert.That(Managers.Pool.GetActiveCount(prefab), Is.EqualTo(1));
     }
+}
+
+public sealed class BasicBulletDamageReceiver : MonoBehaviour, IDamageable
+{
+    public float LastDamage { get; private set; }
+
+    public void TakeDamage(float damage) => LastDamage = damage;
 }

@@ -11,6 +11,17 @@ public class PlayerData : MonoBehaviour
     public float MPRecovery => StatCards.Value(PlayerStat.MP_Regen, mpRecoveryPerSecond);
     public float PickupDistance => experiencePickupDistance * (1f + StatCards.Value(PlayerStat.Pickup_Radius));
     public float AttackDamage => attackDamage + StatCards.Increase(PlayerStat.DMG);
+#if UNITY_EDITOR
+    public float TestDefenseBonus
+    {
+        get => testDefenseBonus;
+        set => testDefenseBonus = value;
+    }
+    public float Defense => StatCards.Value(PlayerStat.DEF) +
+        (testDefenseBonus > 0f && !float.IsInfinity(testDefenseBonus) ? testDefenseBonus : 0f);
+#else
+    public float Defense => StatCards.Value(PlayerStat.DEF);
+#endif
     // 기존 공개 API 호환용입니다. DMG 카드는 이제 공격력을 더하며 최종 피해를 증폭하지 않습니다.
     public float DamageMultiplier => 1f;
     public float PassiveCooldownMultiplier => 1f - StatCards.Value(PlayerStat.Cooldown);
@@ -52,6 +63,11 @@ public class PlayerData : MonoBehaviour
     public float speed = 5f;
     public float maxHealth = 100f;
     public float currentHealth = 100f;
+
+#if UNITY_EDITOR
+    [SerializeField, Min(0f), InspectorName("테스트용 추가 방어력")]
+    private float testDefenseBonus;
+#endif
 
     [Header("공격 설정")]
     public float attackRange = 5f;
@@ -366,16 +382,21 @@ public class PlayerData : MonoBehaviour
     }
 
     /// <summary>Applies validated damage and publishes the updated health state.</summary>
-    public bool ApplyDamage(float damage)
+    public bool ApplyDamage(float damage) => ApplyDamage(damage, out _);
+
+    public bool ApplyDamage(float damage, out float healthLost)
     {
-        if (damage <= 0f || IsDead) return false;
+        healthLost = 0f;
+        if (!IsValidAmount(damage) || damage <= 0f || IsDead) return false;
         // 무적이면 피해·피격 반응 모두 없는 것으로 처리합니다.
         if (IsInvulnerable) return false;
-        float defense = StatCards.Value(PlayerStat.DEF);
+        float defense = Defense;
         damage *= 1f - defense / (defense + 33.34f);
         damage = AbsorbShield(damage);
         if (damage <= 0f) return true;
+        float previousHealth = currentHealth;
         currentHealth = Mathf.Max(0f, currentHealth - damage);
+        healthLost = previousHealth - currentHealth;
         HealthChanged?.Invoke(currentHealth, maxHealth);
         if (IsDead)
         {

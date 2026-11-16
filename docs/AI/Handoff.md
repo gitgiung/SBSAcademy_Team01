@@ -1,5 +1,27 @@
 # 작업 인수인계
 
+## 2026-11-16 플레이어 피격 숫자 보정
+
+- `Player.TakeDamage`의 숫자 표시 이벤트가 원래 공격력을 전달하던 경로를 수정했다. `PlayerData.ApplyDamage`에서 방어력·방어막과 남은 체력을 반영해 구한 실제 HP 감소량을 넘긴다. 방어막이 모두 흡수하면 플레이어 숫자가 표시되지 않는다. 피격 연출 이벤트는 기존 방식으로 전달된다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → Hierarchy `Player` → `PlayerData > 플레이어 기본 설정 > 테스트용 추가 방어력`을 0과 10으로 바꿔 같은 공격에 맞는다. 빨간 숫자가 실제 HP 감소량과 소수점 한 자리 기준으로 맞아야 한다. 이상 시 Console 첫 오류 및 `감소한 체력` 로그, 방어막과 무적 상태를 확인한다.
+- `tools/LevelUpMixedDraftValidation/Run.ps1` 14/14 통과. 방어력 적용 후 보고값, 방어막 전부/일부 흡수, 치명타로 남은 HP까지만 줄어드는 경우를 확인했다. Unity MainScene 실제 폰트 확인은 남아 있다.
+
+## 2026-11-16 플레이어 방어력 테스트 입력
+
+- `PlayerData > 플레이어 기본 설정`의 `테스트용 추가 방어력`은 Edit Mode와 Play Mode 모두 표시된다. 기본값은 0이며 에디터에서 스탯 카드 방어력에 합산한다. Play 전에 입력하고 씬·프리팹을 저장하면 테스트값도 저장된다. Play 중 단일 선택 시 `플레이 중 스탯 > 현재 적용 방어력`에서 합계를 볼 수 있다. 실제 피격과 일시정지 스탯 화면이 같은 합계를 읽는다.
+- 직접 확인은 `Tools > Play From Title` 해제 → MainScene → Hierarchy `Player` → Inspector `PlayerData > 플레이어 기본 설정`. 방어력 카드와 방어막이 없는 상태에서 테스트값 0과 10으로 같은 공격의 HP 감소량을 비교한다. 10이면 0일 때보다 약 23.1% 적게 감소한다. 항목이 안 보이면 컴포넌트 펼침 상태와 Console 첫 컴파일 오류를 확인한다. 비교 시 가드·패링·대시·무적을 피한다.
+- `tools/LevelUpMixedDraftValidation/Run.ps1` 실제 실행 13/13 통과. 테스트값 0·10의 HP 감소 차이와 카드 합산·제거를 검증했다. Unity Inspector 표시와 MainScene Play 확인은 남아 있다.
+
+## 2026-11-16 현재 프로젝트 정적 분석
+
+- 확인 시점은 `Test` / `9e41d80`. 로컬 `main`과 로컬에 기록된 `origin/main`, `origin/Test`도 같은 커밋이다. 시작부터 셰이더 두 파일, `EditorBuildSettings.asset`, `UniversalRenderPipelineGlobalSettings.asset`이 수정 상태였다. Git 내용 diff는 URP Global Settings의 `m_RuntimeSettings.m_List`가 빈 목록으로 바뀐 것만 표시한다. 렌더링·빌드 영향은 실측이 필요하다.
+- Unity `6000.5.0f1`, URP `17.5.0`, Addressables `2.9.1`, Input System `1.19.0`. 현재 `activeInputHandler=1`. 실제 씬 흐름은 `TitleScene → LoadScene → LobbyScene → LoadScene → MainScene`. `Managers`는 씬 전환·리소스·풀·사운드·UI·데이터를 담당한다. `LoadScene` 기본값은 빈 preload 라벨과 `requireSkillData=false`이며, 로컬 Addressables 그룹은 비어 있다. 전투 스킬 표는 `Resources/Data/CombatSkillTable.json`에서 별도로 읽는다.
+- `Player`는 이동·HP/MP·가드/패링·스킬을, `CombatPopupController`는 레벨업·일시정지 UI를 맡는다. `EnemySpawnDirector`는 18분 진행 시계와 일반 스폰을, `SceneEnemyPool`은 적·경험치·필드 아이템 재사용을 맡는다. `BossEncounterController`는 보스전 동안 일반 스폰과 진행 시계만 멈춘다. `GameManager`는 결과 화면과 재시작·타이틀 복귀를 맡는다.
+- `Enemy Spawn System` 프리팹에 4종 × 6단계, 90초 전환, 30초 웨이브, 일반 적 동시 130마리 제한이 연결돼 있다. `MainScene`에서 앞 세 종류의 Early Weight와 네 종류의 Late Weight가 5이며 마지막 종류의 Early Weight는 프리팹 값 1을 상속한다. 따라서 MainScene 시작 비율은 첫 세 종류 각각 31.25%, 마지막 종류 6.25%다. 아래 11월 14일 기록의 균등 가중치는 프리팹 기본값이다.
+- `MainBossEncounterSchedule`에는 3분 야수와 6·9·12·15·18분 야수 변형 프리팹이 모두 연결돼 있다. `BossEncounterSchedule.md`의 2~6회차 빈 슬롯 안내는 초기 상태다. 일정 종료를 `GameManager`의 승리로 연결한 호출은 없으며, 현재 `victorySource`는 `ButtonForEvent`의 테스트 경로다. 최종 회차 승리 조건은 별도 기획·연동 항목이다.
+- 이번 작업은 코드·씬·프리팹·설정의 정적 확인과 문서 기록이다. Unity 컴파일·EditMode·PlayMode·APK 빌드 실행 0회. 다음 검증은 현재 `MainScene`의 스폰 혼합·보스 등장/처치·레벨업 일시정지·결과 화면 전환이며, Android 렌더링·조작과 실제 Addressables 카탈로그/번들은 별도 확인 대상이다.
+- 직접 확인: 전체 진입은 `Tools > Play From Title` 활성화 → Play → 타이틀 입력 → 로비 시작 버튼 → MainScene. 전투만 보려면 메뉴 해제 → MainScene → Hierarchy `Enemy Spawn System` → Inspector `Enemy Spawn Director`. 웨이브 8(03:30)은 구 단계 합계 약 67%와 새 단계 약 33%, 웨이브 10(04:30)은 새 단계만 표시된다. Play 중 컴포넌트 메뉴 `테스트/진행시간 30초 앞으로`로 03:00에 도달하면 보스가 등장하고 시계가 멈추며 이동·공격은 가능하다. 처치 후 시계와 일반 스폰이 재개된다. 이상 시 Console 첫 오류, Build Profiles의 Scene List, Director 모드·씬 Overrides, `Boss Encounter > Schedule`과 타깃 참조를 확인한다.
+
 ## 2026-11-14 몬스터 6단계 혼합 스폰 구현
 
 - 사용자 승인: `_3min`=0–3분용부터 `_18min`=15–18분용까지 6단계. 각 3분 경계부터 90초에 걸쳐 이전/현재 단계를 혼합한다. 네 종류의 초반/후반 가중치 초기값은 모두 1이며 Inspector에서 조절한다. 이는 승인된 플레이테스트 초기값이고 최종 밸런스 확정값은 아니다.

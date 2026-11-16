@@ -43,11 +43,11 @@ public sealed partial class Player
             return;
         }
 
-        if (!data.ApplyDamage(damage)) return;
+        if (!data.ApplyDamage(damage, out float healthLost)) return;
         if (IsHeavyCharging && !heavyCharge.SuperArmor) ResetHeavyCharge();
-        DamageApplied?.Invoke(this, damage);
+        if (healthLost > 0f) DamageApplied?.Invoke(this, healthLost);
 
-        Debug.Log($"[피격] 받은 데미지: {damage} / 남은 체력: {data.currentHealth}");
+        Debug.Log($"[피격] 감소한 체력: {healthLost} / 남은 체력: {data.currentHealth}");
         if (data.IsDead)
         {
             hasDied = true;

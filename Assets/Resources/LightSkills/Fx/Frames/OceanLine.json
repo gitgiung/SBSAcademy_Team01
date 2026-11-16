@@ -1,0 +1,13 @@
+{
+ "name": "OceanLine",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 182,
+ "frameHeight": 182,
+ "columns": 3,
+ "count": 12,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

@@ -25,7 +25,7 @@ public static class LevelUpSkillReward
         return LevelUpSkillDraft.Draw(table, count, 10000, 30000, nextDouble, excluded);
     }
 
-    public static bool TryAcquire(PlayerLoadout loadout, CombatSkillRecord skill)
+    public static bool TryAcquire(PlayerLoadout loadout, CombatSkillRecord skill, SkillUpgradeKind upgrade = SkillUpgradeKind.None)
     {
         if (loadout == null || skill == null) return false;
         if (skill.Id >= 20000 && skill.Id < 30000 && !LightSkillCatalog.TryCreateHeavy(skill, out _)) return false;
@@ -37,7 +37,7 @@ public static class LevelUpSkillReward
             IconLabel = skill.Icon
         };
         if (skill.Id >= 10000 && skill.Id < 30000)
-            return loadout.TryAddOrUpgradeAttackSkill(data);
+            return loadout.TryAddOrUpgradeAttackSkill(data, upgrade);
         if (skill.Id < 30000 || skill.Id >= 40000) return false;
         if (!loadout.TryAddTacticalSkill(data)) return false;
         if (loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) == 0)

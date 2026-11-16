@@ -1,0 +1,13 @@
+{
+ "name": "FinalCurrent",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 240,
+ "frameWidth": 266,
+ "frameHeight": 31,
+ "columns": 1,
+ "count": 11,
+ "pivotX": 0.045113,
+ "pivotY": 0.451613
+}

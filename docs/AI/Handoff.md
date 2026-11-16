@@ -1,5 +1,125 @@
 # 작업 인수인계
 
+## 2026-11-16 물 스킬 원·고리·부채·탄환을 pixelfx로 구분
+
+- 요청: 모양을 나눈 것은 유지하고, 불 그림에 물 색만 입히지 말고 pixelfx로 불 스킬과 다르게 보이게 한다.
+- 그림: 관통 직선 10개는 기존 물줄기다. 나머지 20개는 같은 파일 이름으로 다시 구웠다. 탄환은 파란 물방울이 꼬리를 끌며 반복한다. 원은 잔물결·채워진 수압·물기둥·소용돌이다. 고리는 속이 빈 거품 띠다. 부채는 여러 갈래 물줄기, 호는 휘어진 물 장막이다. 불꽃 혀·불씨는 없다. 피해·판정·사거리·MP는 바꾸지 않았다. 플레이테스트용 그림이며 확정 연출이 아니다.
+- 에셋: `Assets/Resources/LightSkills/Fx`의 해당 20장과 `Frames` JSON. 탄환 5개는 loop·reach 0. 범위 15개는 한 번 재생·reach 80·피벗은 원·고리는 가운데, 부채·호는 시전자. Point·무압축·PPU 32. 기존 meta가 있어 GUID는 유지된다. 직선 10장과 불 이펙트는 다시 굽지 않았다.
+- 굽기: `tools/PixelFxBake/skills/water-shapes.js`. `water.js`는 직선 10개만 남긴다. repo 루트에서 `node tools/PixelFxBake/export-skills.mjs --only WaterArrow,RapidCurrent,...`(이름은 소스의 `effects`). `--preview`는 `.utmp/pixelfx-preview`만 만든다.
+- 코드: `LightSkillVisuals.BakedClipName`이 물 스킬 30개를 다시 연결한다. 탄환은 반복 그림이라 날아가고, 원·고리는 돌리지 않으며 원점에서 reach까지가 사거리다.
+- 검증(이번 변경에 실제 실행): 미리보기 8종을 눈으로 확인한 뒤 20장을 구웠다. JSON의 loop·reach·피벗이 위와 같다. Unity 임포트·Play·자동 테스트 0. 스킬 표는 안 바꿔서 표 검증은 다시 돌리지 않았다.
+- 직접 확인: Play 종료 → Unity가 `Assets/Resources/LightSkills/Fx`를 다시 읽은 뒤 Console 오류 없음. `PressureLance`가 Sprite·Point·PPU 32·Compression None·Max Size 2048인지 본다. `Tools > Play From Title` 해제 → `MainScene` Play → `테스트/원하는 카드 고르기`.
+  1) `수살`(10025)은 파란 물화살이 날아가다 처음 맞는 적에서 멈춘다. 불꽃이 아니다.
+  2) `수압 파문`(10029)은 발밑이 채워진 푸른 원이다. `잔물결`(10023)은 동심 물결, `심연 소용돌이`(10033)는 소용돌이, `대해의 고리`(10032)는 속이 빈 거품 띠다.
+  3) `급류 부채`(10028)는 좁게 갈라진 물줄기, `심해 일섬`(10035)은 넓은 물 장막이다.
+  4) `물줄기`(10022)는 예전 관통 물줄기다.
+- 이상 시: Console 첫 오류와 `[LightSkillVisuals] 구운 시트 크기가 정보와 다릅니다`. 불꽃이면 `BakedClipName`이 그 ID를 반환하는지, 흐리면 Filter Mode, 원 크기가 판정과 다르면 JSON `reach`가 80인지 확인한다.
+- 다음: 실제 Play로 원·고리·부채가 판정과 같은 크기인지 본다.
+
+## 2026-11-16 물 스킬을 관통만 쓰지 않게 나눔
+
+- 요청: 물 스킬이 관통 직선만 반복해서 스킬끼리 차이가 없다.
+- 데이터: 약공격 10022~10036, 강공격 20016~20030. 30개 중 관통 직선은 10개만 남겼다. 나머지는 이미 있는 판정으로 나눴다. 탄환은 날아가다 처음 맞는 적에서 멈추고, 여러 발은 조금씩 벌어진다. 원은 발밑, 고리는 몸 둘레의 띠, 부채는 좁은 전방, 호는 넓은 전방이다. 피해·MP·차징·등급·슈퍼아머·패시브 쿨타임은 그대로다. 플레이테스트용 배치이며 확정 밸런스가 아니다.
+  - 직선: 물줄기, 삼연 물창, 수창, 창류, 대해의 창, 물결 찌르기, 대해 창격, 심연 관통, 천수 관통, 종언의 물줄기.
+  - 탄환: 수살 1발, 연속 물살 3발, 사중 관류 4발, 이중 수창 2발, 긴 수주 1발.
+  - 원: 잔물결, 수압 파문, 연타 수주, 심연 소용돌이, 수압 연타, 심해 파문, 대해 파도.
+  - 고리: 대해의 고리, 해일 고리.
+  - 부채: 급류 부채, 급류 돌파. 호: 심해 일섬, 수압 일섬, 횡단 수류, 절해 일섬.
+- 이름: 모양이 달라진 것만 바꿨다. 급류 관통→급류 부채, 수압 창→수압 파문, 대해의 선→대해의 고리, 심연창→심연 소용돌이, 해일 직선→해일 고리, 심해 수창→심해 파문, 대해 관통→대해 파도.
+- 그림: 당시에는 직선 10개만 기존 물줄기이고, 나머지는 기본 그림에 물 색을 입혔다. 카드 아이콘은 원·고리·부채·여러 발로 다시 그렸다. 그 20개는 바로 위 항목에서 pixelfx로 다시 구웠다.
+- 검증(이번 변경에 실제 실행): `CombatSkillTableValidation` **30/31**. 새 검사 `water skills use shots, bursts, fans and rings as well as lines`와 엑셀·JSON 필드 일치는 통과했다. 실패 1개는 `shipped JSON keeps combat values and blank passive columns`로, 10001 아이콘이 빈 칸이길 기대하는데 JSON은 `SkillIcons/SkillIcon_10001`이다. 변경 전과 같은 기존 검사이고 이번 모양 변경과 무관하다. Unity 임포트·Play·자동 테스트 0.
+- 직접 확인: 엑셀이 `SkillDatatable.xlsx`를 열고 있었다면 저장하지 말고 닫은 뒤 다시 연다. Unity 임포트 후 Console 오류 없음 → `Tools > Play From Title` 해제 → `MainScene` Play → `CombatUI`의 `테스트/원하는 카드 고르기`.
+  1) `물줄기`(10022)는 예전처럼 조준 방향 직선 안의 적을 관통한다. 옆의 적은 맞지 않는다.
+  2) `수살`(10025)은 날아가다 처음 맞는 적에서 멈춘다. 그 뒤의 적은 맞지 않는다. `연속 물살`(10026)은 세 발이 조금 벌어진다.
+  3) `잔물결`(10023)은 발밑 원 안의 적만 맞는다. `대해의 고리`(10032)는 몸 바로 옆이 아니라 둘레 띠만 맞는다.
+  4) `급류 부채`(10028)는 좁은 전방, `심해 일섬`(10035)은 더 넓은 전방이다. 뒤의 적은 맞지 않는다.
+- 이상 시: Console 첫 오류, JSON `10023`의 `AreaType`이 `Circle`인지, `10022`는 `Line`인지. 직선이 아닌 스킬에 물줄기가 보이면 `LightSkillVisuals.BakedClipName`이 그 ID를 아직 반환하는지 확인한다.
+- 다음: 실제 Play로 원·고리·부채의 크기 체감. 전용 물 그림은 위 항목에서 구웠다.
+
+## 2026-11-16 물속성 스킬 pixelfx 관통 이펙트
+
+- 요청: 만든 물 스킬에 pixelfx 인게임 이펙트를 붙인다.
+- 그림: 약공격 10022~10036, 강공격 20016~20030. 시전자에서 조준 방향으로 뻗는 파란 물줄기이고, 끝에서 물보라가 난다. 연타는 표의 타격 수·간격마다 다시 뻗는다. 화살·창·물기둥·일섬·두 줄은 머리 모양이 다르다. 피해·판정·사거리·MP·쿨타임은 바꾸지 않았다. 첫 프레임에 이미 상당 부분 뻗어 있고, 맞는 시점은 예전과 같이 바로다. 플레이테스트용 그림이며 확정 연출이 아니다.
+- 에셋: `Assets/Resources/LightSkills/Fx/<이름>.png` 30장과 `Fx/Frames/<이름>.json`. 전부 Point·무압축·PPU 32·reach 240·30fps·한 번 재생. 가장 긴 시트는 TidalLine(29프레임). 구울 때 기존 불 이펙트 시트는 다시 쓰지 않았다.
+- 굽기: `tools/PixelFxBake/skills/water.js`. pixelfx 물 팔레트와 물방울(`bead`)을 쓴다. repo 루트에서 `node tools/PixelFxBake/export-skills.mjs --only WaterJet,RipplePierce,...`(이름은 소스의 `effects`). `--preview`는 `.utmp/pixelfx-preview`만 만든다. 기존 meta가 있으면 GUID를 유지한다.
+- 코드: `LightSkillVisuals.BakedClipName`에 30개 ID를 연결했다. `LightSkillFx`는 구운 그림이 있으면 그 시트를 조준 방향으로 돌리고, 원점에서 끝까지가 스킬 사거리가 되게 같은 비율로 키운다. 시트나 JSON이 없으면 예전 직선 그림에 물 색이 입혀진다.
+- 검증(이번 변경에 실제 실행): 미리보기 6종을 눈으로 보고 반투명 점선을 불투명 물줄기로 고친 뒤 30장을 다시 구웠다. 시트 크기와 JSON 격자 일치, reach 240, loop 아님, Point·PPU 32, 코드 이름 30개 일치, 새 GUID 60개 충돌 0. Unity 임포트·Play·자동 테스트 0. 스킬 표 수치는 안 바꿔서 표 검증은 다시 돌리지 않았다.
+- 직접 확인: Play 종료 → Unity가 `Assets/Resources/LightSkills/Fx`의 새 PNG·JSON을 읽은 뒤 Console 오류 없음. Project에서 `WaterJet`이 Sprite·Point·PPU 32·Compression None·Max Size 2048인지 본다. `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴 `테스트/원하는 카드 고르기`.
+  1) `물줄기`(10022)는 조준 방향으로 파란 물줄기가 사거리 끝까지 뻗고, 끝에서 물보라가 난다. 옆의 적은 맞지 않는다.
+  2) `삼연 물창`(10024)은 같은 직선을 세 번 다시 뻗는다. `연타 수주`(10031)는 마디가 있는 물기둥이다.
+  3) `수살`(10025)은 화살촉, `천수 관통`(20026)은 가는 바늘, `대해 관통`(20030)은 두 줄이다.
+  4) 강공격 `물결 찌르기`(20016)는 차징 뒤 더 짧은 사거리의 두꺼운 물결이다.
+- 이상 시: Console 첫 오류와 `[LightSkillVisuals] 구운 시트 크기가 정보와 다릅니다`(해당 PNG의 Max Size). 예전 직선 그림이면 `Fx/<이름>.png`와 `Fx/Frames/<이름>.json`이 둘 다 임포트됐는지, 흐리면 Filter Mode, 길이가 판정과 다르면 JSON `reach`가 240인지 확인한다.
+- 다음: 실제 Play로 두께·길이·연타 간격 체감. 소스 수정 후 위 굽기 명령으로 다시 구울 수 있다.
+
+## 2026-11-16 물속성 스킬 아이콘 30개
+
+- 요청: 물 약공격 10022~10036, 강공격 20016~20030 데이터로 카드 아이콘을 만든다.
+- 그림: 32×32 투명 픽셀 문양을 등급 테두리 64×64 중앙 (16,16)에 붙였다. 문양은 `Assets/2.Resources/Art/SkillIcons/SkillIcon_<ID>.png`, 카드 그림은 `Assets/Resources/SkillIcons/Skill_<ID>.png`. 등급 색은 기존 프레임과 같다. Common 회색, Uncommon 초록, Rare 파랑, Epic 보라, Legendary 금색, Mythic 주황빨강. 다시 구우려면 `node tools/WaterSkillIcons/bake.mjs`. 기존 meta가 있으면 GUID를 유지한다.
+- 연결: JSON `Icon`과 엑셀 Skill_Icon(G열)은 `SkillIcons/SkillIcon_<ID>`. 약공격 LightSkilltable 24~38행, 강공격 HeavySkilltable 18~32행. 화면은 그 키가 Resources에 없으면 `SkillIcons/Skill_<ID>`를 쓴다. 기존 46개 아이콘·PPT는 바꾸지 않았다. 물 그림은 PPT에 넣지 않았다.
+- 모양: 오른쪽 위를 향한 파란 관통선이다. 연타는 선을 겹치고, `연타 수주`(10031)·`긴 수주`(20022)만 세로 물기둥이다. 플레이테스트용 그림이며 확정 아트가 아니다.
+- 검증(이번 변경에 실제 실행): 문양 30장 32×32, 카드 30장 64×64. meta 60개의 GUID 충돌 0, Sprite·Point·PPU 100. JSON 30개와 엑셀 G열 30개가 같은 경로. `CombatSkillTableValidation` **29/30**. 실패 1개는 `shipped JSON keeps combat values and blank passive columns`로, 10001 아이콘이 빈 칸이길 기대하는데 JSON은 `SkillIcons/SkillIcon_10001`이다. 변경 전에도 같았고 물 아이콘과 무관하다. `tools/SkillIconValidation`은 `Validation.csproj`가 없어 실행하지 못했다. Unity 임포트·Play·자동 테스트 0.
+- 직접 확인: 엑셀이 `Document/SkillDatatable.xlsx`를 열고 있었다면 저장하지 말고 닫은 뒤 다시 연다. G24가 `SkillIcons/SkillIcon_10022`여야 한다. Unity가 새 PNG를 읽은 뒤 Console 오류 없음 → `Tools > Parse Combat Skill Table`은 전투 스킬 76개이고, 다시 내보내도 물 아이콘 칸이 비면 안 된다. `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴 `테스트/원하는 카드 고르기`.
+  1) `물줄기`(10022)는 회색 테두리에 파란 대각 물줄기.
+  2) `삼연 물창`(10024)은 초록 테두리에 세 줄.
+  3) `연타 수주`(10031)는 보라 테두리에 세로 물기둥.
+  4) 강공격 `물결 찌르기`(20016)는 회색 테두리에 짧고 두꺼운 물줄기.
+- 이상 시: Console 첫 오류, `Assets/Resources/SkillIcons/Skill_10022` 임포트가 Sprite·Point인지. 표의 Icon이 비어 있으면 같은 폴더의 `Skill_<ID>`로 대신 그려진다. 엑셀을 연 채로 두었다면 예전 파일을 저장해 G열이 지워졌을 수 있다.
+- 다음: 실제 Play로 카드와 보유 목록에 같은 그림이 보이는지 확인. 타격 이펙트는 위 `물속성 스킬 pixelfx 관통 이펙트`에 있다.
+
+## 2026-11-16 인게임 설정 버튼 이미지를 Pause로 교체
+
+- 요청: 게임 안 설정 버튼 그림을 `Ingame_UI_Button_Pause`로 바꾼다.
+- 변경: `Assets/1.Prefabs/CombatUI.prefab`의 `PauseButton` Image만 교체. 기존 톱니(`Ingame_UI_Button_System_0`) 대신 세 줄 메뉴(`Ingame_UI_Button_Pause_0`, GUID `6906aba2`). 위치·크기 80×80·클릭·색 전환은 그대로다. 씬 Override는 이 스프라이트를 덮어쓰지 않는다. 일시정지 팝업 안의 다른 설정 버튼은 바꾸지 않았다.
+- 검증: Unity 임포트·Play·자동 테스트 0. 스프라이트 참조만 변경.
+- 직접 확인: Play 종료 → Unity가 프리팹을 다시 읽은 뒤 Console 오류 없음 → `Tools > Play From Title` 해제 → `MainScene` Play. 화면 오른쪽 위 설정 버튼이 톱니 대신 보라색 세 줄 메뉴여야 한다. 누르면 기존처럼 일시정지 창이 열린다.
+- 이상 시: Hierarchy `CombatUI` > `PauseButton`의 Image 스프라이트가 `Ingame_UI_Button_Pause_0`인지, 씬에 스프라이트 Override가 생겼는지 확인한다.
+
+## 2026-11-16 공격 스킬 레벨 3→7, 4부터 특수 강화
+
+- 요청: 스킬 레벨 상한을 7로 올리고, 4부터는 범위·투사체 개수 같은 특수 강화가 붙게 한다. 이어서 그 종류는 레벨 번호와 상관없이 무작위로 나오게 했다.
+- 규칙: 1=피해 ×1, 2=×1.2, 3~7=×1.5. 4~7은 피해를 더 올리지 않는다. 카드를 만들 때 모양별 후보 둘 중 하나를 균등하게 고르고, 그 문구가 선택 결과에 그대로 저장된다. 리롤하면 스킬과 함께 다시 뽑는다. 같은 종류가 여러 번 나와도 되며, 한 번은 항상 같은 폭이다. 플레이테스트 초기값이며 기획 확정 수치가 아니다. 버튼 시전·보유 패시브·강공격 해제가 저장된 강화를 같이 쓴다. 플레이어 스탯 카드의 투사체 수·기술 범위는 그 위에 그대로 곱해진다.
+  - 투사체(화염 연사처럼 시전 시 탄환으로 바뀌는 스킬 포함): 발수 +1, 사거리 ×1.25. 탄 두께는 그대로다.
+  - 원·고리·직선: 범위 ×1.25(직선은 길이·두께), 타격 +1.
+  - 부채·호: 범위 ×1.25, 각도 ×1.25.
+- 코드: `PlayerLoadout.MaxAttackSkillStack=7`, `attackSkillUpgrades`에 고른 순서를 저장. `LightSkillCast.RollUpgrade`·`WithUpgrade`·`DescribeNext`. `Player.PrepareSkill`이 저장된 강화 뒤에 스탯 배율을 넣는다. 전략 스킬은 예전처럼 1회 등록이다. 씬·프리팹·표 수치·엑셀은 바꾸지 않았다.
+- 검증(이번 변경에 실제 실행): `PlayerLoadoutValidation` **6/6**. `CombatSkillTableValidation` **29/30**. 실패 1개는 `shipped JSON keeps combat values and blank passive columns`로, 10001 아이콘이 빈 칸이길 기대하는데 JSON은 `SkillIcons/SkillIcon_10001`이다. 변경 전 인수인계와 같은 기존 검사이고 이번 무작위 강화와 무관하다. 새 검사 `special upgrades roll by shape and stack independent of level`는 통과했다. Unity 임포트·Play·자동 테스트 0.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 오류 없음 → `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴 `테스트/원하는 카드 고르기`.
+  1) `불꽃 탄환`(10001)을 세 번까지는 `강화 1→2 (피해 ×1.2)`, `강화 2→3 (피해 ×1.5)`다. 네 번째부터는 `투사체 1→2` 또는 `사거리 ×1.25` 중 하나가 뜬다. 카드에 적힌 대로 발사된다.
+  2) 같은 스킬을 다시 고르면 4·5·6·7 어느 레벨이든 두 종류가 다시 나올 수 있다. 같은 종류가 겹치면 그 폭만큼 더 붙는다. 7이면 그 카드는 빠지고 상태창은 `Lv.7`이다.
+  3) `화염 강타`(10003)·`화염창`(10005)은 `범위`/`길이·두께` 또는 `타격 +1`. `화염 부채`(10011)는 `범위` 또는 `각도`. 리롤하면 그 칸의 문구가 바뀔 수 있다.
+- 이상 시: Console 첫 오류, 카드의 `강화 n→n+1` 문구, 상태창 `Lv.n`. 고른 효과와 발사가 다르면 그 스킬의 저장 강화와 `PrepareSkill`을 확인한다.
+- 다음: 실제 Play로 발수·사거리·연타가 카드와 맞는지 체감. 후보를 늘리거나 배율을 바꾸려면 별도 확정.
+
+## 2026-11-16 물속성 약·강공격 15개씩 추가
+
+- 요청: 불은 폭발, 물은 관통. 약공격·강공격 물 스킬을 15개씩 데이터로 만든다.
+- 데이터: `Document/SkillDatatable.xlsx`와 `Assets/Resources/Data/CombatSkillTable.json`. 약공격 10022~10036, 강공격 20016~20030. 전부 `ELEM_WATER`, 범위 `Line`. 직선 안의 적을 한 번에 맞히고, 타격 수가 2 이상이면 같은 직선을 다시 때린다. 너비는 두께, 길이는 거리. 약공격은 Instant·쿨타임 0, 강공격은 Charge 0.45~0.95초. 기존 불·얼음·바람·땅·전기·전략 46개의 수치·아이콘은 바꾸지 않았다.
+- 수치: 같은 등급 불 스킬의 현재 표 폭(MP·기본 피해·계수·패시브 쿨타임)에 맞춘 것이다. 기획이 확정한 밸런스가 아니다. 카드 아이콘은 `물속성 스킬 아이콘 30개`, 타격 그림은 `물속성 스킬 pixelfx 관통 이펙트`에 있다. 프리팹·사운드는 비었다.
+- 등급: 약공격 Common 2, Uncommon 3, Rare 3, Epic 3, Legendary 3, Mythic 1. 강공격 Common 2, Uncommon 2, Rare 3, Epic 3, Legendary 2, Mythic 3. 슈퍼아머는 대해 창격·해일 직선·심연 관통·횡단 수류·천수 관통·심해 수창·종언의 물줄기·절해 일섬·대해 관통만 켜 두었다.
+- 검증(이번 변경에 실제 실행): 기존 46개 필드 비교 불일치 0. `CombatSkillTableValidation` **28/29**. 실패 1개는 10001 아이콘이 빈 칸이길 기대하는 기존 검사이고, 변경 전 JSON도 `SkillIcons/SkillIcon_10001`이라 이번 물 스킬과 무관하다. 나머지 28개는 통과(엑셀·JSON 필드 일치, 관통 수치, 등급별 패시브 쿨타임, 레벨업 강공격 19장). Unity 임포트·Play·자동 테스트 0. 아이콘 검증 프로젝트 파일(`tools/SkillIconValidation/Validation.csproj`)이 없어 그 도구는 실행하지 못했다.
+- 직접 확인: 엑셀이 `SkillDatatable.xlsx`를 열고 있었다면 저장하지 말고 닫은 뒤 다시 연다. Unity 임포트 후 `Tools > Parse Combat Skill Table`을 누르면 Console에 전투 스킬 76개가 보여야 한다. `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴 `테스트/원하는 카드 고르기`.
+  1) 약공격 `물줄기`(10022)를 고르면 조준 방향으로 얇고 긴 직선 안의 적이 맞는다. 옆의 적은 맞지 않는다.
+  2) `삼연 물창`(10024)은 같은 직선을 세 번 때린다.
+  3) 강공격 `물결 찌르기`(20016)는 차징 후 더 짧은 직선을 관통한다.
+- 이상 시: Console 첫 오류, JSON의 10022 `AreaType`이 `Line`인지, 엑셀 LightSkilltable 24행 이름이 `물줄기`인지. 타격 그림이 없으면 기존 직선 그림으로 대신 그려진다. 카드 아이콘 확인은 위 아이콘 항목을 본다.
+- 다음: 실제 Play로 길이·두께·연타 간격 체감. 타격 그림은 위 `물속성 스킬 pixelfx 관통 이펙트`를 본다.
+
+## 2026-11-16 보스 2페이즈 범위 타격 VFX를 pixelfx implosion으로 교체
+
+- 요청: pixelfx `explosions/implosion`(`createFrame` → `createFx(implosion)` → `update`/`draw`/`composite`)으로 보스 2페이즈 원형 공격 타격 이펙트를 바꾼다.
+- 에셋: `Assets/Resources/BossAttackVfx/Implosion_00`~`50`(208×184, Point, PPU 32, 피벗 중앙, 30fps, 약 1.65초). 빨강/암흑 팔레트로 구웠다. 안쪽 빨강 고리가 모이며 입자들이 빨려 들어가고, 잠깐 멈춘 뒤 십자 섬광과 충격파가 터진다. 마지막 프레임은 거의 비어 있다.
+- 굽기: `tools/PixelFxBake/export-boss-implosion.mjs`. `.utmp/pixelfx`에 patch-gg/pixelfx(MIT)를 클론한 뒤 repo 루트에서 `node tools/PixelFxBake/export-boss-implosion.mjs`(`--preview`면 Assets에 쓰지 않고 `.utmp/pixelfx-preview/boss-implosion.png`만). 기존 meta는 유지해 GUID가 보존된다.
+- 코드: `BossAttackHitVfx.ShowAreaBurst`가 Resources의 `Implosion_` 프레임을 이름순으로 재생한다. 크기는 기존과 같이 피해 반경(지름)에 맞춘다. 프레임이 없으면 예전 빨간 확산(`areaBurstSprite`)으로 대체한다. **등장 폭발(`ShowEntranceBurst`)·예고 원·충전 원·피해·판정·쿨타임·프리팹 직렬화 필드는 바꾸지 않았다.** 씬·프리팹·ProjectSettings·패키지 변경 없음.
+- 실제 상태: main / `9e41d80` 기준 작업. 커밋·푸시·브랜치 전환 없음. 시작 시 미추적 `Document/~$SkillDatatable.xlsx`(Excel 잠금)만 있었고 건드리지 않았다.
+- 검증(이번 변경에 실제 실행): 굽기 51프레임·미리보기 시트로 눈으로 확인, 신규 GUID 52개 프로젝트 내 충돌 0. Unity 임포트·컴파일·Play·자동 테스트 미실행(0개).
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 오류 없음 → Project에서 `Assets/Resources/BossAttackVfx/Implosion_00`이 Sprite·Point·PPU 32인지 확인 → `Tools > Play From Title` 해제 → `MainScene` Play → BeastZombie HP를 50% 이하로 낮춘다.
+  1) 2페이즈 원형 예고(바깥 원 + 안쪽 충전)는 이전과 같다.
+  2) 타격 순간에 예전 빨간 원 확산 대신 빨강 흡입→순간 정지→십자 섬광/충격파(약 1.65초)가 피해 반경 크기로 재생되어야 한다.
+  3) 보스 등장의 큰 빨간 확산은 이전과 같아야 한다.
+- 이상 시: Console 첫 오류, `BossAttackVfx/Implosion_*` 임포트, `BossAttackHitVfx`의 Area Burst Sprite(등장용), Phase Two Area Radius. 다시 구우려면 위 굽기 명령을 실행한다.
+- 다음: 실제 Play로 크기·지속 시간 체감 확인. 예고 원까지 implosion 흡입 구간과 맞추거나 등장 폭발도 바꾸려면 별도 요청.
+
 ## 2026-11-14 몬스터 6단계 혼합 스폰 구현
 
 - 사용자 승인: `_3min`=0–3분용부터 `_18min`=15–18분용까지 6단계. 각 3분 경계부터 90초에 걸쳐 이전/현재 단계를 혼합한다. 네 종류의 초반/후반 가중치 초기값은 모두 1이며 Inspector에서 조절한다. 이는 승인된 플레이테스트 초기값이고 최종 밸런스 확정값은 아니다.

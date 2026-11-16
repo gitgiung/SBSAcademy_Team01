@@ -64,9 +64,12 @@ internal static class Program
             Check(l.GetAttackSkillStack(10001) == 2);
             Check(l.GetAttackSkillDamageMultiplier(10001) == 1.2f);
             Check(l.GetAttackSkill(1) == null);
-            Check(l.TryAddOrUpgradeAttackSkill(skill));
-            Check(l.GetAttackSkillStack(10001) == 3);
-            Check(l.GetAttackSkillDamageMultiplier(10001) == 1.5f);
+            for (int level = 3; level <= PlayerLoadout.MaxAttackSkillStack; level++)
+            {
+                Check(l.TryAddOrUpgradeAttackSkill(skill));
+                Check(l.GetAttackSkillStack(10001) == level);
+                Check(l.GetAttackSkillDamageMultiplier(10001) == 1.5f);
+            }
             Check(l.IsAttackSkillAtMaxStack(10001));
             Check(!l.TryAddOrUpgradeAttackSkill(skill));
             Check(!l.TryAddAttackSkill(skill));

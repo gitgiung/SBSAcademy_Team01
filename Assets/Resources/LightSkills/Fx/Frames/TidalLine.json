@@ -1,0 +1,13 @@
+{
+ "name": "TidalLine",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 176,
+ "frameHeight": 176,
+ "columns": 5,
+ "count": 30,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

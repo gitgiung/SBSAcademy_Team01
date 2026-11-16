@@ -72,8 +72,12 @@ public sealed partial class Player
         }
     }
 
-    private LightSkillCast PrepareSkill(LightSkillCast skill) => skill.Presented().WithStatUpgrades(
-        (int)data.StatCards.Value(PlayerStat.Projectile_Count), 1f + data.StatCards.Value(PlayerStat.Skill_Range));
+    private LightSkillCast PrepareSkill(LightSkillCast skill)
+    {
+        SkillUpgradeKind[] upgrades = data.Loadout != null ? data.Loadout.GetAttackSkillUpgrades(skill.Id) : null;
+        return skill.Presented().WithUpgrades(upgrades).WithStatUpgrades(
+            (int)data.StatCards.Value(PlayerStat.Projectile_Count), 1f + data.StatCards.Value(PlayerStat.Skill_Range));
+    }
 
 #if UNITY_EDITOR
     [ContextMenu("테스트/스킬 범위·투사체 크기 진단 (Play 중)")]
@@ -98,8 +102,10 @@ public sealed partial class Player
             string expectedScale = clip == null ? "대체 그림 사용"
                 : (prepared.Shape == LightSkillShape.Projectile || clip.ReachUnits <= 0f
                     ? 1f + sizeBonus : prepared.Range / clip.ReachUnits).ToString("0.###");
-            Debug.Log($"[SkillScale] {prepared.Id} {prepared.Name}: {prepared.Shape}, "
-                + $"범위 {original.Range:0.###} → {prepared.Range:0.###}, 구운 그림 예상 Scale {expectedScale}", this);
+            int level = data.Loadout.GetAttackSkillStack(prepared.Id);
+            Debug.Log($"[SkillScale] {prepared.Id} {prepared.Name} Lv{level}: {prepared.Shape}, "
+                + $"범위 {original.Range:0.###} → {prepared.Range:0.###}, 투사체 {original.Presented().Projectiles} → {prepared.Projectiles}, "
+                + $"구운 그림 예상 Scale {expectedScale}", this);
         }
         foreach (var fx in FindObjectsByType<LightSkillFx>())
         {

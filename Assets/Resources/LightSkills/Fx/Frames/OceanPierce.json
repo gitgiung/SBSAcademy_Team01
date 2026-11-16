@@ -1,0 +1,13 @@
+{
+ "name": "OceanPierce",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 162,
+ "frameHeight": 164,
+ "columns": 5,
+ "count": 20,
+ "pivotX": 0.5,
+ "pivotY": 0.5
+}

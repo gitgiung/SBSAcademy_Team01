@@ -158,6 +158,36 @@ public static class LightSkillVisuals
             case 20013: return "Hellfire";
             case 20014: return "Annihilation";
             case 20015: return "SunCollapse";
+            case 10022: return "WaterJet";
+            case 10023: return "RipplePierce";
+            case 10024: return "TripleWaterLance";
+            case 10025: return "WaterArrow";
+            case 10026: return "RapidCurrent";
+            case 10027: return "WaterSpear";
+            case 10028: return "RapidsPierce";
+            case 10029: return "PressureLance";
+            case 10030: return "LanceCurrent";
+            case 10031: return "RepeatingWaterspout";
+            case 10032: return "OceanLine";
+            case 10033: return "AbyssLance";
+            case 10034: return "QuadrupleCurrent";
+            case 10035: return "DeepSeaFlash";
+            case 10036: return "SpearOfTheSea";
+            case 20016: return "WaveThrust";
+            case 20017: return "PressureFlash";
+            case 20018: return "RapidsBreakthrough";
+            case 20019: return "TwinWaterSpear";
+            case 20020: return "OceanThrust";
+            case 20021: return "PressureBarrage";
+            case 20022: return "LongWaterspout";
+            case 20023: return "TidalLine";
+            case 20024: return "AbyssPierce";
+            case 20025: return "CrossingCurrent";
+            case 20026: return "HeavenstreamPierce";
+            case 20027: return "DeepSeaLance";
+            case 20028: return "FinalCurrent";
+            case 20029: return "SeveringTide";
+            case 20030: return "OceanPierce";
             default: return null;
         }
     }

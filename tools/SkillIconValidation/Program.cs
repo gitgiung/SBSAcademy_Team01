@@ -36,17 +36,21 @@ Test("missing optional icon returns null",()=>{
     Check(SkillCardIcons.Get(0,null)==null);Check(UnityEngine.Resources.Loads==0);
     Check(SkillCardIcons.Get(30009,"missing")==null);
 });
-Test("all 46 runtime skills have exact PPT pictures and Sprite import settings",()=>{
+Test("original icons match the PPT and water icons are separate 64px sprites",()=>{
     using var json=JsonDocument.Parse(File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
     using var ppt=ZipFile.OpenRead("Document/스킬_개요.pptx");
     var hashes=ppt.Entries.Where(e=>e.FullName.StartsWith("ppt/media/")).Select(e=>{using var s=e.Open();return Convert.ToHexString(SHA256.HashData(s));}).ToHashSet();
-    int count=0;
+    int count=0, water=0;
     foreach(var skill in json.RootElement.GetProperty("skills").EnumerateArray()){
         int id=skill.GetProperty("Id").GetInt32();string path=$"Assets/Resources/SkillIcons/Skill_{id}.png";
-        Check(File.Exists(path));Check(hashes.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))));
-        string meta=File.ReadAllText(path+".meta");Check(meta.Contains("textureType: 8")&&meta.Contains("spriteMode: 1")&&meta.Contains("filterMode: 0"));count++;
+        bool waterLine=(id>=10022&&id<=10036)||(id>=20016&&id<=20030);
+        Check(File.Exists(path));
+        string meta=File.ReadAllText(path+".meta");
+        Check(meta.Contains("textureType: 8")&&meta.Contains("spriteMode: 1")&&meta.Contains("filterMode: 0"));
+        if(waterLine){Check(skill.GetProperty("Icon").GetString()=="SkillIcons/SkillIcon_"+id);Check(!hashes.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))));water++;continue;}
+        Check(hashes.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))));count++;
     }
-    Check(count==46);
+    Check(count==46);Check(water==30);
 });
 Test("PPT picture labels map to the correct skill IDs",()=>{
     using var json=JsonDocument.Parse(File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));

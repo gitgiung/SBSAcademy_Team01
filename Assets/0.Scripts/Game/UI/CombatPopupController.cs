@@ -292,11 +292,20 @@ public sealed class CombatPopupController : MonoBehaviour
     private LevelUpOffer CreateSkillOffer(PlayerLoadout loadout, CombatSkillRecord skill, CombatSkillTableFile table)
     {
         CombatSkillRecord chosen = skill;
+        SkillUpgradeKind upgrade = RollSkillUpgrade(loadout, chosen);
         return new LevelUpOffer
         {
-            Card = CreateSkillCard(chosen, table.rarities, loadout),
-            Apply = () => ApplySkillChoice(loadout, chosen)
+            Card = CreateSkillCard(chosen, table.rarities, loadout, upgrade),
+            Apply = () => ApplySkillChoice(loadout, chosen, upgrade)
         };
+    }
+
+    private SkillUpgradeKind RollSkillUpgrade(PlayerLoadout loadout, CombatSkillRecord skill)
+    {
+        int stack = loadout != null && skill != null ? loadout.GetAttackSkillStack(skill.Id) : 0;
+        if (skill == null || stack < 3 || stack >= PlayerLoadout.MaxAttackSkillStack) return SkillUpgradeKind.None;
+        if (!LightSkillCast.TryFrom(skill, out LightSkillCast cast)) return SkillUpgradeKind.None;
+        return cast.Presented().RollUpgrade(levelUpRandom.NextDouble);
     }
 
     private bool TryTakeStatOffer(PlayerData playerData, List<PlayerStatCard> stats, HashSet<PlayerStat> shown, out LevelUpOffer offer)
@@ -342,12 +351,12 @@ public sealed class CombatPopupController : MonoBehaviour
         public System.Action Apply;
     }
 
-    private void ApplySkillChoice(PlayerLoadout loadout, CombatSkillRecord selected)
+    private void ApplySkillChoice(PlayerLoadout loadout, CombatSkillRecord selected, SkillUpgradeKind upgrade = SkillUpgradeKind.None)
     {
         if (selected == null || loadout == null || !CanShow()) return;
         bool isTactical = selected.Id >= 30000 && selected.Id < 40000;
         bool alreadyOwned = isTactical ? OwnsTactical(loadout, selected.Id) : loadout.GetAttackSkillStack(selected.Id) > 0;
-        if (LevelUpSkillReward.TryAcquire(loadout, selected)) CompleteLevelUp();
+        if (LevelUpSkillReward.TryAcquire(loadout, selected, upgrade)) CompleteLevelUp();
         else if (!alreadyOwned && (isTactical ? !loadout.HasFreeTacticalSlot : !loadout.HasFreeAttackSlot)) ShowAttackSlotsFull();
         else levelUpPanel.ShowMessage("스킬 획득 불가", "선택한 스킬을 등록하거나 강화할 수 없습니다.", CompleteLevelUp);
     }
@@ -392,7 +401,7 @@ public sealed class CombatPopupController : MonoBehaviour
     }
 
     private static LevelUpCardData CreateSkillCard(CombatSkillRecord skill, List<SkillRarityRecord> rarities,
-        PlayerLoadout loadout = null)
+        PlayerLoadout loadout = null, SkillUpgradeKind upgrade = SkillUpgradeKind.None)
     {
         string id = SkillRarityRecord.NormalizeId(skill.Rarity);
         SkillRarityRecord rarity = rarities.Find(value => value != null
@@ -401,11 +410,11 @@ public sealed class CombatPopupController : MonoBehaviour
         if (rarity != null && ColorUtility.TryParseHtmlString(rarity.ColorHex, out Color color)) accent = color;
         string description = LevelUpSkillDraft.FormatDescription(skill);
         int currentStack = loadout != null ? loadout.GetAttackSkillStack(skill.Id) : 0;
-        if (currentStack > 0 && currentStack < PlayerLoadout.MaxAttackSkillStack)
+        if (currentStack > 0 && currentStack < PlayerLoadout.MaxAttackSkillStack
+            && LightSkillCast.TryFrom(skill, out LightSkillCast cast))
         {
-            int nextStack = currentStack + 1;
-            float multiplier = PlayerLoadout.DamageMultiplierForStack(nextStack);
-            description += $"\n강화 {currentStack}→{nextStack} (피해 ×{multiplier:0.#})";
+            SkillUpgradeKind[] owned = loadout != null ? loadout.GetAttackSkillUpgrades(skill.Id) : null;
+            description += "\n" + cast.Presented().WithUpgrades(owned).DescribeNext(currentStack, upgrade);
         }
         return new LevelUpCardData
         {
@@ -780,12 +789,13 @@ public sealed class CombatPopupController : MonoBehaviour
         }
         PlayerLoadout loadout = statusPlayer.data.Loadout;
         CombatSkillTableFile table = CombatSkillTable.CreateSnapshot();
+        SkillUpgradeKind upgrade = RollSkillUpgrade(loadout, skill);
         levelUpPanel.SetChoices(
-            new List<LevelUpCardData> { CreateSkillCard(skill, table.rarities, loadout) },
+            new List<LevelUpCardData> { CreateSkillCard(skill, table.rarities, loadout, upgrade) },
             index =>
             {
                 if (index != 0) return;
-                ApplySkillChoice(loadout, skill);
+                ApplySkillChoice(loadout, skill, upgrade);
             });
         OpenLevelUpPanel();
     }

@@ -1,0 +1,13 @@
+{
+ "name": "LanceCurrent",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 240,
+ "frameWidth": 264,
+ "frameHeight": 27,
+ "columns": 1,
+ "count": 11,
+ "pivotX": 0.037879,
+ "pivotY": 0.518519
+}

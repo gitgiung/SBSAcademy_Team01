@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>Shows boss slash, dash impact and phase-two area attack shapes.</summary>
@@ -6,6 +8,9 @@ using UnityEngine;
 public sealed class BossAttackHitVfx : MonoBehaviour
 {
     private const int CircleResolution = 256;
+    private const float ImplosionFrameDuration = 1f / 30f;
+    private const string ImplosionResourceFolder = "BossAttackVfx";
+    private const string ImplosionPrefix = "Implosion_";
     private static readonly int RadialStartId = Shader.PropertyToID("_RadialStartAngle");
     private static readonly int RadialClipId = Shader.PropertyToID("_RadialClip");
     private static readonly int RadialClip2Id = Shader.PropertyToID("_RadialClip2");
@@ -46,6 +51,8 @@ public sealed class BossAttackHitVfx : MonoBehaviour
     private Sprite circleSprite;
     private float slashPulseStart;
     private float dashPulseStart;
+    private Sprite[] implosionFrames;
+    private Coroutine implosionPlayback;
 
     private void Awake()
     {
@@ -67,6 +74,7 @@ public sealed class BossAttackHitVfx : MonoBehaviour
             burstMaterial = new Material(burstShader) { name = "Boss Area Burst Test Material" };
             burstRenderer.sharedMaterial = burstMaterial;
         }
+        implosionFrames = LoadImplosionFrames();
         if (rangeMaterial == null)
             Debug.LogError("보스 피격 범위 VFX 머티리얼이 없습니다.", this);
         Hide();
@@ -120,15 +128,23 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     public void ShowAreaBurst(float radius)
     {
+        // 2페이즈 원형 타격은 pixelfx explosions/implosion 구운 프레임을 재생한다.
+        if (implosionFrames != null && implosionFrames.Length > 0)
+        {
+            PlayImplosion(radius);
+            return;
+        }
         BeginBurst(radius, areaBurstDuration);
     }
 
     private void BeginBurst(float radius, float duration)
     {
         if (!isActiveAndEnabled || burstRenderer == null || areaBurstSprite == null || burstMaterial == null) return;
+        StopImplosion();
         burstRadius = Mathf.Max(0f, radius);
         activeBurstDuration = Mathf.Max(0.01f, duration);
         burstTimeRemaining = activeBurstDuration;
+        burstRenderer.sprite = areaBurstSprite;
         burstRenderer.enabled = true;
         UpdateBurst();
     }
@@ -152,8 +168,46 @@ public sealed class BossAttackHitVfx : MonoBehaviour
         BeginBurst(size, entranceAreaBurstDuration > 0f ? entranceAreaBurstDuration : areaBurstDuration);
     }
 
+    private void PlayImplosion(float radius)
+    {
+        if (!isActiveAndEnabled || burstRenderer == null || burstMaterial == null) return;
+        StopImplosion();
+        burstTimeRemaining = 0f;
+        burstRadius = Mathf.Max(0f, radius);
+        Sprite first = implosionFrames[0];
+        float spriteDiameter = Mathf.Max(first.bounds.size.x, first.bounds.size.y);
+        burstRenderer.transform.localPosition = Vector3.zero;
+        burstRenderer.transform.rotation = Quaternion.identity;
+        burstRenderer.transform.localScale = BossAttackHitVfxShape.LocalScale(
+            burstRadius / Mathf.Max(0.0001f, spriteDiameter), transform.lossyScale);
+        burstRenderer.color = Color.white;
+        burstRenderer.sprite = first;
+        burstRenderer.enabled = true;
+        implosionPlayback = StartCoroutine(PlayImplosionFrames());
+    }
+
+    private IEnumerator PlayImplosionFrames()
+    {
+        for (int i = 0; i < implosionFrames.Length; i++)
+        {
+            if (burstRenderer == null) yield break;
+            burstRenderer.sprite = implosionFrames[i];
+            yield return new WaitForSeconds(ImplosionFrameDuration);
+        }
+        implosionPlayback = null;
+        HideBurst();
+    }
+
+    private void StopImplosion()
+    {
+        if (implosionPlayback == null) return;
+        StopCoroutine(implosionPlayback);
+        implosionPlayback = null;
+    }
+
     private void UpdateBurst()
     {
+        if (implosionPlayback != null) return;
         if (burstRenderer == null || !burstRenderer.enabled) return;
         if (burstTimeRemaining <= 0f)
         {
@@ -174,8 +228,20 @@ public sealed class BossAttackHitVfx : MonoBehaviour
 
     private void HideBurst()
     {
+        StopImplosion();
         burstTimeRemaining = 0f;
         if (burstRenderer != null) burstRenderer.enabled = false;
+    }
+
+    private static Sprite[] LoadImplosionFrames()
+    {
+        Sprite[] loaded = Resources.LoadAll<Sprite>(ImplosionResourceFolder);
+        var frames = new List<Sprite>();
+        foreach (Sprite sprite in loaded)
+            if (sprite != null && sprite.name.StartsWith(ImplosionPrefix))
+                frames.Add(sprite);
+        frames.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+        return frames.ToArray();
     }
 
     public void ShowDashImpact(Vector2 center, float radius)

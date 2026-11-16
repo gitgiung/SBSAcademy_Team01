@@ -95,10 +95,94 @@ internal static class Program
             Equal(2, loadout.GetAttackSkillStack(10002));
             Equal(1.2f, loadout.GetAttackSkillDamageMultiplier(10002));
             Equal(null, loadout.GetAttackSkill(1));
-            Equal(true, Acquire(loadout, Skill(10002)));
-            Equal(3, loadout.GetAttackSkillStack(10002));
-            Equal(1.5f, loadout.GetAttackSkillDamageMultiplier(10002));
+            for (int level = 3; level <= PlayerLoadout.MaxAttackSkillStack; level++)
+            {
+                Equal(true, Acquire(loadout, Skill(10002)));
+                Equal(level, loadout.GetAttackSkillStack(10002));
+                Equal(1.5f, loadout.GetAttackSkillDamageMultiplier(10002));
+            }
             Equal(false, Acquire(loadout, Skill(10002)));
+            Equal(null, loadout.GetAttackSkill(1));
+        });
+        Test("special upgrades roll by shape and stack independent of level", () =>
+        {
+            LightSkillCast Presented(int id)
+            {
+                var record = shipped.skills.Single(skill => skill.Id == id);
+                Equal(true, LightSkillCast.TryFrom(record, out LightSkillCast skill));
+                return skill.Presented();
+            }
+            var bullet = Presented(10001);
+            Equal(LightSkillShape.Projectile, bullet.Shape);
+            Equal(SkillUpgradeKind.Projectiles, bullet.RollUpgrade(() => 0));
+            Equal(SkillUpgradeKind.Range, bullet.RollUpgrade(() => 0.999));
+            var twoShots = bullet.WithUpgrade(SkillUpgradeKind.Projectiles).WithUpgrade(SkillUpgradeKind.Projectiles);
+            Equal(bullet.Projectiles + 2, twoShots.Projectiles);
+            Equal(bullet.Range, twoShots.Range);
+            Equal(bullet.Width, twoShots.Width);
+            var ranged = twoShots.WithUpgrade(SkillUpgradeKind.Range);
+            Equal(bullet.Range * LightSkillCast.UpgradeStep, ranged.Range);
+            Equal(true, bullet.DescribeNext(1, SkillUpgradeKind.Projectiles).Contains("피해"));
+            Equal(true, bullet.DescribeNext(3, SkillUpgradeKind.Projectiles).Contains("투사체 1→2"));
+            Equal(true, bullet.DescribeNext(6, SkillUpgradeKind.Projectiles).Contains("투사체 1→2"));
+            Equal(true, ranged.DescribeNext(5, SkillUpgradeKind.Range).Contains("사거리"));
+            Equal(1.5f, PlayerLoadout.DamageMultiplierForStack(7));
+
+            var smash = Presented(10003);
+            Equal(LightSkillShape.Circle, smash.Shape);
+            Equal(SkillUpgradeKind.Range, smash.RollUpgrade(() => 0));
+            Equal(SkillUpgradeKind.Hits, smash.RollUpgrade(() => 0.999));
+            var wider = smash.WithUpgrade(SkillUpgradeKind.Range);
+            Equal(smash.Range * LightSkillCast.UpgradeStep, wider.Range);
+            Equal(smash.Range * LightSkillCast.UpgradeStep * LightSkillCast.UpgradeStep, wider.WithUpgrade(SkillUpgradeKind.Range).Range);
+            Equal(smash.Hits + 1, smash.WithUpgrade(SkillUpgradeKind.Hits).Hits);
+            Equal(smash.Projectiles, smash.WithUpgrade(SkillUpgradeKind.Projectiles).Projectiles);
+            Equal(true, smash.DescribeNext(3, SkillUpgradeKind.Range).Contains("범위"));
+            Equal(true, smash.WithUpgrade(SkillUpgradeKind.Hits).DescribeNext(4, SkillUpgradeKind.Hits).Contains("타격 2→3"));
+
+            var spear = Presented(10005);
+            Equal(LightSkillShape.Line, spear.Shape);
+            Equal(spear.Width * LightSkillCast.UpgradeStep, spear.WithUpgrade(SkillUpgradeKind.Range).Width);
+            Equal(true, spear.DescribeNext(6, SkillUpgradeKind.Range).Contains("길이·두께"));
+
+            var fan = Presented(10011);
+            Equal(LightSkillShape.Cone, fan.Shape);
+            Equal(SkillUpgradeKind.Range, fan.RollUpgrade(() => 0));
+            Equal(SkillUpgradeKind.Angle, fan.RollUpgrade(() => 0.5));
+            Equal(fan.Angle * LightSkillCast.UpgradeStep, fan.WithUpgrade(SkillUpgradeKind.Angle).Angle);
+            Equal(fan.Hits, fan.WithUpgrade(SkillUpgradeKind.Hits).Hits);
+            Equal(fan.Angle, fan.WithUpgrade(SkillUpgradeKind.Hits).Angle);
+            Equal(true, fan.DescribeNext(3, SkillUpgradeKind.Angle).Contains("각도"));
+
+            var rapid = Presented(10013);
+            Equal(LightSkillShape.Projectile, rapid.Shape);
+            Equal(SkillUpgradeKind.Projectiles, rapid.RollUpgrade(() => 0));
+            Equal(rapid.Projectiles + 1, rapid.WithUpgrade(SkillUpgradeKind.Projectiles).Projectiles);
+
+            var withStats = twoShots.WithStatUpgrades(2, 1.5f);
+            Equal(bullet.Projectiles + 4, withStats.Projectiles);
+            Equal(bullet.Range, withStats.Range);
+            var areaStats = wider.WithUpgrade(SkillUpgradeKind.Hits).WithStatUpgrades(2, 1.2f);
+            Equal(smash.Range * LightSkillCast.UpgradeStep * 1.2f, areaStats.Range);
+            Equal(smash.Hits + 1, areaStats.Hits);
+
+            var loadout = new PlayerLoadout();
+            var owned = new Data.SkillData { DataId = 10001, Name = "불꽃 탄환" };
+            Equal(true, loadout.TryAddOrUpgradeAttackSkill(owned, SkillUpgradeKind.Projectiles));
+            Equal(true, loadout.TryAddOrUpgradeAttackSkill(owned, SkillUpgradeKind.Projectiles));
+            Equal(true, loadout.TryAddOrUpgradeAttackSkill(owned));
+            Equal(0, loadout.GetAttackSkillUpgrades(10001).Length);
+            Equal(true, loadout.TryAddOrUpgradeAttackSkill(owned, SkillUpgradeKind.Range));
+            Equal(true, loadout.TryAddOrUpgradeAttackSkill(owned, SkillUpgradeKind.Projectiles));
+            var stored = loadout.GetAttackSkillUpgrades(10001);
+            Equal(2, stored.Length);
+            Equal(SkillUpgradeKind.Range, stored[0]);
+            Equal(SkillUpgradeKind.Projectiles, stored[1]);
+            var applied = bullet.WithUpgrades(stored);
+            Equal(bullet.Range * LightSkillCast.UpgradeStep, applied.Range);
+            Equal(bullet.Projectiles + 1, applied.Projectiles);
+            Equal(true, loadout.RemoveSkill(10001));
+            Equal(0, loadout.GetAttackSkillUpgrades(10001).Length);
         });
         Test("level-up offers supported heavy attacks without automatically equipping them", () =>
         {
@@ -106,7 +190,7 @@ internal static class Program
             var choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
             Equal(true, choices.Any(skill => skill.Id == 20001));
             Equal(false, choices.Any(skill => skill.Id == 20002 || skill.Id == 20012));
-            Equal(13, choices.Count(skill => skill.Id >= 20000));
+            Equal(19, choices.Count(skill => skill.Id >= 20000));
             Equal(true, Acquire(loadout, shipped.skills.Single(skill => skill.Id == 20001)));
             Equal(1, loadout.GetAttackSkillStack(20001));
             Equal(0, loadout.GetEquippedSkillId(PlayerSkillButton.Heavy));
@@ -134,6 +218,11 @@ internal static class Program
             Equal(false, choices.Any(skill => skill.Id == 20006));
             Equal(true, Acquire(loadout, hammer));
             Equal(true, Acquire(loadout, hammer));
+            choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
+            Equal(true, choices.Any(skill => skill.Id == 20001));
+            while (!loadout.IsAttackSkillAtMaxStack(hammer.Id))
+                Equal(true, Acquire(loadout, hammer));
+            Equal(PlayerLoadout.MaxAttackSkillStack, loadout.GetAttackSkillStack(hammer.Id));
             choices = LevelUpSkillReward.DrawChoices(shipped, loadout, 46, () => 0);
             Equal(false, choices.Any(skill => skill.Id == 20001));
         });
@@ -202,8 +291,8 @@ internal static class Program
             var loadout = new PlayerLoadout();
             var first = Draw(table, 3, 0)[0];
             Equal(true, Acquire(loadout, first));
-            Equal(true, Acquire(loadout, first));
-            Equal(true, Acquire(loadout, first));
+            while (!loadout.IsAttackSkillAtMaxStack(first.Id))
+                Equal(true, Acquire(loadout, first));
             var excluded = new System.Collections.Generic.HashSet<int>();
             for (int i = 0; i < loadout.UnlockedAttackSlots; i++)
             {
@@ -272,7 +361,7 @@ internal static class Program
         });
         Test("existing light attack values", () =>
         {
-            Equal(46, table.skills.Count); var s = Skill(10001);
+            Equal(76, table.skills.Count); var s = Skill(10001);
             Equal(5f, s.CostAmount); Equal(7f, s.Range); Equal(.5f, s.Width);
             Equal(8f, s.BaseValue); Equal(1.2f, s.Factor); Equal("Projectile", s.AreaType);
         });
@@ -334,6 +423,23 @@ internal static class Program
             ready.Id = 30001; Equal(false, ready.TryOwnedPassive(out _, out _));
             ready.Id = 20001; ready.PassiveCooldown = 0f; Equal(false, ready.TryOwnedPassive(out _, out _));
         });
+        Test("water skills use shots, bursts, fans and rings as well as lines", () =>
+        {
+            var water = table.skills.Where(s => (s.Id >= 10022 && s.Id <= 10036) || (s.Id >= 20016 && s.Id <= 20030)).ToList();
+            Equal(30, water.Count);
+            foreach (string shape in new[] { "Projectile", "Circle", "Line", "Cone", "Arc", "Ring" })
+                if (!water.Any(s => s.AreaType == shape)) throw new Exception("물 스킬에 없는 모양: " + shape);
+            int lines = water.Count(s => s.AreaType == "Line");
+            if (lines >= 15) throw new Exception("물 스킬 관통이 절반 이상입니다: " + lines);
+            Equal("Line", Skill(10022).AreaType);
+            Equal("Circle", Skill(10023).AreaType);
+            Equal("Projectile", Skill(10025).AreaType);
+            Equal(3, Skill(10026).Projectiles);
+            Equal("Ring", Skill(10032).AreaType);
+            Equal("Arc", Skill(10035).AreaType);
+            Equal("Cone", Skill(20018).AreaType);
+            Equal("Circle", Skill(20030).AreaType);
+        });
         Test("area radius and length remain independent", () =>
         {
             Equal(2.2f, Field(Skill(20001), "Radius"));
@@ -370,7 +476,7 @@ internal static class Program
             var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
                 File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
             CombatSkillRecord Find(int id) => shipped.skills.Single(s => s.Id == id);
-            Equal(46, shipped.skills.Count);
+            Equal(76, shipped.skills.Count);
             var flame = Find(10001);
             Equal(8f, flame.BaseValue); Equal("", flame.Icon); Equal(3f, flame.PassiveCooldown); Equal(0f, flame.PassiveScale);
             var hammer = Find(20001);
@@ -410,7 +516,12 @@ internal static class Program
     {
         var type = typeof(CombatSkillTable).Assembly.GetType("LevelUpSkillReward");
         if (type == null) throw new Exception("LevelUpSkillReward is missing");
-        return (bool)type.GetMethod("TryAcquire").Invoke(null, new object[] { loadout, record });
+        var method = type.GetMethod("TryAcquire");
+        if (method == null) throw new Exception("TryAcquire is missing");
+        object[] args = method.GetParameters().Length >= 3
+            ? new object[] { loadout, record, SkillUpgradeKind.None }
+            : new object[] { loadout, record };
+        return (bool)method.Invoke(null, args);
     }
     private static System.Collections.Generic.List<CombatSkillRecord> DrawWithExclusions(CombatSkillTableFile source, System.Collections.Generic.ISet<int> excluded)
     {

@@ -1,0 +1,13 @@
+{
+ "name": "DeepSeaLance",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 163,
+ "frameHeight": 163,
+ "columns": 3,
+ "count": 12,
+ "pivotX": 0.496933,
+ "pivotY": 0.496933
+}

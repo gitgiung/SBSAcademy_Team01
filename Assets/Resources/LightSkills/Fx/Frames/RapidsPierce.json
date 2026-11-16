@@ -1,0 +1,13 @@
+{
+ "name": "RapidsPierce",
+ "source": "pixelfx (https://github.com/patch-gg/pixelfx), tools/PixelFxBake/skills",
+ "fps": 30,
+ "loop": false,
+ "reach": 80,
+ "frameWidth": 86,
+ "frameHeight": 83,
+ "columns": 4,
+ "count": 17,
+ "pivotX": 0.034884,
+ "pivotY": 0.53012
+}

@@ -4,6 +4,16 @@ using UnityEngine;
 
 public enum PlayerSkillButton { Light, Heavy, Tactical }
 
+/// <summary>4레벨 이후에 한 번 고를 때마다 붙는 특수 강화입니다. 레벨 번호와는 묶여 있지 않습니다.</summary>
+public enum SkillUpgradeKind
+{
+    None = 0,
+    Projectiles = 1,
+    Range = 2,
+    Hits = 3,
+    Angle = 4
+}
+
 [Serializable]
 public sealed class PlayerOwnedItem
 {
@@ -19,11 +29,13 @@ public sealed class PlayerLoadout
     public const int AttackCapacity = 8;
     public const int TacticalCapacity = 5;
     public const int ItemCapacity = 60;
-    /// <summary>같은 스킬을 다시 고를 수 있는 최대 횟수입니다. 1=기본, 2=1.2배, 3=1.5배.</summary>
-    public const int MaxAttackSkillStack = 3;
+    /// <summary>같은 스킬을 다시 고를 수 있는 최대 횟수입니다. 1=기본, 2=1.2배, 3~7=1.5배. 4부터의 특수 강화는 고를 때마다 따로 저장합니다.</summary>
+    public const int MaxAttackSkillStack = 7;
+    public const int SpecialUpgradesPerSkill = MaxAttackSkillStack - 3;
     [SerializeField, Range(6, 8)] private int unlockedAttackSlots = 6;
     [SerializeField] private Data.SkillData[] attackSkills = new Data.SkillData[AttackCapacity];
     [SerializeField] private int[] attackSkillStacks = new int[AttackCapacity];
+    [SerializeField] private int[] attackSkillUpgrades = new int[AttackCapacity * SpecialUpgradesPerSkill];
     [SerializeField] private Data.SkillData[] tacticalSkills = new Data.SkillData[TacticalCapacity];
     [SerializeField] private List<PlayerOwnedItem> relics = new List<PlayerOwnedItem>();
     [SerializeField] private List<PlayerOwnedItem> augments = new List<PlayerOwnedItem>();
@@ -57,17 +69,30 @@ public sealed class PlayerLoadout
     {
         if (attackSkills == null || attackSkills.Length != AttackCapacity) Array.Resize(ref attackSkills, AttackCapacity);
         if (attackSkillStacks == null || attackSkillStacks.Length != AttackCapacity) Array.Resize(ref attackSkillStacks, AttackCapacity);
+        int upgradeLength = AttackCapacity * SpecialUpgradesPerSkill;
+        if (attackSkillUpgrades == null || attackSkillUpgrades.Length != upgradeLength)
+            Array.Resize(ref attackSkillUpgrades, upgradeLength);
         if (tacticalSkills == null || tacticalSkills.Length != TacticalCapacity) Array.Resize(ref tacticalSkills, TacticalCapacity);
         for (int i = 0; i < AttackCapacity; i++)
         {
             if (Valid(attackSkills[i]) && attackSkillStacks[i] < 1) attackSkillStacks[i] = 1;
-            if (!Valid(attackSkills[i])) attackSkillStacks[i] = 0;
+            if (!Valid(attackSkills[i]))
+            {
+                attackSkillStacks[i] = 0;
+                ClearUpgrades(i);
+            }
         }
+    }
+
+    private void ClearUpgrades(int slot)
+    {
+        int start = slot * SpecialUpgradesPerSkill;
+        for (int i = 0; i < SpecialUpgradesPerSkill; i++) attackSkillUpgrades[start + i] = 0;
     }
 
     private static bool Valid(Data.SkillData skill) => skill != null && skill.DataId > 0;
 
-    /// <summary>스택 1=1배, 2=1.2배, 3=1.5배. 범위를 벗어나면 가장 가까운 단계로 맞춥니다.</summary>
+    /// <summary>스택 1=1배, 2=1.2배, 3 이상은 1.5배입니다. 4~7의 추가 피해는 없고, 범위·투사체 같은 특수 강화만 붙습니다.</summary>
     public static float DamageMultiplierForStack(int stack)
     {
         if (stack <= 1) return 1f;
@@ -102,6 +127,24 @@ public sealed class PlayerLoadout
     public bool IsAttackSkillAtMaxStack(int skillId)
         => GetAttackSkillStack(skillId) >= MaxAttackSkillStack;
 
+    /// <summary>4레벨부터 고른 순서대로의 특수 강화입니다. 3레벨 이하면 비어 있습니다.</summary>
+    public SkillUpgradeKind[] GetAttackSkillUpgrades(int skillId)
+    {
+        EnsureSlots();
+        if (skillId <= 0) return Array.Empty<SkillUpgradeKind>();
+        for (int i = 0; i < UnlockedAttackSlots; i++)
+        {
+            if (GetAttackSkill(i)?.DataId != skillId) continue;
+            int count = Mathf.Clamp(attackSkillStacks[i], 1, MaxAttackSkillStack) - 3;
+            if (count <= 0) return Array.Empty<SkillUpgradeKind>();
+            var result = new SkillUpgradeKind[count];
+            int start = i * SpecialUpgradesPerSkill;
+            for (int n = 0; n < count; n++) result[n] = (SkillUpgradeKind)attackSkillUpgrades[start + n];
+            return result;
+        }
+        return Array.Empty<SkillUpgradeKind>();
+    }
+
     private bool Owns(int id)
     {
         for (int i = 0; i < UnlockedAttackSlots; i++) if (GetAttackSkill(i)?.DataId == id) return true;
@@ -125,8 +168,8 @@ public sealed class PlayerLoadout
         return false;
     }
 
-    /// <summary>미보유면 신규 등록, 보유 중이면 슬롯을 쓰지 않고 스택만 올립니다. 최대 스택이면 false.</summary>
-    public bool TryAddOrUpgradeAttackSkill(Data.SkillData skill)
+    /// <summary>미보유면 신규 등록, 보유 중이면 슬롯을 쓰지 않고 스택만 올립니다. 4레벨부터는 upgrade를 그 칸에 남깁니다.</summary>
+    public bool TryAddOrUpgradeAttackSkill(Data.SkillData skill, SkillUpgradeKind upgrade = SkillUpgradeKind.None)
     {
         if (!Valid(skill) || skill.DataId < 10000 || skill.DataId >= 30000) return false;
         EnsureSlots();
@@ -134,7 +177,10 @@ public sealed class PlayerLoadout
         {
             if (GetAttackSkill(i)?.DataId != skill.DataId) continue;
             if (attackSkillStacks[i] >= MaxAttackSkillStack) return false;
-            attackSkillStacks[i]++;
+            int next = attackSkillStacks[i] + 1;
+            if (next >= 4)
+                attackSkillUpgrades[i * SpecialUpgradesPerSkill + (next - 4)] = (int)upgrade;
+            attackSkillStacks[i] = next;
             Changed?.Invoke();
             return true;
         }
@@ -195,6 +241,7 @@ public sealed class PlayerLoadout
             {
                 attackSkills[i] = null;
                 attackSkillStacks[i] = 0;
+                ClearUpgrades(i);
                 removed = true;
             }
         for (int i = 0; i < TacticalCapacity; i++)

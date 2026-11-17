@@ -12,13 +12,17 @@ public enum FieldItemKind
 /// <summary>
 /// 필드 아이템 드랍 확률과 효과 수치입니다. 기획 확정 전 임시값이며
 /// SceneEnemyPool Inspector의 Field Items에서 조정합니다.
+/// 세 확률의 합이 특수 아이템 하나의 드롭률이고, 그 안을 체력 비율로 나눕니다.
 /// </summary>
 [System.Serializable]
 public sealed class FieldItemDropSettings
 {
-    [Header("드랍 확률 (임시값, 일반 몬스터 처치 1회당 0~1)")]
+    [Header("드랍 확률 (임시값, 합이 특수 아이템 공유 드롭률)")]
+    [Tooltip("공유 드롭률 안에서 힐팩의 기준 몫입니다. 실제 확률은 잃은 체력 비율로 바뀝니다.")]
     [Range(0f, 1f)] public float healPackChance = 0.007f;
+    [Tooltip("공유 드롭률 안에서 자석의 기준 몫입니다. 남은 체력 비율로 바뀝니다.")]
     [Range(0f, 1f)] public float magnetChance = 0.004f;
+    [Tooltip("공유 드롭률 안에서 폭탄의 기준 몫입니다. 남은 체력 비율로 바뀝니다.")]
     [Range(0f, 1f)] public float bombChance = 0.003f;
     [Tooltip("필드에 동시에 놓일 수 있는 아이템 수입니다. 가득 차면 새로 떨어지지 않습니다.")]
     [Min(0)] public int maxFieldItems = 12;
@@ -39,16 +43,67 @@ public sealed class FieldItemDropSettings
     public Sprite bombSprite;
     [Min(0.01f)] public float itemScale = 0.9f;
 
-    /// <summary>0~1 난수 한 번으로 드랍할 종류를 정합니다. 힐팩 → 자석 → 폭탄 순으로 구간을 차지합니다.</summary>
-    public FieldItemKind Roll(float roll)
+    /// <summary>체력을 모르는 드랍입니다. 저체력과 고체력이 같다고 보고 설정 확률 그대로 나눕니다.</summary>
+    public FieldItemKind Roll(float roll) => Roll(roll, float.NaN, float.NaN);
+
+    /// <summary>
+    /// 0~1 난수 한 번으로 드랍할 종류를 정합니다. 힐팩 → 자석 → 폭탄 순입니다.
+    /// 세 설정의 합이 공유 드롭률이고, 힐팩은 저체력(잃은 체력), 자석·폭탄은 고체력(남은 체력)에 비례합니다.
+    /// </summary>
+    public FieldItemKind Roll(float roll, float currentHealth, float maxHealth)
     {
         if (float.IsNaN(roll) || roll < 0f) return FieldItemKind.None;
-        float threshold = Chance(healPackChance);
+        SharedChances(currentHealth, maxHealth, out float heal, out float magnet, out float bomb);
+        float threshold = heal;
         if (roll < threshold) return FieldItemKind.HealPack;
-        threshold += Chance(magnetChance);
+        threshold += magnet;
         if (roll < threshold) return FieldItemKind.Magnet;
-        threshold += Chance(bombChance);
+        threshold += bomb;
         return roll < threshold ? FieldItemKind.Bomb : FieldItemKind.None;
+    }
+
+    /// <summary>이번 처치에 실제로 쓰는 확률입니다. 합은 설정 확률의 합과 같습니다.</summary>
+    public void SharedChances(float currentHealth, float maxHealth, out float heal, out float magnet, out float bomb)
+    {
+        float baseHeal = Chance(healPackChance);
+        float baseMagnet = Chance(magnetChance);
+        float baseBomb = Chance(bombChance);
+        float budget = baseHeal + baseMagnet + baseBomb;
+        if (!(budget > 0f) || !TryHealthParts(currentHealth, maxHealth, out float low, out float high))
+        {
+            heal = baseHeal;
+            magnet = baseMagnet;
+            bomb = baseBomb;
+            return;
+        }
+
+        float healWeight = baseHeal * low;
+        float magnetWeight = baseMagnet * high;
+        float bombWeight = baseBomb * high;
+        float weight = healWeight + magnetWeight + bombWeight;
+        if (!(weight > 0f))
+        {
+            heal = magnet = bomb = 0f;
+            return;
+        }
+
+        heal = budget * healWeight / weight;
+        magnet = budget * magnetWeight / weight;
+        bomb = budget * bombWeight / weight;
+    }
+
+    /// <summary>저체력은 잃은 체력, 고체력은 남은 체력입니다. 체력을 계산할 수 없으면 false입니다.</summary>
+    public static bool TryHealthParts(float currentHealth, float maxHealth, out float lowHealth, out float highHealth)
+    {
+        lowHealth = highHealth = 0f;
+        if (float.IsNaN(currentHealth) || float.IsNaN(maxHealth)
+            || float.IsInfinity(currentHealth) || float.IsInfinity(maxHealth) || !(maxHealth > 0f))
+            return false;
+        if (currentHealth < 0f) currentHealth = 0f;
+        if (currentHealth > maxHealth) currentHealth = maxHealth;
+        lowHealth = maxHealth - currentHealth;
+        highHealth = currentHealth;
+        return true;
     }
 
     /// <summary>잘못된 확률은 0으로, 범위를 벗어난 확률은 0~1로 맞춥니다.</summary>

@@ -33,7 +33,8 @@ public sealed partial class SceneEnemyPool
     {
         // 폭탄으로 죽은 몬스터가 다시 폭탄을 떨어뜨려 연쇄되지 않도록 막습니다. 경험치는 그대로 떨어집니다.
         if (closing || defeatingByBomb || enemy == null) return;
-        try { TryDropFieldItem(FieldItems.Roll(Random.value), enemy.transform.position); }
+        ReadPlayerHealth(out float currentHealth, out float maxHealth);
+        try { TryDropFieldItem(FieldItems.Roll(Random.value, currentHealth, maxHealth), enemy.transform.position); }
         catch (System.Exception exception) { Debug.LogException(exception, this); }
     }
 
@@ -133,6 +134,17 @@ public sealed partial class SceneEnemyPool
         FieldItemBlastFx blast = FieldItemBlastFx.Play(blastCenter, radius);
         if (blast != null) SceneManager.MoveGameObjectToScene(blast.gameObject, gameObject.scene);
         return defeated;
+    }
+
+    private void ReadPlayerHealth(out float currentHealth, out float maxHealth)
+    {
+        currentHealth = maxHealth = float.NaN;
+        Transform target = ResolveFieldItemTarget();
+        if (target != null && target.TryGetComponent<PlayerData>(out PlayerData player) && player != null)
+        {
+            currentHealth = player.currentHealth;
+            maxHealth = player.maxHealth;
+        }
     }
 
     private Transform ResolveFieldItemTarget()

@@ -285,6 +285,38 @@ static class Program
             Check(Math.Abs(counts[2] - s.magnetChance * samples) <= 1, "자석 " + counts[2]);
             Check(Math.Abs(counts[3] - s.bombChance * samples) <= 1, "폭탄 " + counts[3]);
         });
+        Test("특수 아이템은 확률 합을 공유하고 힐팩은 체력 비율로 움직인다", () =>
+        {
+            var s = new FieldItemDropSettings { healPackChance = .2f, magnetChance = .3f, bombChance = .1f };
+            float budget = s.healPackChance + s.magnetChance + s.bombChance;
+            s.SharedChances(50f, 100f, out float heal, out float magnet, out float bomb);
+            Near(.2f, heal, "절반 힐"); Near(.3f, magnet, "절반 자석"); Near(.1f, bomb, "절반 폭탄");
+            Equal(FieldItemKind.HealPack, s.Roll(.199f, 50f, 100f), "절반 힐 구간");
+            Equal(FieldItemKind.Bomb, s.Roll(.599f, 50f, 100f), "절반 폭탄 구간");
+
+            s.SharedChances(100f, 100f, out heal, out magnet, out bomb);
+            Near(0f, heal, "만피 힐");
+            Near(budget, heal + magnet + bomb, "만피 합");
+            Near(s.magnetChance / s.bombChance, magnet / bomb, "만피 자석·폭탄 비율");
+            Equal(FieldItemKind.Magnet, s.Roll(0f, 100f, 100f), "만피에는 힐팩이 없음");
+            Equal(FieldItemKind.None, s.Roll(budget, 100f, 100f), "만피 공유 드롭률 밖");
+
+            s.SharedChances(0f, 100f, out heal, out magnet, out bomb);
+            Near(budget, heal, "빈사 힐"); Near(0f, magnet, "빈사 자석"); Near(0f, bomb, "빈사 폭탄");
+            Equal(FieldItemKind.HealPack, s.Roll(budget - .001f, 0f, 100f), "빈사 구간");
+
+            s.SharedChances(25f, 100f, out heal, out magnet, out bomb);
+            Near(budget, heal + magnet + bomb, "25% 합");
+            Near((.2f * 75f) / (.3f * 25f), heal / magnet, "25% 힐·자석 비율");
+            Near((.3f * 25f) / (.1f * 25f), magnet / bomb, "25% 자석·폭탄 비율");
+
+            var noHeal = new FieldItemDropSettings { healPackChance = 0f, magnetChance = .4f, bombChance = .2f };
+            noHeal.SharedChances(1f, 100f, out heal, out magnet, out bomb);
+            Near(0f, heal, "기준 0은 힐이 되지 않음");
+            Near(.4f, magnet, "힐 몫이 없어도 자석"); Near(.2f, bomb, "힐 몫이 없어도 폭탄");
+            noHeal.SharedChances(float.NaN, 100f, out heal, out magnet, out bomb);
+            Near(0f, heal, "체력 불명 힐"); Near(.4f, magnet, "체력 불명 자석"); Near(.2f, bomb, "체력 불명 폭탄");
+        });
         Test("확률 0인 종류는 나오지 않음", () =>
         {
             var s = new FieldItemDropSettings { healPackChance = 0f, magnetChance = 1f, bombChance = 0f };
@@ -517,6 +549,19 @@ static class Program
             Equal(1, items[0].gameObject.scene.id, "씬");
             Equal(1, pool.ActiveFieldItemCount, "풀 집계");
             Check(items[0].GetComponent<SpriteRenderer>().sprite != null, "그림 없음");
+        });
+        Test("만피면 힐팩만 있는 처치는 떨어지지 않고 빈사면 떨어짐", () =>
+        {
+            PlayerData player = NewPlayer();
+            player.currentHealth = player.maxHealth;
+            SceneEnemyPool pool = NewPool(heal: 1f);
+            UnityEngine.Random.value = 0f;
+            NewEnemy(pool, 1f).Kill();
+            Equal(0, Items().Count, "만피");
+            player.currentHealth = 0f;
+            NewEnemy(pool, 2f).Kill();
+            Equal(1, Items().Count, "빈사");
+            Equal(FieldItemKind.HealPack, Items()[0].Kind, "힐팩");
         });
         Test("난수가 확률 구간 밖이면 떨어지지 않음", () =>
         {
@@ -761,6 +806,8 @@ public class PlayerData : MonoBehaviour
 {
     public bool IsDead;
     public float maxHealth = 100f;
+    // 기본은 절반 체력입니다. 처치 드랍 테스트가 설정 확률 그대로를 보게 합니다.
+    public float currentHealth = 50f;
     public int RestoreCalls;
     public float Restored;
     public float RestoreHealth(float amount) { RestoreCalls++; Restored += amount; return amount; }

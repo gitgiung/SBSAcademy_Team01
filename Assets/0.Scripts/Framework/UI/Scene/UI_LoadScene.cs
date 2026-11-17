@@ -63,6 +63,7 @@ public class UI_LoadScene : UI_Scene
             case RemoteContentState.CheckingRelease: remoteLabel.text = "리소스 버전 확인 중"; break;
             case RemoteContentState.LoadingCatalog: remoteLabel.text = "리소스 목록 확인 중"; break;
             case RemoteContentState.CheckingSize: remoteLabel.text = "추가 다운로드 용량 확인 중"; break;
+            case RemoteContentState.PreparingAssets: remoteLabel.text = "스킬 데이터와 그림 준비 중"; break;
             case RemoteContentState.AwaitingConsent:
                 remoteLabel.text = $"추가 리소스 {Megabytes(status.RequiredBytes)} MB\n네트워크 데이터를 사용해 다운로드합니다.";
                 break;

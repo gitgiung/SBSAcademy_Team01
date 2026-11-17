@@ -1,5 +1,18 @@
 # 작업 인수인계
 
+## 2026-11-17 실제 수살 에셋 원격 이전·기기 없는 APK 빌드
+
+- 사용자 요청: 실제 스킬 이전 다음 단계 진행. 기기 연결 질문에는 **기기 없이 APK 빌드까지만** 진행하라고 답했다. 설치/실기기/유료 호스팅/운영 배포는 하지 않았다. 시작·최종 조회 `addressable-resources-loading` / `9d80a66`. 커밋·브랜치 전환 없음.
+- 이전: CombatSkillTable.json, WaterArrow Texture/Frames JSON, Skill_10025.png와 meta를 `Assets/RemoteContent/SkillPilot`로 이동했다. 네 파일/메타 내용·GUID를 보존했다. 소비자와 생성/검사 도구 경로를 갱신했다. 원격은 명시 주소와 타입을 쓰고, 로컬 Editor는 AssetDatabase, 로컬 APK는 빌드 전용 holder로 유지한다. 원격 APK에는 holder를 넣지 않는다.
+- 준비: 앱 호환/contentProfile `skill-pilot-v1`을 함께 요구한다. 다운로드 후 추가 바이트 0 확인 → 타입별 메모리 로딩 → 전투 표/수살 형태와 프레임 검증 → Ready다. 실패 시 로컬 대체 없이 재시도를 기다린다. Resource.Clear는 정적 표/파생 Sprite를 원본 핸들보다 먼저 정리한다. 실제 번들에서 Sprite의 Object 요청이 Texture2D로 반환되던 문제를 타입별 요청으로 수정했다. 수치·MP·보상·씬 동작은 바꾸지 않았다.
+- 상태 보존: 시작 사용자 변경 MainScene, NanumGothic Combat SDF, Addressable 정렬 설정과 meta, RemoteContentSettings와 meta 6개의 hash 일치. 원본 설정은 꺼짐/기존 URL 그대로다. 원본 Packages/Project Settings diff 없음. 씬 재저장·GiungScene 확인/수정 없음.
+- 검증: 최종 격리 Windows HTTP PlayMode **48/48 통과, 실패·생략 0**(`.utmp/remote-download/skill-verified.xml`). 원본 C# 7개 어셈블리 exit 0(`.utmp/skill-pilot/compile-latest.log`). 표 검사 **30/31**, 기존 `shipped JSON keeps combat values and blank passive columns: expected , actual SkillIcons/SkillIcon_10001` 실패 유지. 독립 리뷰 4개 지적을 수정하고 검증했다. 테스트 캐시 간섭은 고유 캐시 이름/정리로 분리했고 최종 테스트는 Android 빌드 종료 후 단독 수행했다.
+- Android: 임시 복사본에서 ARM64 IL2CPP Development APK 실제 성공. baseline 76,430,118바이트, 같은 코드 로컬형 76,437,686바이트, 원격형 **76,433,550바이트**. 동일 코드 차이는 4,136바이트다. BuildReport에서 로컬형의 네 에셋/holder 포함과 원격형 제외 확인. 초기 증분 ZIP 잔여 데이터는 최종 새 패키징으로 제외했다. 네 파일 시범이며 전체 설치 용량 최적화가 아니다.
+- 콘텐츠: Android 표준 Addressables 카탈로그·네 번들(합계 22,551바이트), release.json, content state와 Build Layout 생성. SHA 일치/중복 에셋 없음 확인. 보관용 state/layout은 개발 HTTP 서버에서 404로 비공개다. 원본 Addressables 그룹은 운영 구성으로 전환하지 않았다. Windows는 실제 파일로 만든 격리 테스트 fixture다.
+- 산출물: `.utmp/skill-pilot/SkillPilot-remote-clean.apk`와 `.report.json`, `server/Android` 콘텐츠. 임시 생성물이므로 영속 근거는 `docs/AI/SkillPilotBuildValidation.md`에 수치·검증 범위를 기록했다. 재생성은 `tools/SkillPilotValidation/README.md`, 계획은 `docs/superpowers/plans/2026-11-17-skill-pilot-android.md`.
+- 직접 확인: README의 검증 명령 실행 → 도구 종료 후 별도 fixture 서버 실행 → Tools > Remote Content > Settings의 Windows `/pilot/release.json`, `skill-pilot-v1`, 개발 HTTP 허용 → MainScene에서 Tools > Play From Title 켜고 Play → 타이틀 시작 → 용량/다운로드 승인 → 스킬 준비 후 로비. 캐시가 있으면 0바이트 정상. 첫 다운로드 재확인은 Play/서버 종료 → 검증 도구 실행(같은 fixture는 SkipFixture 가능) → 서버 재실행 → Play. 전체 캐시 삭제 불필요. 확인 후 원격 끄고 직접 MainScene은 Play From Title 해제.
+- 오류/다음: Console 첫 오류, URL의 `/pilot/`, 호환 값, Windows 타깃과 기본 카탈로그, 개발 HTTP, 18763 포트를 확인한다. 원격 APK는 개발 loopback 주소라 현재 상태를 일반 설치·배포용으로 보지 않는다. 다음은 실제 MainScene 로딩/스킬 육안 확인, 사용자가 기기를 준비했을 때 설치/다운로드/재시작 검증이다. 이후 운영 HTTPS 호스팅 선정과 단독 패치/오프라인/이전 정상 릴리스 복구 정책을 확정·검증한다. AAB·기기·운영 CDN·실제 앱 재실행·화면 배치는 미검증이다.
+
 ## 2026-11-17 선택적 원격 시작·카탈로그·동의/재시도 연결
 
 - 요청: 사용자가 다운로드 기반 확인 후 다음 단계 진행을 요청했다. 승인한 원격 배포 설계에 따라 기존 로딩 경로에 선택적 원격 준비를 연결했다. 계획은 `docs/superpowers/plans/2026-11-17-remote-startup.md`다.

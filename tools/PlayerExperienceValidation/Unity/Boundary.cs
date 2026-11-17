@@ -49,6 +49,7 @@ public sealed class SoundBoundary
 }
 public static class Managers
 {
+    public static T LoadGameplayAsset<T>(string key) where T:UnityEngine.Object => UnityEngine.Resources.Load<T>(key);
     public static PoolManager Pool;
     public static UIManager UI = new UIManager();
     public static ResourceBoundary Resource = new ResourceBoundary();

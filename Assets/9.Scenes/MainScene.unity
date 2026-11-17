@@ -3640,7 +3640,7 @@ MonoBehaviour:
   attackRange: 8
   attackCooldown: 0.333
   attackDamage: 1
-  bulletSpeed: 6
+  bulletSpeed: 8
   maxMP: 100
   currentMP: 100
   mpRecoveryPerSecond: 1

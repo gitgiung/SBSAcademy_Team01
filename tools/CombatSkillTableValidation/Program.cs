@@ -34,7 +34,7 @@ internal static class Program
         if (string.IsNullOrEmpty(workbookPath)) workbookPath = "Document/SkillDatatable.xlsx";
         table = CombatSkillWorkbook.Read(workbookPath);
         var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
-            File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+            File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
         Test("workbook reimport preserves every runtime field except authored icon paths", () =>
         {
             Equal(shipped.skills.Count, table.skills.Count);
@@ -474,7 +474,7 @@ internal static class Program
         Test("shipped JSON keeps combat values and blank passive columns", () =>
         {
             var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
-                File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+                File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
             CombatSkillRecord Find(int id) => shipped.skills.Single(s => s.Id == id);
             Equal(76, shipped.skills.Count);
             var flame = Find(10001);

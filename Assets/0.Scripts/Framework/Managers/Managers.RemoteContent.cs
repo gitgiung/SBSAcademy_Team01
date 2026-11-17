@@ -3,7 +3,7 @@ using System.Collections;
 
 public enum RemoteContentState
 {
-    Disabled, CheckingRelease, LoadingCatalog, CheckingSize, AwaitingConsent, Downloading, Ready, Failed
+    Disabled, CheckingRelease, LoadingCatalog, CheckingSize, AwaitingConsent, Downloading, Ready, Failed, PreparingAssets
 }
 
 /// <summary>읽기 전용 UI snapshot. Ready는 필수 번들 디스크 준비이며 GameDataReady와 다르다.</summary>
@@ -156,6 +156,14 @@ public partial class Managers
                 (bytes, reason) => { required = bytes; error = reason; });
             if (!RemoteStepValid(generation, error)) yield break;
             if (required != 0) { FailRemote("필수 리소스가 아직 준비되지 않았습니다. 다시 시도하세요."); yield break; }
+            if (remoteRelease.contentProfile == SkillPilotContent.Profile)
+            {
+                remoteState = RemoteContentState.PreparingAssets;
+                bool prepared = false;
+                yield return _resource.PrepareSkillPilotAsync((ok, reason) => { prepared = ok; error = reason; });
+                if (!RemoteStepValid(generation, error)) yield break;
+                if (!prepared) { FailRemote("필수 스킬 에셋을 준비하지 못했습니다."); yield break; }
+            }
             remoteGeneration = generation;
             remoteState = RemoteContentState.Ready;
         }

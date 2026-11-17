@@ -27,7 +27,7 @@ const server = http.createServer((request, response) => {
     setTimeout(() => response.end(fs.readFileSync(path.join(folder, 'release.json'))), 300);
     return;
   }
-  const allowed = new Set(['/remote-download-fixture', '/release.json', '/catalog.bin']);
+  const allowed = new Set(['/remote-download-fixture', '/release.json', '/catalog.bin', '/pilot/release.json', '/pilot/catalog.bin', '/pilot/skill-pilot-fixture']);
   if (!allowed.has(request.url)) {
     response.writeHead(404).end();
     return;

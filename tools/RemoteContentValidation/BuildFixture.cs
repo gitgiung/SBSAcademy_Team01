@@ -55,5 +55,36 @@ public static class RemoteDownloadFixture
         File.WriteAllText(Path.Combine(output, "catalog.sha256"), digest);
         File.WriteAllText(Path.Combine(output, "release.json"), "{\"formatVersion\":1,\"platform\":\"Windows\",\"appCompatibility\":\"1\",\"contentVersion\":\"pilot-v1\",\"catalogUrl\":\"http://127.0.0.1:18763/catalog.bin\",\"catalogSha256\":\""
             + digest + "\",\"requiredLabel\":\"remote-startup\"}");
+        BuildSkillPilot(Path.Combine(output, "pilot"));
+    }
+
+    private static void BuildSkillPilot(string output)
+    {
+        Directory.CreateDirectory(output);
+        string[] addresses = { SkillPilotContent.TableAddress, SkillPilotContent.TextureAddress, SkillPilotContent.FramesAddress, SkillPilotContent.IconAddress };
+        string[] paths = Array.ConvertAll(addresses, SkillPilotContent.AssetPath);
+        Type[] types = { typeof(TextAsset), typeof(Texture2D), typeof(TextAsset), typeof(Sprite) };
+        var build = new AssetBundleBuild { assetBundleName = "skill-pilot-fixture", assetNames = paths };
+        var manifest = BuildPipeline.BuildAssetBundles(output, new[] { build }, BuildAssetBundleOptions.ChunkBasedCompression, EditorUserBuildSettings.activeBuildTarget);
+        if (manifest == null) throw new InvalidOperationException("실제 스킬 번들 빌드 실패");
+        var entries = new List<ContentCatalogDataEntry>
+        {
+            new ContentCatalogDataEntry(typeof(IAssetBundleResource), "http://127.0.0.1:18763/pilot/" + build.assetBundleName,
+                typeof(AssetBundleProvider).FullName, new object[] { "skill-pilot-bundle" }, null,
+                new AssetBundleRequestOptions { BundleName = build.assetBundleName, Hash = manifest.GetAssetBundleHash(build.assetBundleName).ToString(),
+                    BundleSize = new FileInfo(Path.Combine(output, build.assetBundleName)).Length, Timeout = 5, RetryCount = 0 })
+        };
+        for (int i = 0; i < paths.Length; i++)
+            entries.Add(new ContentCatalogDataEntry(types[i], paths[i].ToLowerInvariant(), typeof(BundledAssetProvider).FullName,
+                new object[] { addresses[i], "skill-pilot" }, new object[] { "skill-pilot-bundle" }));
+        var catalog = new ContentCatalogData(entries, "skill-pilot-fixture");
+        catalog.ResourceProviderData.Add(ObjectInitializationData.CreateSerializedInitializationData(typeof(AssetBundleProvider)));
+        catalog.ResourceProviderData.Add(ObjectInitializationData.CreateSerializedInitializationData(typeof(BundledAssetProvider)));
+        var bytes = catalog.SerializeToByteArray();
+        File.WriteAllBytes(Path.Combine(output, "catalog.bin"), bytes);
+        string hash;
+        using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        File.WriteAllText(Path.Combine(output, "release.json"), "{\"formatVersion\":1,\"platform\":\"Windows\",\"appCompatibility\":\"skill-pilot-v1\",\"contentVersion\":\"skill-pilot-v1\",\"contentProfile\":\"skill-pilot-v1\",\"catalogUrl\":\"http://127.0.0.1:18763/pilot/catalog.bin\",\"catalogSha256\":\"" + hash + "\",\"requiredLabel\":\"skill-pilot\"}");
+        File.WriteAllText(Path.Combine(output, "hash.txt"), manifest.GetAssetBundleHash(build.assetBundleName).ToString());
     }
 }

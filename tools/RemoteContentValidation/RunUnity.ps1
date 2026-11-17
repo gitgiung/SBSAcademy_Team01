@@ -8,10 +8,17 @@ New-Item -ItemType Directory -Force -Path "$validationRoot/Assets/Runtime", "$va
 $runtimeFiles = @('ResourceManager.cs', 'PoolManager.cs', 'PooledObject.cs', 'IPoolable.cs')
 if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/ResourceManager.Downloads.cs") { $runtimeFiles += 'ResourceManager.Downloads.cs' }
 if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/ResourceManager.RemoteContent.cs") { $runtimeFiles += @('ResourceManager.RemoteContent.cs','RemoteContentRelease.cs','RemoteContentSettings.cs') }
+if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/ResourceManager.SkillPilot.cs") { $runtimeFiles += @('ResourceManager.SkillPilot.cs','SkillPilotLocalAssets.cs') }
 foreach ($file in $runtimeFiles) {
     Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/$file" -Destination "$validationRoot/Assets/Runtime/$file" -Force
 }
 Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Managers/Managers.cs" -Destination "$validationRoot/Assets/Runtime/Managers.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Data/CombatSkillTable.cs" -Destination "$validationRoot/Assets/Runtime/CombatSkillTable.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs" -Destination "$validationRoot/Assets/Runtime/LightSkillVisuals.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Game/Player/Attacks/LightSkillCatalog.cs" -Destination "$validationRoot/Assets/Runtime/LightSkillCatalog.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Game/UI/SkillCardIcons.cs" -Destination "$validationRoot/Assets/Runtime/SkillCardIcons.cs" -Force
+New-Item -ItemType Directory -Force "$validationRoot/Assets/RemoteContent" | Out-Null
+Copy-Item -LiteralPath "$projectRoot/Assets/RemoteContent/SkillPilot" -Destination "$validationRoot/Assets/RemoteContent" -Recurse -Force
 if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Managers.RemoteContent.cs") { Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Managers/Managers.RemoteContent.cs" -Destination "$validationRoot/Assets/Runtime/Managers.RemoteContent.cs" -Force }
 Copy-Item -LiteralPath "$PSScriptRoot/Boundary.cs" -Destination "$validationRoot/Assets/Runtime/Boundary.cs" -Force
 Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Scenes/LoadScene.cs" -Destination "$validationRoot/Assets/Runtime/LoadScene.cs" -Force
@@ -40,8 +47,7 @@ try {
     $ready = $false
     for ($attempt = 0; $attempt -lt 40; $attempt++) {
         if ($server.HasExited) { throw 'HTTP 검증 서버 시작 실패: server-error.log 확인' }
-        try { Invoke-WebRequest -Uri "$env:SBSA_REMOTE_ORIGIN/missing" -Method Head -TimeoutSec 1 | Out-Null }
-        catch { if ($_.Exception.Response.StatusCode -eq 404) { $ready = $true; break } }
+        if ((Test-Path "$resultRoot/server.log") -and (Get-Content "$resultRoot/server.log" -Raw) -match 'Remote fixture ready on port') { $ready = $true; break }
         Start-Sleep -Milliseconds 100
     }
     if (!$ready) { throw 'HTTP 검증 서버 응답 없음' }

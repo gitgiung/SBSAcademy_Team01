@@ -37,12 +37,12 @@ Test("missing optional icon returns null",()=>{
     Check(SkillCardIcons.Get(30009,"missing")==null);
 });
 Test("original icons match the PPT and water icons are separate 64px sprites",()=>{
-    using var json=JsonDocument.Parse(File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+    using var json=JsonDocument.Parse(File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
     using var ppt=ZipFile.OpenRead("Document/스킬_개요.pptx");
     var hashes=ppt.Entries.Where(e=>e.FullName.StartsWith("ppt/media/")).Select(e=>{using var s=e.Open();return Convert.ToHexString(SHA256.HashData(s));}).ToHashSet();
     int count=0, water=0;
     foreach(var skill in json.RootElement.GetProperty("skills").EnumerateArray()){
-        int id=skill.GetProperty("Id").GetInt32();string path=$"Assets/Resources/SkillIcons/Skill_{id}.png";
+        int id=skill.GetProperty("Id").GetInt32();string path=id==10025 ? "Assets/RemoteContent/SkillPilot/Skill_10025.png" : $"Assets/Resources/SkillIcons/Skill_{id}.png";
         bool waterLine=(id>=10022&&id<=10036)||(id>=20016&&id<=20030);
         Check(File.Exists(path));
         string meta=File.ReadAllText(path+".meta");
@@ -53,7 +53,7 @@ Test("original icons match the PPT and water icons are separate 64px sprites",()
     Check(count==46);Check(water==30);
 });
 Test("PPT picture labels map to the correct skill IDs",()=>{
-    using var json=JsonDocument.Parse(File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+    using var json=JsonDocument.Parse(File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
     var names=json.RootElement.GetProperty("skills").EnumerateArray().ToDictionary(r=>r.GetProperty("Name").GetString().Replace(" ",""),r=>r.GetProperty("Id").GetInt32());
     using var ppt=ZipFile.OpenRead("Document/스킬_개요.pptx");
     XDocument Read(string path){using var s=ppt.GetEntry(path).Open();return XDocument.Load(s);}
@@ -68,7 +68,7 @@ Test("PPT picture labels map to the correct skill IDs",()=>{
             string label=string.Concat(shape.Descendants(a+"t").Select(x=>x.Value)).Replace(" ","");
             if(picture==null||!names.TryGetValue(label,out int id))continue;
             Check(seen.Add(id));using var media=ppt.GetEntry(picture).Open();
-            Check(SHA256.HashData(media).SequenceEqual(SHA256.HashData(File.ReadAllBytes($"Assets/Resources/SkillIcons/Skill_{id}.png"))));picture=null;
+            Check(SHA256.HashData(media).SequenceEqual(SHA256.HashData(File.ReadAllBytes(id==10025 ? "Assets/RemoteContent/SkillPilot/Skill_10025.png" : $"Assets/Resources/SkillIcons/Skill_{id}.png"))));picture=null;
         }
     }
     Check(seen.Count==46);
@@ -85,6 +85,7 @@ namespace UnityEngine {
 }
 public static class Managers {
     public static bool Initialized;
+    public static T LoadGameplayAsset<T>(string key) where T:class => UnityEngine.Resources.Load<T>(key);
     public static ResourceCache Resource=new();
     public class ResourceCache {
         public readonly Dictionary<string,UnityEngine.Sprite> Items=new();

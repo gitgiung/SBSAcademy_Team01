@@ -13,10 +13,11 @@ public sealed class RemoteContentRelease
     public string catalogUrl;
     public string catalogSha256;
     public string requiredLabel;
+    public string contentProfile;
     public bool AllowHttp { get; private set; }
 
     public string Identity => platform + "\n" + appCompatibility + "\n" + contentVersion + "\n"
-        + catalogUrl + "\n" + catalogSha256 + "\n" + requiredLabel;
+        + catalogUrl + "\n" + catalogSha256 + "\n" + requiredLabel + "\n" + contentProfile;
 
     public static bool TryParse(string json, string expectedPlatform, string compatibility, bool allowHttp,
         out RemoteContentRelease release, out string error)
@@ -33,6 +34,10 @@ public sealed class RemoteContentRelease
             error = "현재 플랫폼 또는 앱과 호환되지 않는 리소스입니다.";
         else if (string.IsNullOrWhiteSpace(candidate.contentVersion) || string.IsNullOrWhiteSpace(candidate.requiredLabel))
             error = "릴리스 버전 또는 필수 리소스 라벨이 없습니다.";
+        else if (!string.IsNullOrEmpty(candidate.contentProfile) && candidate.contentProfile != SkillPilotContent.Profile)
+            error = "지원하지 않는 콘텐츠 프로필입니다.";
+        else if ((candidate.appCompatibility == SkillPilotContent.Profile) != (candidate.contentProfile == SkillPilotContent.Profile))
+            error = "스킬 시범 앱 호환 계열과 필수 콘텐츠 프로필이 일치하지 않습니다.";
         else if (!IsAllowedUrl(candidate.catalogUrl, allowHttp))
             error = "카탈로그 주소는 허용된 HTTPS 주소여야 합니다.";
         else if (candidate.catalogSha256 == null || !Regex.IsMatch(candidate.catalogSha256, "\\A[0-9a-fA-F]{64}\\z"))

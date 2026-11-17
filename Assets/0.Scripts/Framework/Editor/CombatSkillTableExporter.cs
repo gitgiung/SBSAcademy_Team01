@@ -24,7 +24,7 @@ public static class CombatSkillTableExporter
         }
 
         CombatSkillTableFile file = CombatSkillWorkbook.Read(workbook);
-        string directory = Path.Combine(Application.dataPath, "Resources", "Data");
+        string directory = Path.Combine(Application.dataPath, "RemoteContent", "SkillPilot");
         Directory.CreateDirectory(directory);
         string jsonPath = Path.Combine(directory, "CombatSkillTable.json");
         File.WriteAllText(jsonPath, JsonUtility.ToJson(file, true), new UTF8Encoding(false));

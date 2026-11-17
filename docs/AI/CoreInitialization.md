@@ -1,5 +1,9 @@
 # Core 초기화와 게임 준비
 
+## 실제 원격 스킬 준비
+
+`skill-pilot-v1` 릴리스는 원격 디스크 다운로드 후 `PreparingAssets` 상태에서 실제 전투 표와 수살 그림/프레임/아이콘을 준비한다. 기존 `Ready` 이후 게임 준비와 씬 전환을 호출한다. 필수 에셋 누락·잘못된 표·잘못된 프레임은 실패 UI와 명시 재시도로 연결하며 로컬 fallback하지 않는다. 기존 `GameDataReady` 및 별도 `SkillData` 계약을 수살 전투 표와 혼동하지 않는다. 자동 테스트·Android APK 빌드 결과는 `docs/AI/SkillPilotBuildValidation.md`, 직접 확인 순서는 `tools/SkillPilotValidation/README.md`를 참조한다.
+
 ## 시작 경로
 
 ### 2026-11-17 선택적 원격 준비 연결

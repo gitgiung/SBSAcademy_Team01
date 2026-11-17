@@ -1,6 +1,6 @@
 # 원격 다운로드 기반 검증
 
-이 도구는 원본 게임과 별개의 최소 Unity 프로젝트에서 **원본 ResourceManager·Managers·LoadScene·UI_LoadScene 코드**와 표준 Addressables 공급자를 실행한다. 유료 호스팅·Google Play Console·APK가 필요하지 않다. 원격 릴리스·카탈로그와 다운로드 동의/재시도 연결을 검사하지만 실제 게임 에셋 이전·영속 롤백·운영 CDN 도구는 아니다.
+이 도구는 원본 게임과 별개의 최소 Unity 프로젝트에서 **원본 ResourceManager·Managers·LoadScene·UI_LoadScene 코드**와 표준 Addressables 공급자를 실행한다. 유료 호스팅·Google Play Console·APK가 필요하지 않다. 실제 전투 표·수살 그림/프레임/아이콘으로 만든 별도 `/pilot/` fixture도 검사한다. 영속 롤백·운영 CDN 도구는 아니다. 실제 스킬 확인 절차와 별도 Android APK 빌드는 `tools/SkillPilotValidation/README.md`를 참조한다.
 
 ## 실행
 
@@ -36,7 +36,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\RemoteContentVal
 
 테스트는 고유 라벨과 자체 ResourceManager를 사용한다. 캐시 삭제는 `remote-download-fixture`의 해당 hash만 대상으로 하고 전체 Unity 캐시를 비우지 않는다. HTTP 실패 검사 구간에서는 Addressables의 예상 오류 로그만 허용하며, 실제 실패 콜백과 캐시 미생성을 단언한다. 다른 시나리오의 오류는 테스트를 실패시킨다.
 
-원본 프로젝트 Test Runner에서 바로 실행하면 HTTP 통합 시나리오는 격리 환경 안내와 함께 생략되고, 순수 릴리스 파싱·수신 상한 테스트는 실행할 수 있다. 테스트를 위해 원본 Addressables 설정이나 사용자의 Play From Title 옵션을 바꾸지 않는다. 현재 전체 결과는 **40/40 통과, 실패·생략 0**이며 새 실행에서는 XML의 실제 수를 기준으로 한다.
+원본 프로젝트 Test Runner에서 바로 실행하면 HTTP 통합 시나리오는 격리 환경 안내와 함께 생략되고, 순수 릴리스 파싱·수신 상한 테스트는 실행할 수 있다. 테스트를 위해 원본 Addressables 설정이나 사용자의 Play From Title 옵션을 바꾸지 않는다. 최신 기록은 `docs/AI/SkillPilotBuildValidation.md`에 있으며 새 실행에서는 XML의 실제 수를 기준으로 한다.
 
 ## 오류 확인
 

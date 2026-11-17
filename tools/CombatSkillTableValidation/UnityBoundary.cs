@@ -69,3 +69,5 @@ namespace UnityEditor
     public sealed class MenuItem : Attribute { public MenuItem(string path) { } }
     public static class AssetDatabase { public static void Refresh() { } }
 }
+
+public static class Managers { public static T LoadGameplayAsset<T>(string key) where T:class => UnityEngine.Resources.Load<T>(key); }

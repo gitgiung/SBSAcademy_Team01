@@ -219,9 +219,10 @@ public partial class ResourceManager
         _pending.Add(key, pending);
         try
         {
-            pending.Handle = Addressables.LoadAssetAsync<Object>(location);
-            pending.OwnsHandle = true;
-            pending.Handle.Completed += operation => OnAssetLoaded(pending, operation);
+            // PNG의 Object 로딩은 Texture를 반환할 수 있다. Sprite 요청은 실제 로딩 타입도 유지한다.
+            if (location.ResourceType == typeof(Sprite)) BindAsset(pending, Addressables.LoadAssetAsync<Sprite>(location));
+            else if (location.ResourceType == typeof(Texture2D)) BindAsset(pending, Addressables.LoadAssetAsync<Texture2D>(location));
+            else BindAsset(pending, Addressables.LoadAssetAsync<Object>(location));
         }
         catch (Exception exception)
         {
@@ -231,7 +232,18 @@ public partial class ResourceManager
         }
     }
 
-    private void OnAssetLoaded(PendingAsset pending, AsyncOperationHandle<Object> operation)
+    private void BindAsset<T>(PendingAsset pending, AsyncOperationHandle<T> handle) where T : Object
+    {
+        pending.Handle = handle;
+        pending.OwnsHandle = true;
+        handle.Completed += operation =>
+        {
+            if (!pending.OwnsHandle) return;
+            OnAssetLoaded(pending, operation, operation.Result);
+        };
+    }
+
+    private void OnAssetLoaded(PendingAsset pending, AsyncOperationHandle operation, Object result)
     {
         if (!pending.OwnsHandle) return; // Clear가 이미 소유권을 회수한 이전 작업입니다.
         string key = pending.Location.PrimaryKey;
@@ -241,9 +253,9 @@ public partial class ResourceManager
         Object asset = null;
         string error = null;
         if (pending.Generation == _generation && operation.Status == AsyncOperationStatus.Succeeded
-            && operation.Result != null && pending.Location.ResourceType.IsInstanceOfType(operation.Result))
+            && result != null && pending.Location.ResourceType.IsInstanceOfType(result))
         {
-            asset = operation.Result;
+            asset = result;
             _resources[key] = asset;
             _assetLocations[key] = pending.Location;
             _handles[key] = pending.Handle;
@@ -322,6 +334,7 @@ public partial class ResourceManager
 
     public void Clear()
     {
+        ClearSkillPilot();
         _generation++;
         var batches = new List<LoadBatch>(_batches);
         var pending = new List<PendingAsset>(_pending.Values);
@@ -369,7 +382,7 @@ public partial class ResourceManager
     {
         public int Generation;
         public IResourceLocation Location;
-        public AsyncOperationHandle<Object> Handle;
+        public AsyncOperationHandle Handle;
         public bool OwnsHandle;
         public readonly List<Action<Object, string>> Waiters = new List<Action<Object, string>>();
     }

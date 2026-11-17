@@ -1,5 +1,13 @@
 # 리소스 로딩 사용 방법
 
+## 2026-11-17 실제 수살 콘텐츠 공급 경로
+
+전투 표·수살(10025)의 Texture/Frames/아이콘 네 파일은 GUID와 내용을 유지해 `Assets/RemoteContent/SkillPilot`로 이전했다. 소비자는 `Managers.LoadGameplayAsset<T>`로 기존 키를 전달한다. 로컬 Editor는 AssetDatabase, 로컬 Player는 빌드 전용 `SkillPilotLocalAssets` 참조를 사용한다. 원격 `skill-pilot-v1` 준비를 시작한 뒤에는 이전한 키를 원격 캐시에서만 읽으며 로컬 대체로 누락을 감추지 않는다. 나머지 키는 기존 Resources 경로다.
+
+릴리스의 앱 호환 계열과 contentProfile은 모두 `skill-pilot-v1`이어야 한다. 다운로드 완료 후에도 네 명시 주소가 추가 다운로드 0인지 검사하고 TextAsset/Texture2D/TextAsset/Sprite로 메모리 로딩한다. 실제 번들에서 Object 타입 로딩이 Texture2D를 돌려주는 문제가 있어 Sprite/Texture2D는 해당 타입으로 요청한다. 표의 중복 ID·수살 미지원 형태, 프레임/그리드 오류는 실패로 처리한다. 표 게시·12프레임 생성까지 끝나야 준비 성공이다. Clear는 파생 Sprite와 정적 표를 먼저 정리한 다음 원본 핸들을 해제한다.
+
+Android 콘텐츠와 로컬/원격 Development APK는 원본과 별개 임시 복사본에서 빌드한다. 원본 그룹/설정을 운영용으로 전환하지 않았다. 결과와 제한은 `docs/AI/SkillPilotBuildValidation.md`, PC 메뉴·캐시 초기 다운로드 재확인·APK 명령은 `tools/SkillPilotValidation/README.md`를 참조한다. 이 결과에는 실기기·AAB·운영 CDN·앱 재시작/롤백 검증이 포함되지 않는다.
+
 ## 2026-11-17 원격 릴리스·카탈로그 연결
 
 원격 사용은 선택적 `RemoteContentSettings` asset으로 켠다. `Tools > Remote Content > Settings` 메뉴가 없을 때만 꺼진 asset을 생성/선택한다. 설정이 없거나 꺼져 있으면 기존 로컬 로딩은 그대로다. 설정을 켠 경우 LoadScene→Managers의 원격 준비가 아래 API를 사용한다.

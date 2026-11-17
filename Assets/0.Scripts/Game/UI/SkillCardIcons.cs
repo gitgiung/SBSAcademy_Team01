@@ -8,9 +8,9 @@ public static class SkillCardIcons
         if (!string.IsNullOrEmpty(iconKey))
         {
             Sprite custom = Managers.Initialized ? Managers.Resource.Load<Sprite>(iconKey) : null;
-            if (custom == null) custom = Resources.Load<Sprite>(iconKey);
+            if (custom == null) custom = Managers.LoadGameplayAsset<Sprite>(iconKey);
             if (custom != null) return custom;
         }
-        return skillId > 0 ? Resources.Load<Sprite>("SkillIcons/Skill_" + skillId) : null;
+        return skillId > 0 ? Managers.LoadGameplayAsset<Sprite>("SkillIcons/Skill_" + skillId) : null;
     }
 }

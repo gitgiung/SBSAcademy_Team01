@@ -19,7 +19,8 @@ public sealed class ResourceDownloadTests
     private ResourceLocationMap locator;
     private string label;
     private string key;
-    private const string BundleName = "remote-download-fixture";
+    private const string BundleFileName = "remote-download-fixture";
+    private string bundleCacheName;
     private Hash128 bundleHash;
     private long bundleSize;
     private readonly List<IResourceProvider> addedProviders = new List<IResourceProvider>();
@@ -39,6 +40,7 @@ public sealed class ResourceDownloadTests
         EnsureProvider(new AssetBundleProvider());
         EnsureProvider(new BundledAssetProvider());
         label = "download-test-" + Guid.NewGuid().ToString("N");
+        bundleCacheName = BundleFileName + "-" + label;
         key = label + "-asset";
         locator = new ResourceLocationMap(label);
         Addressables.AddResourceLocator(locator);
@@ -49,7 +51,7 @@ public sealed class ResourceDownloadTests
     {
         managerType?.GetMethod("Clear")?.Invoke(manager, null);
         if (locator != null) Addressables.RemoveResourceLocator(locator);
-        if (bundleHash.isValid) Caching.ClearCachedVersion(BundleName, bundleHash);
+        if (bundleHash.isValid) Caching.ClearCachedVersion(bundleCacheName, bundleHash);
         bundleHash = default;
         foreach (IResourceProvider provider in addedProviders) Addressables.ResourceManager.ResourceProviders.Remove(provider);
         addedProviders.Clear();
@@ -61,6 +63,15 @@ public sealed class ResourceDownloadTests
             if (existing.ProviderId == provider.ProviderId) return;
         Addressables.ResourceManager.ResourceProviders.Add(provider);
         addedProviders.Add(provider);
+    }
+
+    [OneTimeTearDown]
+    public void ClearSharedEditorFixtureCache()
+    {
+        string fixture = Environment.GetEnvironmentVariable("SBSA_REMOTE_FIXTURE");
+        if (string.IsNullOrEmpty(fixture)) return;
+        var hash = Hash128.Parse(File.ReadAllText(Path.Combine(fixture, "hash.txt")).Trim());
+        Caching.ClearCachedVersion(BundleFileName, hash);
     }
 
     private IEnumerator Size(string value, Action<long, string> done)
@@ -87,16 +98,16 @@ public sealed class ResourceDownloadTests
         string fixture = Environment.GetEnvironmentVariable("SBSA_REMOTE_FIXTURE");
         if (string.IsNullOrEmpty(fixture)) Assert.Ignore("tools/RemoteContentValidation/RunUnity.ps1로 HTTP 통합 환경을 준비하세요.");
         bundleHash = Hash128.Parse(File.ReadAllText(Path.Combine(fixture, "hash.txt")).Trim());
-        bundleSize = new FileInfo(Path.Combine(fixture, BundleName)).Length;
-        Caching.ClearCachedVersion(BundleName, bundleHash);
+        bundleSize = new FileInfo(Path.Combine(fixture, BundleFileName)).Length;
+        Caching.ClearCachedVersion(bundleCacheName, bundleHash);
         string origin = Environment.GetEnvironmentVariable("SBSA_REMOTE_ORIGIN");
         Assert.That(origin, Is.Not.Null.And.Not.Empty);
-        var bundle = new ResourceLocationBase(label + "-bundle", origin + "/" + (missing ? "missing" : BundleName),
+        var bundle = new ResourceLocationBase(label + "-bundle", origin + "/" + (missing ? "missing" : BundleFileName),
             typeof(AssetBundleProvider).FullName, typeof(IAssetBundleResource));
         bundle.Data = new AssetBundleRequestOptions
         {
-            BundleName = BundleName, Hash = bundleHash.ToString(), BundleSize = bundleSize,
-            Timeout = 5, RetryCount = 0, UseCrcForCachedBundle = false
+            BundleName = bundleCacheName, Hash = bundleHash.ToString(), BundleSize = bundleSize,
+            Timeout = 30, RetryCount = 0, UseCrcForCachedBundle = false
         };
         var asset = new ResourceLocationBase(key, "assets/fixture/payload.txt",
             typeof(BundledAssetProvider).FullName, typeof(TextAsset), bundle);
@@ -235,7 +246,7 @@ public sealed class ResourceDownloadTests
         long cached = -1;
         yield return Size(label, (bytes, error) => cached = bytes);
         Assert.That(cached, Is.Zero);
-        Assert.That(Caching.ClearCachedVersion(BundleName, bundleHash), Is.True);
+        Assert.That(Caching.ClearCachedVersion(bundleCacheName, bundleHash), Is.True);
         long removed = -1;
         yield return Size(label, (bytes, error) => removed = bytes);
         Assert.That(removed, Is.EqualTo(bundleSize));
@@ -253,10 +264,10 @@ public sealed class ResourceDownloadTests
         Assert.That(entries.MoveNext(), Is.True);
         object ownedRequest = entries.Current;
         (request as IDisposable)?.Dispose();
-        float deadline = Time.realtimeSinceStartup + 10f;
-        while ((!Caching.IsVersionCached(BundleName, bundleHash) || pending.Count > 0)
+        float deadline = Time.realtimeSinceStartup + 30f;
+        while ((!Caching.IsVersionCached(bundleCacheName, bundleHash) || pending.Count > 0)
             && Time.realtimeSinceStartup < deadline) yield return null;
-        Assert.That(Caching.IsVersionCached(BundleName, bundleHash), Is.True);
+        Assert.That(Caching.IsVersionCached(bundleCacheName, bundleHash), Is.True);
         Assert.That(called, Is.False, "파괴된 대기자의 콜백은 호출하지 않습니다.");
         Assert.That(pending.Count, Is.Zero);
         Type requestType = ownedRequest.GetType();
@@ -303,7 +314,7 @@ public sealed class ResourceDownloadTests
             next = Download(label, null, (newOk, newError) => success = newOk);
             next.MoveNext();
         });
-        float deadline = Time.realtimeSinceStartup + 10f;
+        float deadline = Time.realtimeSinceStartup + 30f;
         while (previous.MoveNext() && received == 0 && Time.realtimeSinceStartup < deadline)
             yield return null;
         Assert.That(received, Is.GreaterThan(0).And.LessThan(total), "HTTP 본문을 일부 받은 시점에 취소해야 합니다.");
@@ -336,7 +347,7 @@ public sealed class ResourceDownloadTests
                 Assert.That(ok, Is.False);
                 Assert.That(error, Is.Not.Null.And.Not.Empty);
             }
-            Assert.That(Caching.IsVersionCached(BundleName, bundleHash), Is.False);
+            Assert.That(Caching.IsVersionCached(bundleCacheName, bundleHash), Is.False);
         }
         finally { UnityEngine.ResourceManagement.ResourceManager.ExceptionHandler = previous; }
         locator.Locations.Remove(label);

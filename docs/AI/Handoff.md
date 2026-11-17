@@ -1,5 +1,67 @@
 # 작업 인수인계
 
+## 2026-11-17 BossController 간소화와 네 가지 오류 수정
+
+- BossController를 899줄에서 752줄로 줄였다. 할퀴기·돌진 범위는 Assets/Editor/BossAttackRangeGizmos.cs의 DrawGizmo 콜백이 공개 범위 값을 읽어서 그린다. 기존 씬과 프리팹에서 연결 작업이 필요 없다. 직접 만든 Gizmo Mesh의 생성·캐시·파기 및 중복 사망 정리를 없앴다.
+- 반복 원형은 패턴 1 한 타와 패턴 2 두 타의 실제 타격 콜백이 모두 실행됐으며 피해·패링 성공이 없을 때 예약한다. 할퀴기는 범위에 들어온 콜라이더에서만 수신자를 중복 제거한다. 돌진은 물리 대기 직후 타깃을 다시 확인하고 종료 경로에서 애니메이션을 정리한다. 스폰 세대가 바뀌면 기본 이동속도를 복원한다. 피해와 패턴 간격은 기본 필드를 덮어쓰지 않고 페이즈에 맞게 계산한다.
+- 검증: Unity 참조 기반 Roslyn 어셈블리 6개와 새 기즈모 스크립트 컴파일 성공. 별도 최소 프로젝트의 Unity 6000.5.0f1 EditMode 10/10 통과, 실패·생략 0. 변경 전 동작은 소스로 대조했고 변경 전 격리 실행은 라이선스 서비스 연결 타임아웃으로 결과 없음. 원본 MainScene Play, Scene 뷰 렌더링, Android 검증은 미실행.
+- 직접 확인: Tools > Play From Title 해제 → MainScene Play → Boss Encounter Controller의 ⋮ > 다음 보스 즉시 소환. BeastZombie 2페이즈에서 일반 할퀴기 3타를 모두 피하면 반복 원형을 쓰고, 한 타에 피해를 입거나 패링하면 패턴 1로 돌아간다. Scene 뷰 Gizmos를 켜면 빨간 할퀴기 부채꼴과 돌진 도착 반경이 보인다. 이상 시 Console 첫 오류, Animator의 ApplySlashDamage 이벤트, ActivePattern 및 Gizmos 토글을 확인한다.
+
+## 2026-11-17 BossController 전체 코드 리뷰
+
+- Test / 1ea7146의 작업 트리 기준으로 BossController 전체와 EnemyFollow, EnemyHealth, BossEncounterController, BeastZombie 프리팹과 패턴 테스트를 정적으로 확인했다. 게임 코드와 에셋 변경 없음. Unity 및 테스트 실행 0회.
+- 검토 결과: 공격 애니메이션·타격 이벤트가 실행되지 않아도 패턴 1·2가 완료되어 반복 원형을 예약할 수 있다. 할퀴기 충돌체 중복 제거가 각도·거리 검사 전에 있어 멀티 콜라이더 대상은 유효 충돌체를 건너뛸 수 있다. 돌진은 FixedUpdate 대기 뒤 타깃 수명을 검사하지 않고 위치를 읽는다. 인스턴스 재사용 시 페이즈를 초기화하지만 2페이즈에 변경한 피해·이동속도·패턴 간격은 복원하지 않는다. 현재 일정은 회차별 새 인스턴스를 생성한다.
+- 다음 확인: MainScene에서 Boss Encounter Controller의 다음 보스 즉시 소환으로 2페이즈 패링/일반 가드를 확인한다. 별도 테스트 복사본에서 할퀴기 이벤트 누락, 멀티 콜라이더, 돌진 도중 타깃 제거를 재현하고 Console 및 ActivePattern을 확인한다.
+
+## 2026-11-17 레벨업 카드 선택 연출
+
+- 카드 선택 즉시 122%로 키우고 창이 닫힐 때까지 크기를 유지한다. 0.08초 뒤부터 창 전체를 0.38초 동안 페이드아웃한다. 선택 즉시 보상은 한 번 적용되고, 팝업 완료는 연출이 끝난 뒤 처리한다. 연속 레벨업은 전투를 정지한 채 다음 카드로 교체한다.
+- 검증: Unity 참조 기반 Roslyn 어셈블리 6개 컴파일과 diff 공백 검사 통과. Unity Play 및 테스트 실행 0회.
+- 직접 확인: Tools > Play From Title 해제 → MainScene Play → CombatUI > CombatPopupController의 ⋮ → 테스트/경험치 13 획득 → 카드 선택. 선택 카드가 커진 상태로 창과 함께 사라져야 한다. 경험치 30 획득은 전투가 멈춘 채 두 번째 카드가 보여야 한다. 이상 시 Console 첫 오류와 단일·연속 레벨업 중 어느 경우인지 확인한다.
+
+## 2026-11-17 레벨업 카드 등장 연출 시험
+
+- 기존 레벨업 창에서 카드를 22 UI 단위 아래로부터 0.35초 동안 띄우고 페이드인한다. 사용자가 처음 0.30초 연출이 빠르다고 해 왼쪽부터 0.15초씩 시작을 늦춰 세 장 기준 약 0.65초로 늘렸다. 첫 개방의 제목은 페이드인하고 연속 레벨업은 카드만, 리롤은 해당 칸만 다시 연출한다. 정지 중에도 unscaledDeltaTime으로 재생하며 등장 중 해당 카드 입력은 CanvasGroup으로 막는다. 씬·프리팹과 보상 규칙은 변경하지 않았다.
+- 검증: 기존 Unity 참조 기반 Roslyn 어셈블리 6개 컴파일 및 diff 공백 검사 통과. Unity Play와 실제 렌더링 확인 0회.
+- 직접 확인: Tools > Play From Title 해제 → MainScene Play → CombatUI > CombatPopupController의 ⋮ → 테스트/경험치 13 획득. 카드가 왼쪽부터 차례로 올라오고 나타난다. 리롤 버튼은 바꾼 칸만 움직인다. 테스트/경험치 30 획득 (연속 레벨업)으로 다음 카드 묶음도 확인한다. 이상 시 Console의 첫 오류와 문제 동작이 첫 개방·연속·리롤 중 어느 경우인지 확인한다.
+
+## 2026-11-17 NanumGothic TMP 재임포트 경고 조사
+
+- Unity 임포트 로그의 이 폰트 GUID 비교에서 의존성 해시와 기록된 생성 파일 해시가 일치하고 임포트 결과 ID가 달랐다. 같은 새 결과로 반복 재임포트해도 이전 ID와 비교하며 경고가 재발했다. 폰트·meta·코드는 수정하지 않았다. Unity 재실행 및 새 Library에서의 확인은 남아 있다.
+- 직접 확인: Unity 종료 후 다시 열고 MainScene의 한글 카드 표시를 확인한다. 재발하면 Unity 종료 상태에서 Library 폴더를 백업 이름으로 옮긴 뒤 새 캐시로 같은 폰트의 Reimport 및 한글 표시를 확인한다. 새 캐시에서도 재발하면 Import Activity의 해당 에셋 Produced Files와 로그의 ConsistencyChecker 줄을 확인한다.
+
+## 2026-11-17 패링 대시 쿨타임 초기화와 버튼 표시 정리
+
+- `Player.HandleParrySucceeded`에서 실제 패링에 성공하면 `PlayerMovement.ResetDashCooldown`을 호출한다. 대시를 다시 쓸 수 있는 시각만 현재로 되돌린다. 다음 대시는 기존 입력·MP·재사용 규칙을 사용한다.
+- `SprintCooldownUI`의 숨김 경로와 RectTransform 설정 중복을 정리했다. 대시/전략 버튼의 기존 쿨다운 값과 입력 연결을 사용한다. 씬·프리팹 수정 없음.
+- 사용자 요청으로 패링 보호막 보상은 보류. 기존 `PlayerShieldBar`가 보호막이 있는 동안 캐릭터 위에 잔량을 표시한다. 패링 보호막 체력·지속시간 미정.
+- 검증: PlayerMovement 소스를 사용한 대시 쿨다운 검사 9/9 통과. Unity 참조 기반 Roslyn 런타임·에디터 6개와 SceneFlow.PlayModeTests 컴파일 성공. 실제 패링에서 대시 가능 상태와 UI 숨김을 확인하는 PlayMode 사례 1개 추가, Unity 실행 0회.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 대시 버튼을 눌러 남은 초가 보이는 동안 가드 버튼으로 적의 타격을 패링한다. 정상은 대시 숫자/덮개가 바로 사라지고 MP가 충분하면 대시를 다시 쓸 수 있는 것이다. 일반 가드에서는 남은 시간이 흐른다. 이상 시 Console 첫 오류, `[패링 성공]` 로그, 남은 MP와 Sprint 버튼의 `SprintCooldownUI`를 확인한다.
+
+
+## 2026-11-17 BeastZombie 할퀴기 판정과 Scene 핸들 간소화
+
+- 반복 원형 결정에는 피해 또는 패링의 발생 여부만 필요하다. 결과 열거형과 중간 집계를 제거하고, 기존 플레이어 피해 처리에서 받은 bool을 패턴 한 회차에 기록한다. 패턴 1을 시작할 때 초기화한다. 내부 패링 전달 메서드의 미사용 진입점과 Scene 뷰에서 반경 하나만 그리는 범용 핸들 메서드도 정리했다. 기존 공개 피해 함수, 보스 발동 규칙, 씬·프리팹은 유지했다.
+- 검증: diff 공백 검사 및 Unity 참조 기반 Roslyn 어셈블리 6개 컴파일 성공. 중복 단언을 합친 패턴 테스트 6개를 컴파일했으며 Unity 테스트 실행과 Scene/Play 확인은 0회다.
+- 직접 확인: `MainScene` Play → BeastZombie 2페이즈 진입 → 할퀴기 3타를 회피하거나 일반 가드하면 반복 원형, 한 타를 패링하면 패턴 1로 돌아간다. Play 종료 후 BeastZombie를 선택해 `Show Scene Area Range`의 주황색 반경 핸들이 동작하는지 본다. 이상 시 Console 첫 오류, 패링 성공 로그, 반경 Inspector 값을 확인한다.
+
+
+## 2026-11-17 BeastZombie Scene 뷰 원형 핸들 오류 수정
+
+- 원형 발동 거리 필드 제거 뒤 `BossPatternRangeViewEditor.OnSceneGUI`가 해당 직렬화 속성의 `vector2Value`를 계속 읽어 NullReferenceException이 발생했다. 발동 거리 조회와 핸들을 제거했고, 실제 원형 피해 반경 핸들과 0.01 최솟값은 유지했다. 색·변경 감지는 예외에도 정리되는 Unity 스코프를 쓴다.
+- 검증: 수정 전 누락 속성 접근을 소스 대조로 확인했다. 수정 후 거리 접근 제거 및 피해 반경 읽기·쓰기 경로 정적 확인, diff 공백 검사, Unity 참조 기반 Roslyn 어셈블리 6개 컴파일 성공. Unity Scene 뷰 조작 및 테스트 실행 0회.
+- 직접 확인: Unity 컴파일 후 Console의 Clear를 누르고 `MainScene`의 BeastZombie나 Project의 BeastZombie 프리팹을 선택한다. `Boss Pattern Range View > Show Scene Area Range`를 켜고 Scene 뷰에서 주황색 `원형 피해 반경` 핸들을 움직이면 Console 오류 없이 `BossController > Phase Two Area Radius`가 변해야 한다. 확인 후 Ctrl+Z로 원래 반경을 복원한다. 오류가 다시 나오면 Clear 후 첫 예외, 선택한 보스, 스택의 파일과 줄 번호를 확인한다.
+
+
+## 2026-11-17 BeastZombie 2페이즈 반복 원형 발동 조건 변경
+
+- 기준은 `Test` / `1ea7146`. 작업 시작 시 `ProjectSettings/ShaderGraphSettings.asset` 수정이 있었으며 보존했다.
+- `BossController`의 반복 원형은 발동 거리 대신 2페이즈 할퀴기 패턴 1과 패턴 2의 피해 결과를 사용한다. 패턴 2의 두 타격까지 포함해 피해와 패링 성공이 모두 없으면 기존 패턴 대기와 원형 쿨타임이 끝난 뒤 거리에 관계없이 원형을 쓴다. 한 번이라도 HP 또는 보호막에 피해를 주거나 플레이어가 해당 할퀴기를 패링하면 패턴 1로 돌아간다. 빗나감·일반 가드·무적·대시는 반복 원형 조건에 포함된다. 패링 여부는 해당 타격의 실제 패링 성공 판정에서 받는다.
+- 기존 HP 50% 진입 시 1회 원형과 등장 원형은 기존 경로를 사용한다. 일반 추격 돌진과 원거리 돌진은 반복 원형이 예약되지 않았을 때 기존 조건을 사용한다. 이전 원형 발동 거리 Inspector 필드와 Scene 뷰의 거리 표시를 제거했다. 실제 피해 원은 표시한다. 씬·프리팹 편집 없음.
+- 검증: Unity 6000.5.0f1 참조를 이용한 Roslyn 빌드에서 Combat.Runtime, Enemy.Runtime, Boss.Runtime, Encounter.Runtime, Assembly-CSharp, Assembly-CSharp-Editor 6개 성공. 패링 성공 시 반복 원형을 건너뛰는 사례를 포함해 BossAreaFollowupTests의 7개 사례를 컴파일했다. Unity Test Runner·MainScene Play·Android 실행 0회.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → BeastZombie 체력을 50% 이하로 낮춰 진입 원형을 본다. 이후 근거리에서 패턴 1과 패턴 2를 시작하게 하고 세 번의 할퀴기를 전부 피하거나 일반 가드로 막는다. 기존 대기·쿨타임 후 원형 예고가 나와야 한다. 다음 회차에서 할퀴기 한 번을 패링하고 나머지를 피하면 다시 패턴 1로 이어져야 한다. 한 타에 HP나 보호막을 잃은 경우도 같다. 아예 접근하지 않으면 거리만으로 반복 원형이 나오지 않아야 한다. 오류가 나면 Console 첫 예외, 패턴 진행 순서, 패링 성공 로그, 각 타격 뒤 HP·보호막 변화, `BossController > Phase Two Area Cooldown`을 확인한다. 다음은 실제 Play에서 위 절차와 애니메이션 피해 이벤트 확인이다.
+
+
 ## 2026-11-16 기본 자동탄 공격력 연동
 
 - `PlayerCombat`의 기본 자동탄은 발사 시 `PlayerData.AttackDamage`를 읽는다. Inspector의 기본 공격력과 런 중 `데미지` 스탯 카드 증가분을 합산한 값이다. 발사된 탄환은 그 시점의 값을 보관한다. 장착 패시브 탄환은 기존 스킬 표의 피해를 사용한다.

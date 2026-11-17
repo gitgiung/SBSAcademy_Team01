@@ -26,6 +26,12 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 {
     private readonly List<Card> cards = new List<Card>();
     private RectTransform root;
+    private CanvasGroup headingFade;
+    private CanvasGroup popupFade;
+    private float selectionElapsed;
+    private const float SelectionScale = 1.22f;
+    private const float SelectionHold = .08f;
+    private const float SelectionFade = .38f;
     private GameObject detailsRoot;
     private TMP_Text detailsTitle;
     private TMP_Text detailsText;
@@ -41,9 +47,12 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     private Button messageConfirm;
     private Action onConfirmed;
 
+    internal bool IsPlayingSelectionEffect { get; private set; }
+
     public void Initialize(RectTransform content, TMP_FontAsset font)
     {
         if (root != null) return;
+        popupFade = Util.GetOrAddComponent<CanvasGroup>(gameObject);
         var panel = (RectTransform)content.parent;
         panel.anchorMin = new Vector2(.025f, .045f);
         panel.anchorMax = new Vector2(.975f, .90f);
@@ -59,6 +68,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         root = Stretch(content, "LevelUpSelection");
         var title = Rect(root, "LevelUpHeading", 375, -26, 250, 50);
         Border(title, new Color32(113, 247, 255, 255), 2);
+        headingFade = title.gameObject.AddComponent<CanvasGroup>();
         var heading = Text(Stretch(title, "Label"), "레벨 업", font, 38, new Color32(153, 248, 255, 255));
         heading.fontStyle = FontStyles.Bold;
         Glow(heading.gameObject, new Color(0, .9f, 1f, .45f), 2);
@@ -95,22 +105,35 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 
     /// <summary>최대 세 선택지를 표시합니다. 콜백은 실제 효과 적용/팝업 완료를 담당합니다.</summary>
     public void SetChoices(IReadOnlyList<LevelUpCardData> choices, Action<int> selected,
-        int rerollsRemaining = 0, Action<int> reroll = null)
+        int rerollsRemaining = 0, Action<int> reroll = null, int rerolledIndex = -1)
     {
         if (root == null) throw new InvalidOperationException("Initialize must be called before SetChoices.");
         if (choices == null || choices.Count > 3) throw new ArgumentException("Level-up requires at most three cards.", nameof(choices));
+        ResetSelectionEffect();
         onSelected = selected;
         onReroll = reroll;
         selectionPending = false;
         detailsRoot.SetActive(false);
         messageRoot.SetActive(false);
         onConfirmed = null;
+        if (choices.Count > 0 && !isActiveAndEnabled) headingFade.alpha = 0f;
         for (int i = 0; i < cards.Count; i++)
         {
             LevelUpCardData data = i < choices.Count ? choices[i] : null;
             cards[i].Show(data, selected != null);
+            if (data != null && (rerolledIndex < 0 || rerolledIndex == i))
+                cards[i].BeginReveal(rerolledIndex < 0 ? i * .15f : 0f);
         }
         ShowReroll(choices.Count, rerollsRemaining, reroll != null && selected != null);
+    }
+
+    private void LateUpdate()
+    {
+        float delta = Time.unscaledDeltaTime;
+        if (headingFade != null && headingFade.alpha < 1f)
+            headingFade.alpha = Mathf.MoveTowards(headingFade.alpha, 1f, delta / .25f);
+        foreach (var card in cards) card.TickReveal(delta);
+        if (IsPlayingSelectionEffect) TickSelectionEffect(delta);
     }
 
     public void Focus()
@@ -125,8 +148,33 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     {
         if (selectionPending || onSelected == null) return;
         selectionPending = true;
-        // 한 선택을 두 번 지급하지 않습니다. 후속 선택은 새 SetChoices로 시작합니다.
+        IsPlayingSelectionEffect = true;
+        selectionElapsed = 0f;
+        var selected = cards[index].Root;
+        selected.SetAsLastSibling();
+        selected.localScale = Vector3.one * SelectionScale;
+        popupFade.interactable = false;
         onSelected(index);
+    }
+
+    private void TickSelectionEffect(float delta)
+    {
+        selectionElapsed += delta;
+        float elapsedAfterHold = Mathf.Max(0f, selectionElapsed - SelectionHold);
+        float fade = Mathf.Clamp01(elapsedAfterHold / SelectionFade);
+        popupFade.alpha = 1f - fade;
+        if (fade < 1f) return;
+
+        IsPlayingSelectionEffect = false;
+    }
+
+    private void ResetSelectionEffect()
+    {
+        IsPlayingSelectionEffect = false;
+        if (popupFade == null) return;
+        popupFade.alpha = 1f;
+        popupFade.interactable = true;
+        foreach (var card in cards) card.Root.localScale = Vector3.one;
     }
 
     private void Reroll(int index)
@@ -153,10 +201,12 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     public void ShowMessage(string title, string content, Action confirmed)
     {
         if (root == null) throw new InvalidOperationException("Initialize must be called before ShowMessage.");
+        ResetSelectionEffect();
         onSelected = null;
         onReroll = null;
         selectionPending = false;
         onConfirmed = confirmed;
+        headingFade.alpha = 1f;
         ShowReroll(0, 0, false);
         foreach (var card in cards) card.Root.gameObject.SetActive(false);
         detailsRoot.SetActive(false);
@@ -190,7 +240,11 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     }
 
     private void HideDetails() { detailsRoot.SetActive(false); Focus(); }
-    private void OnDisable() { if (detailsRoot != null) detailsRoot.SetActive(false); }
+    private void OnDisable()
+    {
+        ResetSelectionEffect();
+        if (detailsRoot != null) detailsRoot.SetActive(false);
+    }
 
     private static void Glow(GameObject target, Color color, float width)
     {
@@ -215,6 +269,10 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         internal readonly RectTransform Root;
         internal readonly Button Info;
         internal LevelUpCardData Data { get; private set; }
+        private const float RevealDuration = .35f;
+        private readonly CanvasGroup reveal;
+        private readonly Vector2 settledPosition;
+        private float revealElapsed = RevealDuration;
         private readonly Button select;
         private readonly Image icon;
         private readonly RectTransform utilityFrame;
@@ -231,6 +289,8 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         internal Card(RectTransform rect, TMP_FontAsset font, UnityEngine.Events.UnityAction choose, UnityEngine.Events.UnityAction info)
         {
             Root = rect;
+            settledPosition = rect.anchoredPosition;
+            reveal = rect.gameObject.AddComponent<CanvasGroup>();
             Border(rect, Color.white, 3);
             foreach (Transform child in rect)
                 if (child.TryGetComponent<Image>(out var edge)) edges.Add(edge);
@@ -295,6 +355,23 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             passiveTag.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(data.PassiveDescription));
             flavor.text = data.FlavorText;
             select.interactable = selectable;
+        }
+
+        internal void BeginReveal(float delay)
+        {
+            revealElapsed = -delay;
+            TickReveal(0f);
+        }
+
+        internal void TickReveal(float delta)
+        {
+            if (!Root.gameObject.activeSelf || revealElapsed >= RevealDuration) return;
+            revealElapsed += delta;
+            float progress = Mathf.Clamp01(revealElapsed / RevealDuration);
+            float remaining = 1f - progress;
+            reveal.alpha = progress;
+            Root.anchoredPosition = settledPosition + Vector2.down * (22f * remaining * remaining);
+            reveal.blocksRaycasts = reveal.interactable = progress >= 1f;
         }
 
         internal void Focus()

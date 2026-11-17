@@ -65,6 +65,8 @@ internal sealed class PlayerMovement
         IsDashing = false;
     }
 
+    public void ResetDashCooldown() => nextDashTime = Time.time;
+
     public void Reset()
     {
         IsDashing = false;

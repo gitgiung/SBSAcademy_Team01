@@ -1,9 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyFollow), typeof(EnemyHealth), typeof(Rigidbody2D))]
@@ -37,8 +34,6 @@ public sealed class BossController : MonoBehaviour
     [SerializeField, Min(0f)] private float Multiple2 = 1.5f;
 
     [Header("2페이즈 원형 특수패턴")]
-    [Tooltip("일반 패턴 순서와 관계없이 원형 특수패턴을 선택하는 거리입니다. 최솟값 초과, 최댓값 이하이며 돌진 조건이 겹치면 돌진이 우선입니다.")]
-    [SerializeField] private Vector2 phaseTwoAreaDistance = new Vector2(4f, 14f);
     [SerializeField, Min(0.01f)] private float phaseTwoAreaRadius = 8f;
     [Tooltip("안쪽 원이 최대 범위까지 커지는 시간입니다. 완전히 차면 공격 모션과 피해가 발생합니다.")]
     [SerializeField, Min(0f)] private float phaseTwoAreaDelay = 0.8f;
@@ -73,7 +68,10 @@ public sealed class BossController : MonoBehaviour
     private BossPattern nextNormalPattern = BossPattern.Pattern1;
     private float nextPatternTime;
     private float nextAreaPatternTime;
-    private bool areaFollowupPending;
+    private bool missedComboAreaPending;
+    private bool normalComboDealtDamageOrWasParried;
+    private bool firstComboSwipeResolved;
+    private float baseMoveSpeed;
     private bool phaseEntryAreaPending;
     private bool attackAnimationRunning;
     private bool attackAnimationFinished;
@@ -95,6 +93,7 @@ public sealed class BossController : MonoBehaviour
 
     // Stop just inside melee range, beyond the movement sweep's tiny-step cutoff.
     private float FollowStoppingDistance => Mathf.Max(0f, closeRange - 0.001f);
+    private float AttackDamage => CurrentPhase >= 2 ? damage * Multiple2 : damage;
 
     public Transform Target => target;
     public float CloseRange => closeRange;
@@ -102,7 +101,6 @@ public sealed class BossController : MonoBehaviour
     public float SlashRange => slashRange;
     public float SlashAngle => slashAngle;
     public float DashEndDamageRadius => dashEndDamageRadius;
-    public Vector2 PhaseTwoAreaDistance => phaseTwoAreaDistance;
     public float PhaseTwoAreaRadius => phaseTwoAreaRadius;
     public BossPattern ActivePattern { get; private set; } = BossPattern.None;
     public int CurrentPhase { get; private set; } = 1;
@@ -111,17 +109,11 @@ public sealed class BossController : MonoBehaviour
     /// <summary>Encounter가 비활성 보스를 켜기 전에 호출합니다.</summary>
     public void QueueEntrance() => entranceQueued = true;
 
-#if UNITY_EDITOR
-    private Mesh slashRangeGizmoMesh;
-    private Mesh dashEndRangeGizmoMesh;
-    private float cachedSlashRange = -1f;
-    private float cachedSlashAngle = -1f;
-    private float cachedDashEndRadius = -1f;
-#endif
 
     private void Awake()
     {
         follow = GetComponent<EnemyFollow>();
+        baseMoveSpeed = follow.moveSpeed;
         follow.DisableHitKnockback();
         health = GetComponent<EnemyHealth>();
         body = GetComponent<Rigidbody2D>();
@@ -146,13 +138,14 @@ public sealed class BossController : MonoBehaviour
             return;
         }
 
+        ResetPhaseForSpawn();
         health.Died += OnDied;
-        if (CurrentPhase == 2 && phaseSpawnGeneration == health.SpawnGeneration)
+        if (CurrentPhase == 2)
             SetPhaseTwoOutline(true);
         follow.SetTarget(target, FollowStoppingDistance);
         follow.enabled = true;
         nextNormalPattern = BossPattern.Pattern1;
-        areaFollowupPending = false;
+        missedComboAreaPending = false;
         nextPatternTime = Time.time;
         locomotionMoving = false;
         UpdateAnimatorLocomotion();
@@ -224,28 +217,28 @@ public sealed class BossController : MonoBehaviour
         UpdateAnimatorLocomotion();
     }
 
+    private void ResetPhaseForSpawn()
+    {
+        if (phaseSpawnGeneration == health.SpawnGeneration) return;
+        phaseSpawnGeneration = health.SpawnGeneration;
+        CurrentPhase = 1;
+        follow.moveSpeed = baseMoveSpeed;
+        SetPhaseTwoOutline(false);
+        nextAreaPatternTime = 0f;
+        missedComboAreaPending = false;
+        phaseEntryAreaPending = false;
+    }
+
     private void UpdatePhase()
     {
         if (health == null) return;
-
-        if (phaseSpawnGeneration != health.SpawnGeneration)
-        {
-            phaseSpawnGeneration = health.SpawnGeneration;
-            CurrentPhase = 1;
-            SetPhaseTwoOutline(false);
-            nextAreaPatternTime = 0f;
-            areaFollowupPending = false;
-            phaseEntryAreaPending = false;
-        }
-
+        ResetPhaseForSpawn();
         if (health.IsDead || CurrentPhase >= 2 || health.CurrentHealth > health.MaxHealth * 0.5f)
             return;
 
         CurrentPhase = 2;
         SetPhaseTwoOutline(true);
-        damage = damage * Multiple2;
-        follow.moveSpeed = follow.moveSpeed * Multiple2;
-        pattern2ToPattern1Delay = 1.5f;
+        follow.moveSpeed = baseMoveSpeed * Multiple2;
         Debug.Log("2페이지 돌입!", this);
         phaseEntryAreaPending = true;
         if (patternRoutine != null)
@@ -322,7 +315,7 @@ public sealed class BossController : MonoBehaviour
             {
                 if (distance > closeRange) chaseOnlyTime += Time.deltaTime;
                 else chaseOnlyTime = 0f;
-                if (chaseOnlyTime < chaseDashDelay || distance <= closeRange || distance >= specialPatternDistance)
+                if (missedComboAreaPending || chaseOnlyTime < chaseDashDelay || distance <= closeRange || distance >= specialPatternDistance)
                 {
                     yield return null;
                     continue;
@@ -334,8 +327,10 @@ public sealed class BossController : MonoBehaviour
             switch (selected)
             {
                 case BossPattern.Pattern1:
+                    normalComboDealtDamageOrWasParried = false;
                     ActivePattern = BossPattern.Pattern1;
                     yield return PlaySlashAnimation(false);
+                    firstComboSwipeResolved = attackHitApplied;
                     ActivePattern = BossPattern.None;
                     nextNormalPattern = BossPattern.Pattern2;
                     nextPatternTime = Time.time + pattern1ToPattern2Delay;
@@ -344,13 +339,13 @@ public sealed class BossController : MonoBehaviour
                 case BossPattern.Pattern2:
                     ActivePattern = BossPattern.Pattern2;
                     yield return PlaySlashAnimation(false);
+                    bool rightSwipeResolved = attackHitApplied;
                     if (CurrentPhase < 2 && doubleSlashInterval > 0f)
                         yield return new WaitForSeconds(doubleSlashInterval);
-                    if (CanAttackTarget()) yield return PlaySlashAnimation(true);
+                    yield return PlaySlashAnimation(true);
                     ActivePattern = BossPattern.None;
-                    nextNormalPattern = BossPattern.Pattern1;
-                    areaFollowupPending = false;
-                    nextPatternTime = Time.time + pattern2ToPattern1Delay;
+                    CompleteNormalCombo(firstComboSwipeResolved && rightSwipeResolved && attackHitApplied);
+                    nextPatternTime = Time.time + (CurrentPhase >= 2 ? 1.5f : pattern2ToPattern1Delay);
                     break;
 
                 case BossPattern.PhaseTwoArea:
@@ -359,8 +354,7 @@ public sealed class BossController : MonoBehaviour
                     ActivePattern = BossPattern.None;
                     nextAreaPatternTime = Time.time + phaseTwoAreaCooldown;
                     nextNormalPattern = BossPattern.Pattern1;
-                    areaFollowupPending = true;
-                    // 원형 공격 뒤에는 근거리에서 일반 패턴 1과 2를 먼저 완료한다.
+                    missedComboAreaPending = false;
                     nextPatternTime = Time.time;
                     break;
 
@@ -376,6 +370,12 @@ public sealed class BossController : MonoBehaviour
         }
     }
 
+    private void CompleteNormalCombo(bool allSwipesResolved)
+    {
+        nextNormalPattern = BossPattern.Pattern1;
+        missedComboAreaPending = CurrentPhase >= 2 && allSwipesResolved && !normalComboDealtDamageOrWasParried && CanAttackTarget();
+    }
+
     private BossPattern SelectAvailablePattern(float distance)
     {
         if (phaseEntryAreaPending)
@@ -384,20 +384,17 @@ public sealed class BossController : MonoBehaviour
             return BossPattern.PhaseTwoArea;
         }
 
+        if (missedComboAreaPending)
+            return Time.time >= nextAreaPatternTime ? BossPattern.PhaseTwoArea : BossPattern.None;
+
         if (distance >= specialPatternDistance)
             return BossPattern.Pattern3;
-
-        if (areaFollowupPending)
-            return distance <= closeRange ? nextNormalPattern : BossPattern.None;
-
-        if (CurrentPhase >= 2 && Time.time >= nextAreaPatternTime &&
-            distance > phaseTwoAreaDistance.x && distance <= phaseTwoAreaDistance.y)
-            return BossPattern.PhaseTwoArea;
 
         if (distance > closeRange)
             return BossPattern.None;
 
-        return patternSelector.SelectPattern(distance, (int)health.CurrentHealth, nextNormalPattern);
+        return CurrentPhase >= 2 ? nextNormalPattern :
+            patternSelector.SelectPattern(distance, (int)health.CurrentHealth, nextNormalPattern);
     }
 
     private IEnumerator PerformPhaseTwoAreaAttack(bool isPhaseEntryArea = false)
@@ -439,6 +436,7 @@ public sealed class BossController : MonoBehaviour
 
     private IEnumerator PlaySlashAnimation(bool useLeftHand, bool useArea = false)
     {
+        attackHitApplied = false;
         if (!CanAttackTarget()) yield break;
 
         if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
@@ -466,7 +464,6 @@ public sealed class BossController : MonoBehaviour
         follow.enabled = false;
         attackAnimationRunning = true;
         attackAnimationFinished = false;
-        attackHitApplied = false;
         activeSlashRange = slashRange;
         if (!useArea && useLeftHand && CurrentPhase >= 2 && ActivePattern == BossPattern.Pattern2)
             activeSlashRange *= 1.5f;
@@ -533,8 +530,6 @@ public sealed class BossController : MonoBehaviour
 
     private void PerformForwardSlash(Vector2 forward, float radius)
     {
-        if (!CanAttackTarget()) return;
-
         Vector2 origin = body.position;
         float minimumDot = Mathf.Cos(Mathf.Clamp(slashAngle, 1f, 360f) * 0.5f * Mathf.Deg2Rad);
         var damagedReceivers = new HashSet<IContactDamageReceiver>();
@@ -543,12 +538,16 @@ public sealed class BossController : MonoBehaviour
         {
             if (hitCollider == null) continue;
             var receiver = hitCollider.GetComponentInParent(typeof(IContactDamageReceiver)) as IContactDamageReceiver;
-            if (receiver == null || !damagedReceivers.Add(receiver)) continue;
+            if (receiver == null) continue;
 
             Vector2 offset = (Vector2)hitCollider.bounds.center - origin;
             if (offset.sqrMagnitude > radius * radius) continue;
             if (offset.sqrMagnitude > Mathf.Epsilon && Vector2.Dot(forward, offset.normalized) < minimumDot) continue;
-            receiver.TakeContactDamage(damage, gameObject);
+            if (!damagedReceivers.Add(receiver)) continue;
+            if (receiver is IContactDamageResultReceiver resultReceiver)
+                normalComboDealtDamageOrWasParried |= resultReceiver.TryDamageOrTriggerParry(AttackDamage, gameObject);
+            else
+                receiver.TakeContactDamage(AttackDamage, gameObject);
         }
     }
 
@@ -623,25 +622,32 @@ public sealed class BossController : MonoBehaviour
         float elapsed = 0f;
         float effectiveDashDuration = Mathf.Max(0.0001f, dashDuration * (CurrentPhase >= 2 ? 0.5f : 1f));
 
-        while (CanAttackTarget() && Vector2.Distance(body.position, target.position) > dashArrivalDistance)
+        try
         {
+            while (CanAttackTarget() && Vector2.Distance(body.position, target.position) > dashArrivalDistance)
+            {
+                yield return new WaitForFixedUpdate();
+                if (!CanAttackTarget()) yield break;
+                elapsed += Time.fixedDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / effectiveDashDuration);
+                Vector2 nextPosition = Vector2.Lerp(dashStartPosition, target.position, progress);
+                if (follow.MoveTo(nextPosition).sqrMagnitude < 0.00000001f) break;
+            }
+
+            // 마지막 이동의 물리 결과가 반영된 뒤 도착 피해를 판정합니다.
             yield return new WaitForFixedUpdate();
-            elapsed += Time.fixedDeltaTime;
-            float progress = Mathf.Clamp01(elapsed / effectiveDashDuration);
-            Vector2 trackedTargetPosition = target.position;
-            Vector2 nextPosition = Vector2.Lerp(dashStartPosition, trackedTargetPosition, progress);
-            if (follow.MoveTo(nextPosition).sqrMagnitude < 0.00000001f)
-                break; // A solid body blocks the dash; do not wait forever behind it.
+            if (CanAttackTarget() && Vector2.Distance(body.position, target.position) <= dashArrivalDistance)
+                ApplyDashEndDamage(target.position);
         }
-
-        // 플레이어와 적의 충돌을 유지한 상태로 마지막 돌진 이동을 처리한다.
-        yield return new WaitForFixedUpdate();
-        bool reachedTarget = CanAttackTarget() && Vector2.Distance(body.position, target.position) <= dashArrivalDistance;
-        if (reachedTarget) ApplyDashEndDamage(target.position);
-        StopDashAnimation();
-
-        follow.SetTarget(target, FollowStoppingDistance);
-        follow.enabled = true;
+        finally
+        {
+            StopDashAnimation();
+            if (isActiveAndEnabled && !health.IsDead)
+            {
+                follow.SetTarget(target, FollowStoppingDistance);
+                follow.enabled = true;
+            }
+        }
     }
 
     private void StartDashAnimation()
@@ -687,7 +693,7 @@ public sealed class BossController : MonoBehaviour
             if (hitCollider == null) continue;
             var receiver = hitCollider.GetComponentInParent(typeof(IContactDamageReceiver)) as IContactDamageReceiver;
             if (receiver != null && damagedReceivers.Add(receiver))
-                receiver.TakeContactDamage(damage, gameObject);
+                receiver.TakeContactDamage(AttackDamage, gameObject);
         }
     }
 
@@ -696,20 +702,7 @@ public sealed class BossController : MonoBehaviour
         return target != null && target.gameObject.activeInHierarchy && !health.IsDead;
     }
 
-    private void OnDied()
-    {
-        StopDashAnimation();
-        if (patternRoutine != null)
-        {
-            StopCoroutine(patternRoutine);
-            patternRoutine = null;
-        }
-        attackAnimationRunning = false;
-        locomotionMoving = false;
-        if (animator != null && animator.runtimeAnimatorController != null)
-            animator.SetBool(IsMovingParameter, false);
-        enabled = false;
-    }
+    private void OnDied() => enabled = false;
 
     private void OnDisable()
     {
@@ -744,8 +737,6 @@ public sealed class BossController : MonoBehaviour
         pattern1ToPattern2Delay = Mathf.Max(0f, pattern1ToPattern2Delay);
         pattern2ToPattern1Delay = Mathf.Max(0f, pattern2ToPattern1Delay);
         doubleSlashInterval = Mathf.Max(0f, doubleSlashInterval);
-        phaseTwoAreaDistance.x = Mathf.Max(0f, phaseTwoAreaDistance.x);
-        phaseTwoAreaDistance.y = Mathf.Max(phaseTwoAreaDistance.x, phaseTwoAreaDistance.y);
         phaseTwoAreaRadius = Mathf.Max(0.01f, phaseTwoAreaRadius);
         entranceAreaRadius = Mathf.Max(0.01f, entranceAreaRadius);
         phaseTwoAreaDelay = Mathf.Max(0f, phaseTwoAreaDelay);
@@ -756,145 +747,6 @@ public sealed class BossController : MonoBehaviour
         dashDuration = Mathf.Max(0.01f, dashDuration);
         dashArrivalDistance = Mathf.Max(0.01f, dashArrivalDistance);
         dashEndDamageRadius = Mathf.Max(0.01f, dashEndDamageRadius);
-#if UNITY_EDITOR
-        cachedSlashRange = -1f;
-        cachedSlashAngle = -1f;
-        cachedDashEndRadius = -1f;
-#endif
     }
 
-#if UNITY_EDITOR
-    private void OnDrawGizmos()
-    {
-        EnsureRangeGizmoMeshes();
-        if (slashRangeGizmoMesh == null || dashEndRangeGizmoMesh == null) return;
-
-        Color previousColor = Gizmos.color;
-        Vector2 forward = target != null ? (Vector2)target.position - (Vector2)transform.position : Vector2.right;
-        if (forward.sqrMagnitude <= Mathf.Epsilon) forward = Vector2.right;
-        Quaternion slashRotation = Quaternion.FromToRotation(Vector3.right, forward.normalized);
-
-        Vector3 dashEndCenter = target != null ? target.position : transform.position;
-        Gizmos.color = new Color(1f, 0f, 0f, 0.85f);
-        DrawCircleRangeOutline(transform.position, closeRange);
-        DrawCircleRangeOutline(transform.position, specialPatternDistance);
-
-        Gizmos.color = new Color(1f, 0f, 0f, 0.22f);
-        Gizmos.DrawMesh(slashRangeGizmoMesh, transform.position, slashRotation);
-        Gizmos.DrawMesh(dashEndRangeGizmoMesh, dashEndCenter);
-
-        Gizmos.color = new Color(1f, 0f, 0f, 0.85f);
-        DrawSlashRangeOutline(transform.position, forward.normalized, slashRange, slashAngle);
-        DrawCircleRangeOutline(dashEndCenter, dashEndDamageRadius);
-        Gizmos.color = previousColor;
-    }
-
-    private void EnsureRangeGizmoMeshes()
-    {
-        if (slashRangeGizmoMesh == null || !Mathf.Approximately(cachedSlashRange, slashRange) ||
-            !Mathf.Approximately(cachedSlashAngle, slashAngle))
-        {
-            if (slashRangeGizmoMesh == null)
-                slashRangeGizmoMesh = new Mesh { name = "Boss Slash Range Gizmo", hideFlags = HideFlags.HideAndDontSave };
-            UpdateSectorMesh(slashRangeGizmoMesh, slashRange, slashAngle);
-            cachedSlashRange = slashRange;
-            cachedSlashAngle = slashAngle;
-        }
-
-        if (dashEndRangeGizmoMesh == null || !Mathf.Approximately(cachedDashEndRadius, dashEndDamageRadius))
-        {
-            if (dashEndRangeGizmoMesh == null)
-                dashEndRangeGizmoMesh = new Mesh { name = "Boss Dash End Range Gizmo", hideFlags = HideFlags.HideAndDontSave };
-            UpdateSectorMesh(dashEndRangeGizmoMesh, dashEndDamageRadius, 360f);
-            cachedDashEndRadius = dashEndDamageRadius;
-        }
-    }
-
-    private static void UpdateSectorMesh(Mesh mesh, float radius, float angle)
-    {
-        const int segmentCount = 48;
-        var vertices = new List<Vector3>(segmentCount + 2) { Vector3.zero };
-        var triangles = new List<int>(segmentCount * 6);
-        int actualSegments = Mathf.Max(1, Mathf.CeilToInt(segmentCount * angle / 360f));
-
-        for (int i = 0; i <= actualSegments; i++)
-        {
-            float currentAngle = (-angle * 0.5f + angle * i / actualSegments) * Mathf.Deg2Rad;
-            vertices.Add(new Vector3(Mathf.Cos(currentAngle) * radius, Mathf.Sin(currentAngle) * radius, 0f));
-        }
-
-        for (int i = 0; i < actualSegments; i++)
-        {
-            int first = i + 1;
-            int second = i + 2;
-            // 양면에서 보이도록 정방향과 역방향 삼각형을 모두 만든다.
-            triangles.Add(0);
-            triangles.Add(first);
-            triangles.Add(second);
-            triangles.Add(0);
-            triangles.Add(second);
-            triangles.Add(first);
-        }
-
-        mesh.Clear();
-        mesh.SetVertices(vertices);
-        mesh.SetTriangles(triangles, 0);
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-    }
-
-    private static void DrawSlashRangeOutline(Vector3 center, Vector2 forward, float radius, float angle)
-    {
-        const int segmentCount = 24;
-        Vector2 startDirection = Quaternion.Euler(0f, 0f, -angle * 0.5f) * forward;
-        Vector3 previousPoint = center + (Vector3)(startDirection * radius);
-        Vector3 firstPoint = previousPoint;
-
-        for (int i = 1; i <= segmentCount; i++)
-        {
-            float stepAngle = angle * i / segmentCount;
-            Vector2 direction = Quaternion.Euler(0f, 0f, stepAngle) * startDirection;
-            Vector3 nextPoint = center + (Vector3)(direction * radius);
-            Gizmos.DrawLine(previousPoint, nextPoint);
-            previousPoint = nextPoint;
-        }
-
-        Gizmos.DrawLine(center, firstPoint);
-        Gizmos.DrawLine(center, previousPoint);
-    }
-
-    private static void DrawCircleRangeOutline(Vector3 center, float radius)
-    {
-        const int segmentCount = 48;
-        Vector3 previousPoint = center + new Vector3(radius, 0f, 0f);
-        for (int i = 1; i <= segmentCount; i++)
-        {
-            float angle = 360f * i / segmentCount * Mathf.Deg2Rad;
-            Vector3 nextPoint = center + new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f);
-            Gizmos.DrawLine(previousPoint, nextPoint);
-            previousPoint = nextPoint;
-        }
-    }
-
-    private void OnDestroy()
-    {
-        Mesh slashMesh = slashRangeGizmoMesh;
-        Mesh dashEndMesh = dashEndRangeGizmoMesh;
-        slashRangeGizmoMesh = null;
-        dashEndRangeGizmoMesh = null;
-
-        if (Application.isPlaying)
-        {
-            if (slashMesh != null) Destroy(slashMesh);
-            if (dashEndMesh != null) Destroy(dashEndMesh);
-            return;
-        }
-
-        EditorApplication.delayCall += () =>
-        {
-            if (slashMesh != null) DestroyImmediate(slashMesh);
-            if (dashEndMesh != null) DestroyImmediate(dashEndMesh);
-        };
-    }
-#endif
 }

@@ -2861,7 +2861,7 @@ MonoBehaviour:
   enemyTag: Enemy
   playerSpriteRenderer: {fileID: 454019996}
   playerAnimator: {fileID: 0}
-  parryVfxScale: 1.75
+  parryVfxScale: 2
   parryStartup: 0.033
   parryActive: 0.133
   parryRecovery: 0.233
@@ -32683,17 +32683,17 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Boss
+  m_text: "\uBCF4\uC2A4\n"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 42636c5c5498c3c4a8540049d944c907, type: 2}
+  m_sharedMaterial: {fileID: 2662441391863969983, guid: 42636c5c5498c3c4a8540049d944c907, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190335
-  m_fontColor: {r: 1, g: 0, b: 0, a: 1}
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -32710,8 +32710,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 62
-  m_fontSizeBase: 62
+  m_fontSize: 54
+  m_fontSizeBase: 54
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -32749,7 +32749,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -7.7339783, y: 6.7671814, z: -101.507935, w: -20.301575}
+  m_margin: {x: -7.7339783, y: 18.246813, z: -101.507935, w: -20.301575}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -32853,6 +32853,14 @@ PrefabInstance:
     - target: {fileID: 2801471059774490790, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: entranceBurstMinimumSize
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 7341209856123456701, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
+      propertyPath: entranceAreaBurstDuration
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 7670373938179878916, guid: f382559b7ff471e40bfa04d792b55312, type: 3}
       propertyPath: healthSlider

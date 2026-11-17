@@ -19,6 +19,7 @@ public sealed partial class Player
             data.GrantInvulnerable(parryInvulnerableDuration);
         if (version == lifecycleVersion && isActiveAndEnabled && !hasDied && !data.IsDead)
         {
+            movement.ResetDashCooldown();
             BeginParryFeedback(defense.LastParrySource);
             PlayParryCameraZoom();
         }
@@ -27,23 +28,26 @@ public sealed partial class Player
     /// <summary>Compatibility entry point used by boss attacks and existing scene logic.</summary>
     public void TakeDamage(float damage, GameObject attacker = null)
     {
+        TryDamageOrTriggerParry(damage, attacker);
+    }
+
+    private bool TryDamageOrTriggerParry(float damage, GameObject attacker)
+    {
         if (data == null || hasDied || defense == null || movement == null)
-            return;
+            return false;
 
         if (data.IsInvulnerable)
-            return;
+            return false;
 
-        if (movement.IsDashing || defense.IsBlockingDamage)
+        if (defense.IsBlockingDamage)
         {
-            if (defense.IsBlockingDamage)
-            {
-                defense.NotifyIncomingAttackBlockedFrom(attacker);
-                Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
-            }
-            return;
+            bool parried = defense.TryRegisterParry(attacker);
+            Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
+            return parried;
         }
 
-        if (!data.ApplyDamage(damage, out float healthLost)) return;
+        if (movement.IsDashing || !data.ApplyDamage(damage, out float healthLost))
+            return false;
         if (IsHeavyCharging && !heavyCharge.SuperArmor) ResetHeavyCharge();
         if (healthLost > 0f) DamageApplied?.Invoke(this, healthLost);
 
@@ -56,10 +60,16 @@ public sealed partial class Player
             gameObject.SetActive(false);
         }
         else Damaged?.Invoke(damage, attacker);
+        return true;
     }
 
     public void TakeContactDamage(float damage, GameObject source)
     {
         TakeDamage(damage, source);
+    }
+
+    bool IContactDamageResultReceiver.TryDamageOrTriggerParry(float damage, GameObject source)
+    {
+        return TryDamageOrTriggerParry(damage, source);
     }
 }

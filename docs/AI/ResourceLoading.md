@@ -1,5 +1,48 @@
 # 리소스 로딩 사용 방법
 
+## 2026-11-17 다운로드 전용 기반 API
+
+`ResourceManager.GetDownloadSizeAsync(string label, Action<long, string> completed)`와 `DownloadDependenciesAsync(string label, Action<long, long> progress, Action<bool, string> completed)`를 추가했다. 기존 메모리 로딩 API는 그대로다.
+
+사용 순서는 **카탈로그 준비 → 추가 용량 조회 → 사용자 다운로드 동의 → 다운로드 → 필요한 에셋 PreloadAsync → 사용**이다. 이번 구현은 두 다운로드 API까지이며, 카탈로그 선택·동의 UI·게임 진입 연결은 아직 하지 않았다. 현재 LoadScene의 로컬 플레이는 그대로다.
+
+```csharp
+long requiredBytes = -1;
+string sizeError = null;
+yield return Managers.Resource.GetDownloadSizeAsync(label, (bytes, error) =>
+{
+    requiredBytes = bytes;
+    sizeError = error;
+});
+if (sizeError != null)
+    yield break;
+
+// requiredBytes가 양수면 이 위치에서 UI 동의를 받아야 한다.
+// UI 결정 없이 자동 다운로드하도록 그대로 복사하지 않는다.
+// 동의를 받았거나 requiredBytes == 0일 때 아래를 호출한다.
+bool downloaded = false;
+yield return Managers.Resource.DownloadDependenciesAsync(label,
+    (receivedBytes, totalBytes) => { /* 바이트 진행 표시 */ },
+    (success, error) => { downloaded = success; });
+if (!downloaded)
+    yield break;
+
+// 다운로드는 디스크 캐시만 준비한다. 사용할 에셋은 별도로 메모리에 로딩한다.
+yield return Managers.Resource.PreloadAsync(label, (success, error) => { /* 진입 여부 판단 */ });
+```
+
+- 용량 조회 성공은 추가 바이트 수(캐시가 있으면 0), 실패는 -1과 오류다. 빈 라벨과 대상 없는 라벨을 0바이트 성공으로 처리하지 않는다.
+- 다운로드 진행은 받은/전체 바이트다. 초기 대상 확인 중에는 0/0일 수 있다. 성공 여부는 진행 수치가 아니라 완료 콜백으로 판단한다.
+- 같은 라벨·같은 종류의 진행 중 요청은 작업을 공유하며, 각 코루틴 대기자는 자신의 진행·완료를 받는다. 조회가 끝난 뒤 새 조회는 캐시 상태를 다시 계산한다. 실패 결과를 보관하지 않는다.
+- 코루틴 대기자가 사라져도 이미 시작한 작업의 완료 콜백에서 핸들을 정리한다. 파괴된 대기자에게 사용자 완료 콜백을 보장하지 않는다.
+- `ResourceManager.Clear`는 다운로드 요청도 실패로 종료하고 이전 세대 핸들을 정리한다. 네트워크 전송 자체가 즉시 중단된다고 보장하지 않으며, 늦은 완료가 새 요청을 제거하지 못하게 한다. 이미 내려받은 디스크 캐시는 삭제하지 않는다.
+- 기존 `Managers.Clear`는 씬 이동용이며 Resource 캐시를 보존한다. 다운로드 전체 취소 API로 대신 사용하지 않는다.
+- 새 구현은 `ResourceManager.Downloads.cs` partial에 있고 새 전역 매니저나 asmdef 이동은 없다. API는 이미 등록된 카탈로그/라벨을 대상으로 하며 원격 서버나 카탈로그를 자동 생성하지 않는다.
+
+검증 실행과 제한은 `tools/RemoteContentValidation/README.md`를 참조한다. Android 출시용 원격 패치 전체가 완료된 상태는 아니다.
+
+이번 단위의 실제 검증: 변경 전 새 API 부재로 PlayMode 9/9 실패 → 구현·독립 리뷰 보완 후 **14/14 통과, 실패·생략 0**. Windows Editor에서 실제 HTTP 번들·바이트 진행·캐시·전송 중 Clear와 새 요청·이탈 후 작업 핸들 반환을 확인했다. 원본 C# 7개 어셈블리 컴파일도 변경 전·후 exit 0이다. 원본 전체 씬/PlayMode 테스트, Android APK/AAB·기기·운영 CDN·실제 앱 재실행은 이번 결과에 포함하지 않는다.
+
 ## 진입과 로딩
 
 게임 시작은 기존처럼 `Managers.PrepareGame`을 사용한다. 이 코루틴이 호출하는 Resource.PreloadAsync와 기존 LoadAllAsync는 같은 처리 경로를 사용한다.

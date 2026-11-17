@@ -7,7 +7,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using Object = UnityEngine.Object;
 
-public class ResourceManager
+public partial class ResourceManager
 {
     private Dictionary<string, UnityEngine.Object> _resources = new Dictionary<string, UnityEngine.Object>();
     private Dictionary<string, AsyncOperationHandle> _handles = new Dictionary<string, AsyncOperationHandle>();
@@ -331,6 +331,7 @@ public class ResourceManager
         _resources.Clear();
         _handles.Clear();
         _assetLocations.Clear();
+        ClearDownloads();
 
         // 사용자 콜백 전에 이전 상태를 모두 분리합니다. 콜백이 시작한 새 요청은 유지합니다.
         foreach (LoadBatch batch in batches)

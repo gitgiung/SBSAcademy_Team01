@@ -1,5 +1,31 @@
 # 작업 인수인계
 
+## 2026-11-17 원격 다운로드 기반 API 및 HTTP 검증
+
+- 사용자 승인: 설계 검토 완료 후 다음 단계 진행을 요청했다. 전체 원격 전환 중 첫 구현 단위를 다운로드 기반 API와 실제 HTTP 번들 검증으로 정했다. `docs/superpowers/plans/2026-11-17-remote-download-foundation.md`에 범위·인터페이스·후속 작업을 기록했다.
+- 시작 상태: 브랜치 `adressable-resources-loading`, HEAD `90c00c0`. 이전 조사 문서 변경 외에 사용자가 삭제한 `GiungScene.unity`, `dongjinScenes.unity`와 각각 meta가 있었다. 삭제를 보존했으며 해당 씬 내용 확인·복구·체크아웃·커밋은 하지 않았다.
+- 구현: 기존 `ResourceManager`를 partial로 확장하고 `ResourceManager.Downloads.cs`에 `GetDownloadSizeAsync(label, Action<long,string>)`, `DownloadDependenciesAsync(label, Action<long,long>, Action<bool,string>)`를 추가했다. 빈/누락 라벨 실패, 라벨/작업 종류별 동시 요청 공유, 실패 후 재시도, 바이트 진행, Clear 세대 방어, 대기자 이탈 후 핸들 정리를 지원한다. 다운로드는 디스크 캐시만 준비하며 기존 Load/Preload API와 메모리 캐시는 유지한다. `ResourceManager.Clear`에서 다운로드 요청도 정리하되 디스크 캐시는 삭제하지 않는다.
+- 게임 연결 범위: LoadScene·씬·프리팹·설정·패키지·에셋 위치·게임 수치·MP는 변경하지 않았다. 현재 게임이 자동으로 원격 서버에 연결되는 상태는 아니다. 카탈로그 선택·사용자 동의 UI·릴리스 호환/복구·실제 스킬 공급 경로 이전은 아직 후속 단위다. 새 전역 매니저나 런타임 asmdef 이동은 없다.
+- 검증 도구: `tools/RemoteContentValidation/RunUnity.ps1`가 원본과 별개 `.utmp/remote-download/project`에서 실제 ResourceManager를 컴파일한다. 표준 Addressables 공급자와 loopback HTTP 검증 번들로 확인한다. 원본 프로젝트의 두 번째 Unity는 열지 않았다. 처음 sandbox 실행은 라이선스 초기화 대기라 테스트 미시작이었다. 해당 검증 프로세스만 종료하고 권한을 허용한 격리 실행으로 검증했다. 원본 Play From Title 설정은 변경하지 않았다.
+- 테스트: API가 없는 변경 전 PlayMode **9/9 실패**를 확인했다(새 API 부재 단언). 구현 후 기본 **9/9**, 취소·캐시·이탈·예외·복구 확대 후 **14/14 통과**했다. 독립 리뷰의 실제 전송 중 취소 지적에 따라 `0 < received < total` 시점의 Clear와 같은 라벨 새 요청 완료를 검증하도록 보강했고, HTTP 실패 구간은 예상 `/missing`의 404 예외만 허용했다. 대기자 이탈 시 레지스트리 제거와 작업 핸들 반환도 추가 확인한다. 최종 XML·로그는 `.utmp/remote-download/final.*`이며 Git 제외다. 전체 원본 프로젝트 PlayMode/씬 테스트는 이번에 실행하지 않았다.
+- 컴파일: 기존 `tools/AndroidReadinessValidation/RunCompile.ps1`로 변경 전·후 7개 어셈블리 컴파일 exit 0(플러그인, Combat, Enemy, Boss, Encounter, Assembly-CSharp, Assembly-CSharp-Editor). 새 partial도 포함했다. 이는 전체 원본 소스의 C# 컴파일이며 실제 Android Player 빌드가 아니다. Android SDK/NDK/OpenJDK와 플랫폼 34/36 디렉터리는 확인했으나 도구 실행·APK/AAB·Android 번들·기기·운영 CDN은 미검증이다.
+- 직접 확인: 프로젝트 루트 PowerShell에서 `& tools/RemoteContentValidation/RunUnity.ps1 -ResultName result` 실행 → `.utmp/remote-download/result.xml`의 Passed/실패·생략 0 확인. 번들 생성 후 재검증은 `-SkipFixture`를 사용할 수 있다. 원본 Unity Test Runner에서 이 HTTP 클래스는 환경 안내와 함께 생략된다. 실패 시 fixture-build.log, 결과 로그 첫 오류, server-error.log와 18763 포트 점유를 순서대로 본다. 전체 캐시는 삭제하지 않는다.
+- 게임 보존 확인: Play 종료 → Console 첫 컴파일 오류 확인 → Tools > Play From Title 해제 → MainScene Play. 기존 HUD·스킬 동작이 유지돼야 하며 새 다운로드 UI는 아직 없다. 이번 세션에서 실제 MainScene Play를 검증했다고 주장하지 않는다. GiungScene은 제외한다.
+- 다음: 호환 릴리스 정보와 카탈로그 선택·다운로드 동의/재시도 UI를 기존 Managers/LoadScene에 연결하고, 작은 실제 스킬 묶음 공급 경로를 이전한다. Android 실제 크기 기준선·APK 기기 다운로드·캐시 재실행·리소스 단독 업데이트·복구 검증을 계속한다. 유료 호스팅 가입/결제·운영 배포는 하지 않았다.
+
+## 2026-11-17 Android 첫 다운로드·원격 리소스 패치 조사 및 설계 초안
+
+- 사용자 목표: Android 출시 시 작은 최초 설치, 첫 실행 콘텐츠 다운로드, 출시 후 스킬 수치·그림·사운드의 앱 업데이트 없는 패치. 이번 승인 범위는 포함 경로·용량 조사와 설계 문서 작성까지다. 런타임 이전이나 원격 배포는 하지 않았다.
+- 시작 상태: 실제 조회한 브랜치 `adressable-resources-loading`, HEAD `90c00c0`, 시작 시 Git 변경 없음. 브랜치 전환·커밋은 하지 않았다. Unity 6000.5.0f1 / Addressables 2.9.1 유지. GiungScene 내용은 읽거나 검증하지 않았다.
+- 산출물: `docs/AI/AndroidResourceLoadingAudit.md`, `docs/AI/ResourceLoadingInventory.csv`(3,327행), `docs/AI/ResourceLoadingInventory.json`, `docs/superpowers/specs/2026-11-17-android-remote-content-design.md`. 문서는 검토용 초안이며 구현 승인은 아직 받지 않았다.
+- 조사: meta·GiungScene을 제외한 Assets 원본 75.87 MiB. 실제 런타임 Resources는 513개/11.60 MiB이고 `Assets/2.Resources`는 자동 포함 폴더가 아니다. 4개 활성 씬과 Resources에서 시작한 GUID 후보 합집합은 원본 34.68 MiB다. 이는 APK/AAB·설치 크기·실행 메모리·절감량이 아니다. 도달하지 않은 파일을 미사용/삭제 가능으로 판단하면 안 된다. CSV·JSON에 집계 기준과 제한을 기록했다.
+- 현재 코드: 타이틀→로딩→로비→로딩→MainScene. LoadScene은 preloadLabel 빈 값/requireSkillData=false다. Addressables 그룹은 비어 있고 Build Remote Catalog 꺼짐, Remote.LoadPath 미정이다. Assets/0.Scripts에서 직접 Resources.Load/LoadAll 호출 20곳/11파일. 실제 CombatSkillTable·PlayerStatTable을 별도 SkillData 준비와 혼동하지 않는다.
+- 설계 방향: 기존 Managers/ResourceManager를 확장한다. 호환 릴리스 선택 → 디스크 다운로드 → 필요한 에셋 메모리 로딩 → 파생 Sprite/데이터 검증을 분리한다. 프로세스 단위 릴리스 고정, 구버전 앱 분리, 카탈로그 자동 갱신 제어, 이전 정상 릴리스 보존과 재시작 복구를 제안했다. CDN 업체·목표 용량·오프라인 정책·팝업 문구는 미정이며 수치·MP·전투 규칙은 바꾸지 않는다.
+- 다음 구현 시범 후보: 기존 CombatSkillTable.json과 수살(10025)의 WaterArrow Texture+Frames JSON 및 실제 Skill_10025.png. 표의 SkillIcon_10025 키는 현재 fallback에 의존하므로 매핑 계약부터 확인한다. MainScene 전체 원격 이전은 첫 시범 범위가 아니다.
+- 검증: 문서·CSV/JSON 수치 일치, 3,327행, 코드 호출 수 20, 로컬 문서 링크 6개 확인. 별도 구현 관점 검토에서 중요 미해결 질문 없음. 실제 Unity 컴파일·자동 테스트·Play 실행 0개. Android SDK/빌드 지원·AAB·카탈로그·번들·CDN·기기는 미검증이다. 과거 테스트 통과 수를 이번 결과로 재사용하지 않는다.
+- 직접 확인: 조사 보고서 → 설계 초안 순서로 읽는다. Unity Play 종료 → Window > Asset Management > Addressables > Groups에서 빈 그룹, Settings의 Build Remote Catalog 꺼짐을 읽기만 확인한다. Tools > Play From Title 해제 후 MainScene의 기존 HUD/적 참조를 Inspector에서 확인할 수 있다. 이번 변경으로 버튼·씬·게임 동작이 바뀌면 안 된다. 불일치 시 현재 Git 상태/Build Profile/해당 meta GUID와 Console 첫 오류를 확인한다. 씬 저장·GiungScene 검증은 하지 않는다.
+- 다음: 사용자의 설계 검토 후 구현 계획 작성. 이어서 Android 실제 크기 기준선과 작은 원격 다운로드 시범을 검증한다. 기존 MainScene 타이머 실플레이·화면 비율 검증도 그대로 남아 있다.
+
 ## 2026-11-17 MainScene 타이머 배경·TMP 디지털 폰트 적용
 
 - 사용자 작업 기준: 앞으로 씬 작업은 **MainScene만** 한다. GiungScene은 무시하고 수정·검증하지 않는다. 로컬 `AGENTS.md`에도 기록했다.

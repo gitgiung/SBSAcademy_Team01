@@ -1,5 +1,21 @@
 # 작업 인수인계
 
+## 2026-11-17 선택적 원격 시작·카탈로그·동의/재시도 연결
+
+- 요청: 사용자가 다운로드 기반 확인 후 다음 단계 진행을 요청했다. 승인한 원격 배포 설계에 따라 기존 로딩 경로에 선택적 원격 준비를 연결했다. 계획은 `docs/superpowers/plans/2026-11-17-remote-startup.md`다.
+- 상태 보존: 시작 조회는 `adressable-resources-loading`/`90c00c0`와 이전 단계 미커밋 변경·사용자 두 씬/meta 삭제였다. 작업 도중 이전 단계가 `de76099 다운로드 기반 API 구현`으로 커밋된 것을 확인했다. 에이전트가 커밋/체크아웃/복구하지 않았고 현재 HEAD는 `de76099`다. GiungScene은 읽거나 검증하지 않았다.
+- 설정: 새 `RemoteContentSettings`는 기본 꺼짐이며 자동 asset 생성/운영 연결이 없다. `Tools > Remote Content > Settings`를 명시적으로 선택할 때만 꺼진 `Assets/Resources/RemoteContentSettings.asset`을 생성·선택한다. URL·앱 호환 계열·개발 HTTP 허용을 설정한다. HTTP는 Editor/Development Build와 설정 허용이 모두 필요하다. 원본 패키지/Project Settings/씬/프리팹은 변경하지 않았다.
+- 원격 정보: `RemoteContentRelease`의 formatVersion=1, 정확한 플랫폼/앱 호환, contentVersion, catalogUrl, catalogSha256(64 hex), requiredLabel을 검증한다. ResourceManager partial은 HTTP manifest→SHA-256 확인된 카탈로그 디스크 캐시→로컬 Addressables 등록을 수행한다. manifest 64KiB/catalog 16MiB 수신 상한은 DownloadHandlerScript에서 넘치는 청크를 저장하지 않는 방식으로 제한한다. 요청 timeout 15초, redirect 금지다. 현재 설치 버전의 기본 바이너리 카탈로그를 사용한다.
+- 수명: 같은 실행에서 하나의 릴리스 identity를 고정한다. Resource.Clear는 HTTP 요청을 abort/dispose하고 loaded locator를 제거한다. 등록 중 카탈로그는 취소 표시 후 실제 완료 콜백에서 늦은 locator와 handle을 정리하며, 새 등록은 이 정리가 끝나기를 기다린다. 디스크 캐시는 전체 삭제하지 않는다.
+- 진입: Managers partial이 옵션 snapshot·이번 실행 릴리스·영속 준비 코루틴을 소유한다. 상태는 Disabled/CheckingRelease/LoadingCatalog/CheckingSize/AwaitingConsent/Downloading/Ready/Failed다. LoadScene은 원격 Ready/Disabled 이전에 기존 PrepareGame/목적지 전환을 호출하지 않는다. 실패는 TestReady로 우회하지 않고 버튼 재시도를 기다린다. 원격 Ready는 필수 번들의 디스크 준비이며 GameDataReady/실제 전투 표 준비와 다르다.
+- UI: UI_LoadScene이 원격 모드일 때만 기존 로컬 TMP 폰트의 상태 패널을 런타임 생성한다. 추가 용량이 있으면 다운로드 동의를 받고, 바이트 진행과 실패·다시 시도 버튼을 표시한다. 기본 로컬 모드에는 생성하지 않는다. 기술 검증용 안내이며 게임 기획 팝업 내용을 확정한 것이 아니다. 실제 포인터 터치·화면 비율·한글 배치는 아직 눈으로 검증하지 않았다.
+- 실제 검증: 변경 전 릴리스/카탈로그 API 부재로 24개 중 기존 14 통과/새 10 실패, Managers 연결 전 30개 중 24 통과/6 실패, LoadScene/UI 연결 전 32개 중 30 통과/2 실패를 확인했다. 최종 격리 Windows Editor PlayMode **40/40 통과, 실패·생략 0**. 실제 HTTP 릴리스·카탈로그·번들, 동의 전 미다운로드, UI 승인/재시도, 메타데이터 크기/redirect/hash, 등록 중 Clear→재등록→locator/handle 반환, 동의 대기/Ready 후 Clear, 다른 릴리스 거부를 확인했다. `.utmp/remote-download/startup-final.xml/.log`는 Git 제외다.
+- 리뷰·컴파일: 독립 리뷰의 수신 메모리 상한 지적을 반영하고 빠진 수명 회귀를 보강했다. 원본 C# 7개 어셈블리 컴파일 exit 0(`startup-final-compile.log`). 격리 테스트는 Managers 주변 Data/UI/Sound/Scene 서비스만 경계로 대체하므로 원본 게임 전체 PlayMode/씬 검증은 아니다. 실제 Android APK/AAB·번들·기기·운영 CDN·앱 프로세스 재실행은 미검증이다. 유료 가입/결제/운영 배포는 하지 않았다.
+- 직접 확인: 루트 PowerShell에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\RemoteContentValidation\RunUnity.ps1 -ResultName result` 실행 → XML Passed, 실패·생략 0 확인. 이전 사용자 PowerShell 실행 정책 오류는 이 실행에 한정한 예외로 해결한다. 처음/fixture 변경 후에는 SkipFixture를 쓰지 않는다. 상세 설정과 직접 Editor 확인은 `tools/RemoteContentValidation/README.md`에 있다.
+- Editor 확인 순서: 검증 fixture 생성 → 별도 터미널에 loopback 서버 실행 → Play 종료/컴파일 완료 → Tools > Remote Content > Settings에서 Windows용 개발 설정 → 필요 시 현재 Windows 타깃의 로컬 기본 Addressables 카탈로그 빌드(Build Remote Catalog는 꺼짐 유지) → MainScene만 열고 Tools > Play From Title을 켜 Play → 타이틀 시작 영역 → 기존 로딩 화면의 용량·다운로드 버튼 → 승인 후 로비. 캐시가 있으면 0바이트로 동의 없이 진행할 수 있다. 서버를 끈 뒤 실패 안내, 서버 재시작 후 다시 시도를 확인한다. 확인 후 Use Remote Content를 끄고 MainScene 직접 테스트는 Play From Title을 해제한다.
+- 오류 확인: Console 첫 오류, 설정 asset 이름/Use Remote Content/URL/HTTP 개발 허용, 원본 로컬 Addressables 기본 빌드·타깃, 18763 포트와 server-error.log, manifest/catalog.bin이 같은 빌드인지 순서대로 확인한다. 이 fixture는 Windows 전용이고 Android의 127.0.0.1은 PC가 아니므로 APK에 그대로 사용하지 않는다. 전체 캐시 삭제·씬 재저장·GiungScene 수정은 하지 않는다.
+- 다음: 작은 실제 스킬 묶음(CombatSkillTable와 수살 10025 Texture/Frames/아이콘)의 공급 경로를 GUID 보존하며 이전하고 데이터·파생 Sprite 준비를 연결한다. 이번 전송 시범은 합성 TextAsset이며 실제 게임 리소스 원격 이전이나 설치 용량 절감이 완료된 상태가 아니다. 이후 Android 실제 크기 기준선·APK 기기 다운로드·실제 앱 재실행·리소스 단독 패치/복구 검증을 계속한다. 영속 정상 릴리스·오프라인/롤백 정책은 미정이며 자동 폴백하지 않는다.
+
 ## 2026-11-17 원격 다운로드 기반 API 및 HTTP 검증
 
 - 사용자 승인: 설계 검토 완료 후 다음 단계 진행을 요청했다. 전체 원격 전환 중 첫 구현 단위를 다운로드 기반 API와 실제 HTTP 번들 검증으로 정했다. `docs/superpowers/plans/2026-11-17-remote-download-foundation.md`에 범위·인터페이스·후속 작업을 기록했다.

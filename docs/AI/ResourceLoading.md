@@ -1,6 +1,22 @@
 # 리소스 로딩 사용 방법
 
+## 2026-11-17 원격 릴리스·카탈로그 연결
+
+원격 사용은 선택적 `RemoteContentSettings` asset으로 켠다. `Tools > Remote Content > Settings` 메뉴가 없을 때만 꺼진 asset을 생성/선택한다. 설정이 없거나 꺼져 있으면 기존 로컬 로딩은 그대로다. 설정을 켠 경우 LoadScene→Managers의 원격 준비가 아래 API를 사용한다.
+
+- `FetchRemoteReleaseAsync(url, platform, compatibility, allowHttp, Action<RemoteContentRelease,string>)`: formatVersion=1, 정확한 플랫폼/앱 호환 계열, 버전·필수 라벨·HTTPS 주소·SHA-256 필수값을 검증한다. 개발 HTTP는 설정 허용과 Editor/Development Build가 모두 필요하다. HTTP redirect는 따르지 않는다.
+- `LoadRemoteCatalogAsync(release, Action<bool,string>)`: 검증된 메타데이터를 다시 확인하고 카탈로그 바이트 SHA-256이 일치할 때만 내용 hash 파일명으로 보관해 로컬 Addressables 카탈로그로 등록한다. 현재 기본 바이너리 카탈로그(2.9.1 설정)를 사용한다. 전역 원격 카탈로그 자동 갱신 설정을 켜지 않는다.
+- manifest 64KiB, catalog 16MiB의 수신 상한과 요청 timeout 15초를 둔다. DownloadHandlerScript는 넘치는 청크를 저장하지 않고 실패시킨다. 카탈로그 캐시는 읽을 때도 hash를 확인하며, 캐시를 전체 삭제하지 않는다.
+- 같은 ResourceManager 실행 수명에서는 하나의 릴리스 identity만 허용한다. Clear는 HTTP 요청을 abort/dispose하고 loaded locator를 제거한다. 카탈로그 등록은 취소 API가 없으므로 취소 표시 후 실제 완료 콜백에서 늦은 locator/handle을 정리한다. 재등록은 이 정리가 끝나기를 기다린다.
+- 메타데이터·다운로드 실패는 UI 상태로 전달한다. 앱/콘텐츠 형식을 바꾸거나 선택한 릴리스를 교체하려면 재실행한다. 영속 마지막 정상 릴리스와 오프라인/롤백은 미정인 운영 정책과 함께 후속 구현이다.
+
+LoadScene은 원격 Ready/Disabled 후 기존 PrepareGame을 호출한다. UI_LoadScene의 용량·상태·동의·재시도는 기술 검증용 안내이며 게임 기획 팝업 내용을 확정한 것이 아니다. 현재 실제 전투 표·그림은 아직 기존 경로를 사용한다. Windows용 HTTP fixture로 전송/캐시/카탈로그/Managers/버튼 연결을 확인했으며 실제 게임 에셋 이전이나 Android 완료를 뜻하지 않는다.
+
+실제 검증: 기존 다운로드 14개를 포함해 **40/40 PlayMode 통과, 실패·생략 0**. 원본 전체 C# 7개 어셈블리 컴파일 exit 0. 원본 전체 씬/PlayMode, 실제 포인터 터치·화면 비율·한글 배치, APK/AAB·Android 기기·운영 CDN·앱 프로세스 재실행은 미검증이다. 재실행 명령과 직접 확인은 `tools/RemoteContentValidation/README.md`를 참조한다.
+
 ## 2026-11-17 다운로드 전용 기반 API
+
+아래는 첫 기반 단위의 계약과 당시 검증 기록이다. 이후 카탈로그·동의/재시도 연결 상태는 바로 위 최신 절을 기준으로 한다.
 
 `ResourceManager.GetDownloadSizeAsync(string label, Action<long, string> completed)`와 `DownloadDependenciesAsync(string label, Action<long, long> progress, Action<bool, string> completed)`를 추가했다. 기존 메모리 로딩 API는 그대로다.
 

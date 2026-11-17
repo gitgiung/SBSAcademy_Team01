@@ -7,14 +7,20 @@ $unityExe = 'C:/Program Files/Unity/Hub/Editor/6000.5.0f1/Editor/Unity.exe'
 New-Item -ItemType Directory -Force -Path "$validationRoot/Assets/Runtime", "$validationRoot/Assets/Tests", "$validationRoot/Assets/Editor", "$validationRoot/Packages", "$validationRoot/ProjectSettings" | Out-Null
 $runtimeFiles = @('ResourceManager.cs', 'PoolManager.cs', 'PooledObject.cs', 'IPoolable.cs')
 if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/ResourceManager.Downloads.cs") { $runtimeFiles += 'ResourceManager.Downloads.cs' }
+if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/ResourceManager.RemoteContent.cs") { $runtimeFiles += @('ResourceManager.RemoteContent.cs','RemoteContentRelease.cs','RemoteContentSettings.cs') }
 foreach ($file in $runtimeFiles) {
     Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Managers/Core/$file" -Destination "$validationRoot/Assets/Runtime/$file" -Force
 }
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Managers/Managers.cs" -Destination "$validationRoot/Assets/Runtime/Managers.cs" -Force
+if (Test-Path "$projectRoot/Assets/0.Scripts/Framework/Managers/Managers.RemoteContent.cs") { Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Managers/Managers.RemoteContent.cs" -Destination "$validationRoot/Assets/Runtime/Managers.RemoteContent.cs" -Force }
 Copy-Item -LiteralPath "$PSScriptRoot/Boundary.cs" -Destination "$validationRoot/Assets/Runtime/Boundary.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/Scenes/LoadScene.cs" -Destination "$validationRoot/Assets/Runtime/LoadScene.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/0.Scripts/Framework/UI/Scene/UI_LoadScene.cs" -Destination "$validationRoot/Assets/Runtime/UI_LoadScene.cs" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/TextMesh Pro/Resources" -Destination "$validationRoot/Assets" -Recurse -Force
 Copy-Item -LiteralPath "$PSScriptRoot/BuildFixture.cs" -Destination "$validationRoot/Assets/Editor/BuildFixture.cs" -Force
 Get-ChildItem "$projectRoot/Assets/Tests/PlayMode/RemoteContent" -File | Where-Object Extension -ne '.meta' | Copy-Item -Destination "$validationRoot/Assets/Tests" -Force
 Copy-Item -LiteralPath "$projectRoot/ProjectSettings/ProjectVersion.txt" -Destination "$validationRoot/ProjectSettings/ProjectVersion.txt" -Force
-'{"dependencies":{"com.unity.addressables":"2.9.1","com.unity.test-framework":"1.7.0","com.unity.modules.assetbundle":"1.0.0","com.unity.modules.jsonserialize":"1.0.0","com.unity.modules.unitywebrequest":"1.0.0","com.unity.modules.unitywebrequestassetbundle":"1.0.0"}}' | Set-Content "$validationRoot/Packages/manifest.json"
+'{"dependencies":{"com.unity.addressables":"2.9.1","com.unity.test-framework":"1.7.0","com.unity.ugui":"2.5.0","com.unity.modules.ui":"1.0.0","com.unity.modules.imgui":"1.0.0","com.unity.modules.assetbundle":"1.0.0","com.unity.modules.jsonserialize":"1.0.0","com.unity.modules.unitywebrequest":"1.0.0","com.unity.modules.unitywebrequestassetbundle":"1.0.0"}}' | Set-Content "$validationRoot/Packages/manifest.json"
 
 function Run-IsolatedUnity([string[]]$Extra, [string]$LogName) {
     $arguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $validationRoot + '"'), '-logFile', ('"' + "$resultRoot/$LogName.log" + '"')) + $Extra

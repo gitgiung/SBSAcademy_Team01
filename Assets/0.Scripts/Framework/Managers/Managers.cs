@@ -12,7 +12,7 @@ public enum GamePreparationState
     Failed
 }
 
-public class Managers : MonoBehaviour
+public partial class Managers : MonoBehaviour
 {
     /// <summary>공통 서비스 준비 상태입니다. 게임 데이터 준비와는 별개입니다.</summary>
 	public static bool Initialized { get; private set; } = false;

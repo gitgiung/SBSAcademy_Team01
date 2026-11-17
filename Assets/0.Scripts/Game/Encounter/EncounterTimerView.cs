@@ -1,20 +1,15 @@
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Text))]
 public sealed class EncounterTimerView : MonoBehaviour
 {
     [SerializeField] private BossEncounterController encounter;
-    [SerializeField] private Text label;
-    private Font runtimeFont;
+    [SerializeField] private TMP_Text label;
 
     private void Awake()
     {
-        if (label == null) label = GetComponent<Text>();
-        runtimeFont = Font.CreateDynamicFontFromOSFont(
-            new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Arial" }, 36);
-        if (runtimeFont != null) label.font = runtimeFont;
+        if (label == null) label = GetComponentInChildren<TMP_Text>(true);
     }
 
     private void OnEnable()
@@ -26,9 +21,7 @@ public sealed class EncounterTimerView : MonoBehaviour
     private void Render()
     {
         if (label == null || encounter == null) return;
-        label.text = encounter.Phase == EncounterPhase.BossFight
-            ? "보스를 처치하세요."
-            : FormatTime(encounter.ElapsedTime);
+        label.text = FormatTime(encounter.ElapsedTime);
     }
 
     public static string FormatTime(float elapsed)
@@ -40,10 +33,5 @@ public sealed class EncounterTimerView : MonoBehaviour
     private void OnDisable()
     {
         if (encounter != null) encounter.DisplayChanged -= Render;
-    }
-
-    private void OnDestroy()
-    {
-        if (runtimeFont != null) Destroy(runtimeFont);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -113,6 +114,42 @@ public sealed class BossEncounterScheduleTests
         var bosses = encounter.GetComponentsInChildren<EnemyHealth>();
         Assert.That(bosses.Length, Is.EqualTo(1), "현재 회차 보스가 하나만 활성화되어야 함");
         return bosses[0];
+    }
+
+    [Test]
+    public void TimerKeepsNumericTimeAtEveryBossBoundaryAndResumesAfterDeath()
+    {
+        float[] times = { 180, 360, 540, 720, 900, 1080 };
+        var prefabs = new GameObject[times.Length];
+        for (int i = 0; i < times.Length; i++) prefabs[i] = Prefab("Timer boss " + i);
+        var encounter = Encounter(Schedule(times, prefabs));
+        var timer = new GameObject("Timer", typeof(RectTransform));
+        timer.SetActive(false);
+        timer.transform.SetParent(root.transform);
+        var view = timer.AddComponent<EncounterTimerView>();
+        var label = timer.AddComponent<TextMeshProUGUI>();
+        Set(view, "label", label);
+        Set(view, "encounter", encounter);
+        timer.SetActive(true);
+        Assert.That(label.text, Is.EqualTo("00:00"));
+        for (int i = 0; i < times.Length; i++)
+        {
+            director.Tick(10000);
+            string expected = EncounterTimerView.FormatTime(times[i]);
+            Assert.That(label.text, Is.EqualTo(expected));
+            director.Tick(20);
+            Assert.That(label.text, Is.EqualTo(expected));
+            Assert.That(Time.timeScale, Is.EqualTo(1f));
+            ActiveBoss(encounter).TakeDamage(float.MaxValue);
+            Assert.That(director.IsPaused, Is.False);
+            director.Tick(1);
+            // The existing run ends at 18 minutes, even after its final boss dies.
+            float resumed = Mathf.Min(times[i] + 1, 1080);
+            Assert.That(label.text, Is.EqualTo(EncounterTimerView.FormatTime(resumed)));
+        }
+        timer.SetActive(false);
+        timer.SetActive(true);
+        Assert.That(label.text, Is.EqualTo("18:00"));
     }
 
     [Test]

@@ -1,5 +1,5 @@
 {
   "name": "BossEncounter.PlayModeTests",
-  "references": ["Encounter.Runtime", "Boss.Runtime", "Enemy.Runtime", "Combat.Runtime", "UnityEngine.UI"],
+  "references": ["Encounter.Runtime", "Boss.Runtime", "Enemy.Runtime", "Combat.Runtime", "UnityEngine.UI", "Unity.TextMeshPro"],
   "optionalUnityReferences": ["TestAssemblies"]
 }

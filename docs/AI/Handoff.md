@@ -1,5 +1,23 @@
 # 작업 인수인계
 
+## 2026-11-17 MainScene 타이머 배경·TMP 디지털 폰트 적용
+
+- 사용자 작업 기준: 앞으로 씬 작업은 **MainScene만** 한다. GiungScene은 무시하고 수정·검증하지 않는다. 로컬 `AGENTS.md`에도 기록했다.
+- 요청: Canvas Timer를 첨부 이미지처럼 표시하고 `2.Resources`의 타이머 배경을 사용한다. Legacy Text를 TMP로 교체하고, 보스 등장 시 안내 문구 대신 03:00·06:00·09:00·12:00·15:00·18:00 숫자를 유지한다.
+- 구현: `MainScene/Canvas/Timer`는 기존 타이머 배경 Sprite(`Assets/2.Resources/UI/실제 사용 UI/Ingame_UI_TImer.png`)의 Image다. 자식 `Digits`는 하늘색 `TextMeshProUGUI`이며 고정 크기 46, 중앙 정렬, 줄바꿈 없음이다. 상단 중앙의 기존 앵커·위치를 유지하고 배경 비율에 맞춰 208.5×99로 설정했다. 배경과 글자는 Raycast Target을 끈다. 기존 Timer·뷰·label fileID와 Boss Encounter 참조는 보존했다. 씬을 전체 재저장하지 않고 Timer 블록만 교체했다. GiungScene 파일은 수정하지 않았다.
+- 폰트: 제작자 공식 배포 `https://github.com/keshikan/DSEG/releases/tag/v0.46`의 `DSEG7Classic-Regular.ttf`와 `DSEG-LICENSE.txt`를 `Assets/UI/Fonts`에 임포트했다. 이미지와 같은 7세그먼트 형태로 선택했으며, 이미지의 정확한 원본 폰트명으로 확정한 것은 아니다. Unity에서 `DSEG7 Classic Timer SDF.asset`을 생성했다. 512×512 정적 SDF, 숫자 0~9와 콜론 11글자가 포함되어 OS 폰트에 의존하지 않는다. 라이선스는 SIL OFL 1.1이다.
+- 코드: `EncounterTimerView.label`은 `TMP_Text`다. `DisplayChanged`로 기존 진행 시간을 표시하며 보스 안내 문구와 OS 동적 폰트 생성을 제거했다. Encounter 및 테스트 asmdef에 `Unity.TextMeshPro` 참조를 추가했다. 보스 일정·진행 타이머 정지·처치 후 재개는 이미 구현돼 있어 수정하지 않았다. 보스 때문에 `Time.timeScale`을 0으로 설정하지 않는다.
+- 기존 상한: Director의 진행 시간은 18분이 최대다. 3~15분 보스 처치 후 숫자가 재개되고, 마지막 보스 처치 후에도 기존 규칙대로 18:00을 유지한다. 최종 승리 연결이나 게임 진행 시간 연장은 이번 범위에서 변경하지 않았다.
+- 검증: Unity 6000.5.0f1의 별도 최소 검증 프로젝트에서 실제 Combat·Enemy·Boss·Encounter 코드를 컴파일했다. 새 회귀 테스트가 수정 전 `03:00` 대신 `보스를 처치하세요.`를 출력하며 실패함을 확인했다(26개 중 25 통과·1 실패). 변경 후 `BossEncounterScheduleTests` PlayMode **26/26 통과, 실패·생략 0**. 새 테스트는 6개 등장 시각의 숫자 유지, 전투 시간 흐름, 처치 후 Director 재개와 3~15분 숫자 재개, 뷰 재활성화를 확인한다.
+- 에셋 검증: MainScene의 실제 Timer 직렬화 블록을 추출해 격리 Unity에서 읽고 TMP·label·배경·정적 폰트·11글자·머티리얼/셰이더 참조 및 18:00 글자 폭을 확인했다. 별도 Canvas에서 03:00 미리보기를 렌더링해 배경·글꼴을 눈으로 확인했다. 전체 MainScene Play, 화면 비율별 HUD, Android 빌드/기기는 미검증이다. 임시 XML·로그·미리보기는 `.utmp/timer`에 있으며 Git에 추가하지 않는다.
+- 변경 보존: 시작 시 사용자 변경이 있던 두 AllIn1SpriteShader 셰이더, URP 전역 설정, EditorBuildSettings, ProjectSettings는 SHA-256이 시작 시와 같다. 브랜치는 확인 시 `main`, HEAD `ed148e6`이며 커밋·브랜치 전환하지 않았다.
+- 직접 확인: Play 종료 후 Unity 임포트 완료 → Console 첫 오류가 없는지 확인 → `Tools > Play From Title` 해제 → **MainScene** 열기 → Hierarchy `Canvas > Timer > Digits`의 `TextMeshProUGUI`와 `DSEG7 Classic Timer SDF` 연결 확인 → Play. 상단 Timer가 파란 테두리 배경과 하늘색 `00:00`으로 시작하고 시간이 증가해야 한다.
+  1. 빠른 확인은 Hierarchy에서 `EnemySpawnDirector` 컴포넌트를 찾아 Inspector의 컴포넌트 메뉴 `테스트/진행시간 30초 앞으로`를 사용한다. 레벨업/일시정지 팝업은 먼저 닫는다. 현재 시간 기준으로 3분 경계까지 진행한다.
+  2. 보스 등장 때 `03:00`이 유지되고 안내 문구는 없어야 한다. 플레이어와 보스는 계속 움직여야 한다.
+  3. 보스를 처치하면 `03:01` 이후로 다시 증가한다. 이후 06:00·09:00·12:00·15:00에서도 동일하다. 마지막 18:00은 기존 진행 상한이다.
+- 이상 시: Console 첫 오류, Timer의 Encounter 참조, Digits의 TMP Font Asset/Material, Timer Image의 Source Image를 확인한다. 숫자가 안 바뀌면 일시정지·레벨업 팝업과 `EnemySpawnDirector.IsPaused`를 확인한다. 이전 Legacy 표시가 보이면 MainScene을 다시 열고 확인한다.
+- 다음: MainScene 실제 Play에서 HUD 배치·화면 비율 및 보스 처치 후 재개를 확인한다. 이후 작업도 GiungScene은 제외한다.
+
 ## 2026-11-16 물 스킬 원·고리·부채·탄환을 pixelfx로 구분
 
 - 요청: 모양을 나눈 것은 유지하고, 불 그림에 물 색만 입히지 말고 pixelfx로 불 스킬과 다르게 보이게 한다.

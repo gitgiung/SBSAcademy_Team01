@@ -211,7 +211,8 @@ public sealed class EnemySpawnDirector : MonoBehaviour
     }
 
     public void RecordActiveCount(int count) { window.peakActive = Math.Max(window.peakActive, count); }
-    public void RecordKill() { window.normalKills++; }
+    public int TotalKills { get; private set; }
+    public void RecordKill() { window.normalKills++; TotalKills++; }
     public void RecordDrop(float raw) { window.xpDropped += raw; }
     public void RecordCollection(float raw, float awarded) { window.rawCollected += raw; window.xpAwarded += awarded; }
     public void RecordPlayerState(int level, bool bonus) { playerLevel = level; catchupActive = bonus; }

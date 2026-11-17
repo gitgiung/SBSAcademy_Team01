@@ -2,6 +2,17 @@ using UnityEngine;
 
 public sealed partial class Player
 {
+    /// <summary>사망한 플레이어만 복구합니다. HP 외 MP/레벨/보유 스킬은 유지합니다.</summary>
+    public bool TryRevive()
+    {
+        if (data == null || !data.IsDead) return false;
+        data.InitHealth();
+        hasDied = false;
+        gameObject.SetActive(true);
+        view?.RefreshResources();
+        return true;
+    }
+
     public bool TryParry()
     {
         if (!CanAcceptGameplayInput || movement.IsDashing || !defense.CanStart) return false;
@@ -12,7 +23,7 @@ public sealed partial class Player
 
     private void HandleParrySucceeded()
     {
-        DeviceHaptics.Pulse();
+        DeviceHaptics.Play(HapticCue.Parry);
         int version = lifecycleVersion;
         data.RestoreMP(data.parryMPRecovery);
         if (parryInvulnerableDuration > 0f)
@@ -37,13 +48,17 @@ public sealed partial class Player
         {
             if (defense.IsBlockingDamage)
             {
+                bool blockedByGuard = defense.IsGuarding;
                 defense.NotifyIncomingAttackBlockedFrom(attacker);
+                if (blockedByGuard) DeviceHaptics.Play(HapticCue.Guard);
                 Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
             }
             return;
         }
 
+        float healthBefore = data.currentHealth;
         if (!data.ApplyDamage(damage)) return;
+        if (data.currentHealth < healthBefore) DeviceHaptics.Play(HapticCue.Hurt);
         if (IsHeavyCharging && !heavyCharge.SuperArmor) ResetHeavyCharge();
         DamageApplied?.Invoke(this, damage);
 

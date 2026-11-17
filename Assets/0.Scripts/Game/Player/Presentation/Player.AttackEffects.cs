@@ -4,22 +4,43 @@ using UnityEngine;
 
 public sealed partial class Player
 {
-    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction, float damage, float projectileSize)
+    private void SpawnLightSkill(LightSkillCast skill, Vector2 direction, float damage, float projectileSize, bool impactHaptic)
     {
         EnsureLightFxPrototype();
-        Vector3 position = transform.position;
-        if (skill.Shape == LightSkillShape.Circle || skill.Shape == LightSkillShape.Cone || skill.Shape == LightSkillShape.Arc)
-            position += (Vector3)(direction * skill.Range * 0.35f);
+        Vector2 aim = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
+        Vector3 position = SkillOrigin(skill.Shape, aim);
         void Arm(GameObject fx)
         {
             if (fx.TryGetComponent<LightSkillFx>(out LightSkillFx skillFx))
             {
                 skillFx.Play(skill, direction, damage, enemyTag, projectileSize);
                 skillFx.ProjectileHitFlash = ShowProjectileHitFlash;
+                skillFx.ImpactHaptic = impactHaptic;
             }
         }
 
         PopLightFx(position, Arm);
+    }
+
+    /// <summary>
+    /// 원·고리는 플레이어 그림의 정중앙입니다. 직선·부채·호는 그 중심에서 몸 바깥으로 시작선을 둡니다.
+    /// 사거리의 일정 비율로 밀지 않습니다.
+    /// </summary>
+    private Vector3 SkillOrigin(LightSkillShape shape, Vector2 aim)
+    {
+        Vector2 center = playerSpriteRenderer != null && playerSpriteRenderer.sprite != null
+            ? (Vector2)playerSpriteRenderer.bounds.center : (Vector2)transform.position;
+        if (shape == LightSkillShape.Circle || shape == LightSkillShape.Ring || shape == LightSkillShape.Projectile)
+            return center;
+        Vector2 extents = playerSpriteRenderer != null && playerSpriteRenderer.sprite != null
+            ? (Vector2)playerSpriteRenderer.bounds.extents : Vector2.zero;
+        if (extents == Vector2.zero)
+        {
+            Collider2D body = GetComponent<Collider2D>();
+            if (body != null) extents = body.bounds.extents;
+        }
+        float clearance = Mathf.Abs(aim.x) * extents.x + Mathf.Abs(aim.y) * extents.y;
+        return center + aim * clearance;
     }
 
     /// <summary>구운 태양 탄막 그림이 있을 때만 태양 문양을 돌려줍니다. 없으면 null이고 예전 탄환 연사로 쏩니다.</summary>
@@ -32,7 +53,7 @@ public sealed partial class Player
     }
 
     /// <summary>태양 문양의 긴 가시 끝에서 유도 미사일 한 발을 쏩니다. 적이 없으면 aim 쪽으로 날아갑니다.</summary>
-    private void SpawnSunMissile(LightSkillCast skill, SunBarrageCrest crest, int spike, Vector2 aim, float damage, float projectileSize)
+    private void SpawnSunMissile(LightSkillCast skill, SunBarrageCrest crest, int spike, Vector2 aim, float damage, float projectileSize, bool impactHaptic)
     {
         EnsureLightFxPrototype();
         Vector2 castOrigin = transform.position;
@@ -44,6 +65,7 @@ public sealed partial class Player
             {
                 skillFx.PlayHoming(skill, outward, aim, castOrigin, damage, enemyTag, projectileSize);
                 skillFx.ProjectileHitFlash = ShowProjectileHitFlash;
+                skillFx.ImpactHaptic = impactHaptic;
             }
         }
 

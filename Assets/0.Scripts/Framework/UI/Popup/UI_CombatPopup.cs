@@ -55,12 +55,22 @@ public sealed class UI_CombatPopup : UI_Popup, IPointerClickHandler
             closeButton.onClick.RemoveListener(ClosePopupUI);
     }
 
-    /// <summary>회색 바깥 패널을 누르면 뒤로가기와 같은 닫기입니다. 내용 버튼은 자식이 먼저 받습니다.</summary>
+    /// <summary>회색 바깥을 누르면 뒤로가기와 같은 닫기입니다. 창 안쪽은 버튼이 아니어도 닫지 않습니다.</summary>
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData == null || eventData.button != PointerEventData.InputButton.Left) return;
         if (Managers.UI == null || !Managers.UI.IsTopPopup(this)) return;
+        if (InsideWindow(eventData)) return;
         ClosePopupUI();
+    }
+
+    private bool InsideWindow(PointerEventData eventData)
+    {
+        RectTransform window = contentRoot;
+        if (contentRoot != null && contentRoot.parent is RectTransform panel && panel != (RectTransform)transform)
+            window = panel;
+        return window != null && RectTransformUtility.RectangleContainsScreenPoint(
+            window, eventData.position, eventData.pressEventCamera);
     }
 
     private void Update()

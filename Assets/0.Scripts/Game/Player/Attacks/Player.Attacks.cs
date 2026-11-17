@@ -61,12 +61,12 @@ public sealed partial class Player
         {
             if (!isActiveAndEnabled || hasDied || data == null || data.IsDead) break;
             if (!isManual && Time.timeScale <= 0f) yield break;
-            if (crest != null) SpawnSunMissile(skill, crest, firstSpike + i, aim, damage, projectileSize);
+            if (crest != null) SpawnSunMissile(skill, crest, firstSpike + i, aim, damage, projectileSize, isManual);
             else
             {
                 float spread = shots == 1 || skill.StraightRapidFire ? 0f : (i - (shots - 1) * 0.5f) * 8f;
                 Vector2 direction = (Vector2)(Quaternion.Euler(0f, 0f, spread) * (Vector3)aim);
-                SpawnLightSkill(skill, direction, damage, projectileSize);
+                SpawnLightSkill(skill, direction, damage, projectileSize, isManual);
             }
             if (i < shots - 1 && spacing > 0f) yield return new WaitForSeconds(spacing);
         }

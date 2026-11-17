@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -35,6 +36,9 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     private readonly List<Button> rerollButtons = new List<Button>();
     private TMP_Text rerollCount;
     private bool selectionPending;
+    private Coroutine deal;
+    private bool dealing;
+    private int rerollsLeft;
     private GameObject messageRoot;
     private TMP_Text messageTitle;
     private TMP_Text messageText;
@@ -71,7 +75,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             rerollButtons.Add(Button(Rect(root, "Reroll" + i, 60 + i * 305, 414, 275, 34), "리롤", font,
                 new Color32(113, 247, 255, 255), () => Reroll(index)));
         }
-        rerollCount = Text(Rect(root, "RerollCount", 680, 456, 300, 34), "", font, 22,
+        rerollCount = Text(Rect(root, "RerollCount", 680, 6, 290, 36), "", font, 22,
             new Color32(153, 248, 255, 255), TextAlignmentOptions.Right);
         rerollCount.fontStyle = FontStyles.Bold;
         detailsRoot = Stretch(root, "CardDetails").gameObject;
@@ -105,16 +109,19 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         detailsRoot.SetActive(false);
         messageRoot.SetActive(false);
         onConfirmed = null;
+        StopDeal();
         for (int i = 0; i < cards.Count; i++)
         {
             LevelUpCardData data = i < choices.Count ? choices[i] : null;
             cards[i].Show(data, selected != null);
         }
         ShowReroll(choices.Count, rerollsRemaining, reroll != null && selected != null);
+        if (selected != null && choices.Count > 0) deal = StartCoroutine(DealCards(choices.Count));
     }
 
     public void Focus()
     {
+        if (dealing) return;
         if (messageRoot != null && messageRoot.activeSelf) { messageConfirm.Select(); return; }
         if (detailsRoot != null && detailsRoot.activeSelf) { detailsClose.Select(); return; }
         foreach (var card in cards)
@@ -123,7 +130,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 
     private void Select(int index)
     {
-        if (selectionPending || onSelected == null) return;
+        if (dealing || selectionPending || onSelected == null) return;
         selectionPending = true;
         // 한 선택을 두 번 지급하지 않습니다. 후속 선택은 새 SetChoices로 시작합니다.
         onSelected(index);
@@ -131,16 +138,84 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 
     private void Reroll(int index)
     {
-        if (selectionPending || onReroll == null) return;
+        if (dealing || selectionPending || onReroll == null) return;
         onReroll(index);
+    }
+
+    /// <summary>카드가 자리 잡기 전에는 고르거나 리롤하지 못합니다. 레벨업은 시간을 멈추므로 실제 시간으로 재생합니다.</summary>
+    private IEnumerator DealCards(int choiceCount)
+    {
+        dealing = true;
+        Canvas.ForceUpdateCanvases();
+        for (int i = 0; i < cards.Count; i++) cards[i].SetSelectable(false);
+        for (int i = 0; i < rerollButtons.Count; i++) rerollButtons[i].interactable = false;
+
+        var shown = new bool[cards.Count];
+        var home = new Vector2[cards.Count];
+        Vector2 pile = Vector2.zero;
+        int pileCount = 0;
+        var parent = (RectTransform)root;
+        for (int i = 0; i < cards.Count; i++)
+        {
+            RectTransform rect = cards[i].Root;
+            rect.anchoredPosition = Vector2.zero;
+            rect.localRotation = Quaternion.identity;
+            rect.localScale = Vector3.one;
+            shown[i] = rect.gameObject.activeSelf;
+            if (!shown[i]) continue;
+            home[i] = (rect.anchorMin + rect.anchorMax) * 0.5f;
+            pile += home[i];
+            pileCount++;
+        }
+        if (pileCount > 0) pile /= pileCount;
+
+        const float duration = 0.5f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float settle = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.35f, 1f, t));
+            float shuffle = 1f - settle;
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (!shown[i]) continue;
+                RectTransform rect = cards[i].Root;
+                Vector2 stacked = (pile - home[i]) * parent.rect.size;
+                float wobble = Mathf.Sin(t * 18f + i * 2.1f) * 36f * shuffle;
+                Vector2 fan = new Vector2((i - 1) * 42f, Mathf.Cos(t * 14f + i) * 18f) * shuffle;
+                rect.anchoredPosition = Vector2.Lerp(stacked + fan + new Vector2(wobble, 0f), Vector2.zero, settle);
+                rect.localRotation = Quaternion.Euler(0f, 0f, (i - 1) * 14f * shuffle);
+                rect.localScale = Vector3.one * Mathf.Lerp(0.86f, 1f, settle);
+            }
+            yield return null;
+        }
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            cards[i].ResetMotion();
+            cards[i].SetSelectable(shown[i] && onSelected != null);
+        }
+        dealing = false;
+        deal = null;
+        ShowReroll(choiceCount, rerollsLeft, onReroll != null && onSelected != null);
+    }
+
+    private void StopDeal()
+    {
+        if (deal != null) StopCoroutine(deal);
+        deal = null;
+        dealing = false;
+        foreach (var card in cards) card.ResetMotion();
     }
 
     private void ShowReroll(int choiceCount, int rerollsRemaining, bool visible)
     {
+        rerollsLeft = Mathf.Max(0, rerollsRemaining);
         if (rerollCount != null)
         {
             rerollCount.gameObject.SetActive(visible);
-            if (visible) rerollCount.text = "리롤 " + Mathf.Max(0, rerollsRemaining);
+            if (visible) rerollCount.text = "리롤 " + rerollsLeft;
         }
         for (int i = 0; i < rerollButtons.Count; i++)
         {
@@ -153,6 +228,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     public void ShowMessage(string title, string content, Action confirmed)
     {
         if (root == null) throw new InvalidOperationException("Initialize must be called before ShowMessage.");
+        StopDeal();
         onSelected = null;
         onReroll = null;
         selectionPending = false;
@@ -190,7 +266,13 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     }
 
     private void HideDetails() { detailsRoot.SetActive(false); Focus(); }
-    private void OnDisable() { if (detailsRoot != null) detailsRoot.SetActive(false); }
+    private void OnDisable()
+    {
+        if (deal != null) StopCoroutine(deal);
+        deal = null;
+        dealing = false;
+        if (detailsRoot != null) detailsRoot.SetActive(false);
+    }
 
     private static void Glow(GameObject target, Color color, float width)
     {
@@ -295,6 +377,20 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             passiveTag.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(data.PassiveDescription));
             flavor.text = data.FlavorText;
             select.interactable = selectable;
+            Info.interactable = selectable;
+        }
+
+        internal void SetSelectable(bool selectable)
+        {
+            select.interactable = selectable && Data != null;
+            Info.interactable = selectable && Data != null;
+        }
+
+        internal void ResetMotion()
+        {
+            Root.anchoredPosition = Vector2.zero;
+            Root.localRotation = Quaternion.identity;
+            Root.localScale = Vector3.one;
         }
 
         internal void Focus()

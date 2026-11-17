@@ -13,6 +13,7 @@ public class Bullet : MonoBehaviour, IPoolable
     private PooledObject pooled;
     private Rigidbody2D body;
     internal System.Action<Vector3> HitFlash { get; set; }
+    internal bool ImpactHaptic;
     private BasicBulletVisual visual;
 
     [Header("태그 설정")]
@@ -66,6 +67,7 @@ public class Bullet : MonoBehaviour, IPoolable
         isHit = false;
         initialized = false;
         HitFlash = null;
+        ImpactHaptic = false;
         visual?.Stop();
         if (body != null)
         {
@@ -109,7 +111,11 @@ public class Bullet : MonoBehaviour, IPoolable
                 EnemyHealth health = damageableTarget as EnemyHealth;
                 float previousHealth = health != null ? health.CurrentHealth : 0f;
                 damageableTarget.TakeDamage(damage);
-                if (health == null || health.CurrentHealth < previousHealth) hitFlash?.Invoke(impact);
+                if (health == null || health.CurrentHealth < previousHealth)
+                {
+                    hitFlash?.Invoke(impact);
+                    if (ImpactHaptic) DeviceHaptics.Play(HapticCue.Hit);
+                }
             }
         }
         finally

@@ -7,7 +7,8 @@ public enum GameState
 {
     Playing,
     Victory,
-    Defeat
+    Defeat,
+    ReviveOffer
 }
 
 public class GameManager : MonoBehaviour
@@ -34,12 +35,21 @@ public class GameManager : MonoBehaviour
     private bool playerDead;
     private bool finalBossDefeated;
     private bool isTransitioning;
+    private RunEndPopup runEndPopup;
+    public float SurvivalSeconds { get; private set; }
+    public Player RunPlayer => player;
 
     private void Awake()
     {
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
         if (damageNumberPrefab != null) Instantiate(damageNumberPrefab, transform);
+        // 기존 씬 참조는 보존하고 MainScene에서만 새 결과 UI를 사용합니다.
+        if (gameObject.scene.name == "MainScene")
+        {
+            runEndPopup = gameObject.AddComponent<RunEndPopup>();
+            runEndPopup.Initialize(this, gameOverPanel);
+        }
     }
 
     private void OnEnable()
@@ -73,8 +83,47 @@ public class GameManager : MonoBehaviour
     {
         if (state != GameState.Playing) return;
         // 같은 프레임에 두 신호가 오면 기존처럼 사망을 우선합니다.
-        if (playerDead) FinishGame(GameState.Defeat);
+        if (playerDead && runEndPopup != null) OfferRevive();
+        else if (playerDead) FinishGame(GameState.Defeat);
         else if (finalBossDefeated) FinishGame(GameState.Victory);
+    }
+
+    private void Update()
+    {
+        if (isPlaying && !playerDead) SurvivalSeconds += Time.deltaTime;
+    }
+
+    private void OfferRevive()
+    {
+        state = GameState.ReviveOffer;
+        Time.timeScale = 0f;
+        StateChanged?.Invoke(state);
+        runEndPopup.ShowRevive();
+    }
+
+    public void DeclineRevive()
+    {
+        if (state == GameState.ReviveOffer) FinishGame(GameState.Defeat);
+    }
+
+    /// <summary>프로토타입 전용: 부활권 무소모, HP 100%. 광고 SDK 연결 전 테스트 경로.</summary>
+    public bool TryPrototypeRevive()
+    {
+        if (isTransitioning || state != GameState.ReviveOffer || player == null || !player.TryRevive()) return false;
+        playerDead = false;
+        state = GameState.Playing;
+        runEndPopup.Hide();
+        Time.timeScale = 1f;
+        StateChanged?.Invoke(state);
+        return true;
+    }
+
+    [ContextMenu("테스트/사망 후 부활 팝업 (Play 중)")]
+    private void TestDeath()
+    {
+        if (!Application.isPlaying || !isPlaying || player == null || player.data == null) return;
+        player.data.ClearInvulnerable();
+        player.TakeDamage(float.MaxValue);
     }
 
     private void FinishGame(GameState result)
@@ -86,10 +135,11 @@ public class GameManager : MonoBehaviour
             if (numbers != null) numbers.SuppressAndClear();
         }
         Time.timeScale = 0f;
-        if (gameOverPanel != null) gameOverPanel.SetActive(result == GameState.Defeat);
+        if (gameOverPanel != null) gameOverPanel.SetActive(result == GameState.Defeat && runEndPopup == null);
         if (victoryPanel != null) victoryPanel.SetActive(result == GameState.Victory);
         if (result == GameState.Defeat) RevealBossHealthBehindDefeat();
         StateChanged?.Invoke(result);
+        if (result == GameState.Defeat && runEndPopup != null) runEndPopup.ShowGameOver();
 
         GameObject panel = result == GameState.Defeat ? gameOverPanel : victoryPanel;
         if (panel == null) return;

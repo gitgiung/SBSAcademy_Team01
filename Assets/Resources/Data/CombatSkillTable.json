@@ -36,7 +36,8 @@
             "SimpleDescription": "불꽃으로 이루어진 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "불속성 기본 탄환",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "불꽃 탄환 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10002,
@@ -74,7 +75,8 @@
             "SimpleDescription": "불꽃 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 연속으로 쏜다.",
             "Explanation": "불속성 연속 난사",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "불꽃 탄환 3발을 {Passive_Cooldown}초에 한 번 연속으로 쏜다."
         },
         {
             "Id": 10003,
@@ -112,7 +114,8 @@
             "SimpleDescription": "가까운 원형에 화염 강타({Base_Value}*{Scaling_Factor})를 가한다.",
             "Explanation": "불속성 근접 강타",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "가까운 적을 {Passive_Cooldown}초에 한 번 화염으로 내리친다."
         },
         {
             "Id": 10004,
@@ -150,7 +153,8 @@
             "SimpleDescription": "화염구 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 던진다.",
             "Explanation": "불속성 화염구",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "화염구 1발을 적에게 {Passive_Cooldown}초에 한 번 던진다."
         },
         {
             "Id": 10005,
@@ -188,7 +192,8 @@
             "SimpleDescription": "직선으로 화염 창({Base_Value}*{Scaling_Factor})을 던진다.",
             "Explanation": "불속성 관통 창",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "화염 창을 {Passive_Cooldown}초에 한 번 직선으로 던진다."
         },
         {
             "Id": 10006,
@@ -226,7 +231,8 @@
             "SimpleDescription": "플레어 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "불속성 고위력 탄환",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "강한 플레어 탄환 1발을 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10007,
@@ -238,7 +244,7 @@
             "CastType": "Instant",
             "CastTime": 0,
             "AreaType": "Arc",
-            "Range": 3.5,
+            "Range": 5.5,
             "Angle": 140,
             "Width": 0,
             "Projectiles": 1,
@@ -258,13 +264,14 @@
             "EffectDuration": 0,
             "SuperArmor": false,
             "CrowdControl": "None",
-            "Radius": 3.5,
+            "Radius": 5.5,
             "Length": 0,
             "Description": "태양 검기로 전방을 두 번 벤다.",
             "SimpleDescription": "전방 호 범위를 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 벤다.",
             "Explanation": "불속성 융합 검기",
             "PassiveCooldown": 2,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "태양 검기로 {Passive_Cooldown}초에 한 번 전방을 두 번 벤다."
         },
         {
             "Id": 10008,
@@ -302,7 +309,8 @@
             "SimpleDescription": "열풍으로 이루어진 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "불속성 경량 탄환",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "뜨거운 탄환 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10009,
@@ -340,7 +348,8 @@
             "SimpleDescription": "홍염 화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 직선으로 쏜다.",
             "Explanation": "불속성 강화 화살",
             "PassiveCooldown": 3.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "불화살 1발을 {Passive_Cooldown}초에 한 번 직선으로 쏜다."
         },
         {
             "Id": 10010,
@@ -378,7 +387,8 @@
             "SimpleDescription": "불씨 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 흩뿌린다.",
             "Explanation": "불속성 산탄",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "불씨 4발을 {Passive_Cooldown}초에 한 번 흩뿌린다."
         },
         {
             "Id": 10011,
@@ -390,7 +400,7 @@
             "CastType": "Instant",
             "CastTime": 0,
             "AreaType": "Cone",
-            "Range": 3,
+            "Range": 5,
             "Angle": 80,
             "Width": 0,
             "Projectiles": 1,
@@ -410,13 +420,14 @@
             "EffectDuration": 0,
             "SuperArmor": false,
             "CrowdControl": "None",
-            "Radius": 3,
+            "Radius": 5,
             "Length": 0,
             "Description": "전방 부채꼴로 화염을 뿜는다.",
             "SimpleDescription": "전방 부채꼴에 화염({Base_Value}*{Scaling_Factor})을 뿜는다.",
             "Explanation": "불속성 전방 부채꼴",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "전방 부채꼴로 화염을 {Passive_Cooldown}초에 한 번 뿜는다."
         },
         {
             "Id": 10012,
@@ -454,7 +465,8 @@
             "SimpleDescription": "직선 경로를 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 꿰뚫는다.",
             "Explanation": "불속성 관통 연타",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "용암 파편이 {Passive_Cooldown}초에 한 번 경로의 적을 3회 꿰뚫는다."
         },
         {
             "Id": 10013,
@@ -492,7 +504,8 @@
             "SimpleDescription": "전방에 화염을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 연사한다.",
             "Explanation": "불속성 단기 연사",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "{Passive_Cooldown}초에 한 번 짧은 시간에 화염을 4회 뿜는다."
         },
         {
             "Id": 10014,
@@ -530,7 +543,8 @@
             "SimpleDescription": "주변 고리에 화염({Base_Value}*{Scaling_Factor})을 일으킨다.",
             "Explanation": "불속성 주변 고리",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "주변 고리 형태로 화염이 {Passive_Cooldown}초에 한 번 터진다."
         },
         {
             "Id": 10015,
@@ -568,7 +582,8 @@
             "SimpleDescription": "작열 구체 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 발사한다.",
             "Explanation": "불속성 고위력 구체",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "강한 화염 구체를 {Passive_Cooldown}초에 한 번 발사한다."
         },
         {
             "Id": 10016,
@@ -606,7 +621,8 @@
             "SimpleDescription": "태양 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 퍼붓는다.",
             "Explanation": "불속성 다발 탄막",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "태양 탄환 6발을 {Passive_Cooldown}초에 한 번 퍼붓는다."
         },
         {
             "Id": 10017,
@@ -644,7 +660,8 @@
             "SimpleDescription": "직선으로 멸염 섬광({Base_Value}*{Scaling_Factor})을 쏜다.",
             "Explanation": "불속성 고위력 섬광",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "전방을 가르는 멸염 섬광을 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10018,
@@ -682,7 +699,8 @@
             "SimpleDescription": "얼음으로 이루어진 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "얼음속성 기본 탄환",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "얼음 탄환 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10019,
@@ -720,7 +738,8 @@
             "SimpleDescription": "바람 화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "바람속성 기본 화살",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "바람 화살 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10020,
@@ -758,7 +777,8 @@
             "SimpleDescription": "암석 탄환 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "땅속성 기본 탄환",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "암석 탄환 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10021,
@@ -796,7 +816,8 @@
             "SimpleDescription": "전기 화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 적에게 쏜다.",
             "Explanation": "전기속성 기본 화살",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "전기 화살 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다."
         },
         {
             "Id": 10022,
@@ -834,7 +855,8 @@
             "SimpleDescription": "직선 물줄기({Base_Value}*{Scaling_Factor})가 경로의 적을 관통한다.",
             "Explanation": "물속성 기본 관통",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "가는 물줄기 1줄이 {Passive_Cooldown}초에 한 번 전방의 적을 관통한다."
         },
         {
             "Id": 10023,
@@ -872,7 +894,8 @@
             "SimpleDescription": "가까운 원형에 잔물결({Base_Value}*{Scaling_Factor})을 일으킨다.",
             "Explanation": "물속성 근접 파문",
             "PassiveCooldown": 3,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "발밑의 잔물결이 {Passive_Cooldown}초에 한 번 가까운 적을 적신다."
         },
         {
             "Id": 10024,
@@ -910,7 +933,8 @@
             "SimpleDescription": "같은 직선을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 관통한다.",
             "Explanation": "물속성 관통 연타",
             "PassiveCooldown": 3.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "물창이 {Passive_Cooldown}초에 한 번 같은 직선을 3회 관통한다."
         },
         {
             "Id": 10025,
@@ -948,7 +972,8 @@
             "SimpleDescription": "물화살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})이 처음 맞는 적에게 박힌다.",
             "Explanation": "물속성 단발 화살",
             "PassiveCooldown": 3.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "물화살 1발이 {Passive_Cooldown}초에 한 번 처음 맞는 적에게 박힌다."
         },
         {
             "Id": 10026,
@@ -986,7 +1011,8 @@
             "SimpleDescription": "물살 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 차례로 쏜다.",
             "Explanation": "물속성 연속 사격",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "물살 3발이 {Passive_Cooldown}초에 한 번 조금 벌어져 차례로 나간다."
         },
         {
             "Id": 10027,
@@ -1024,7 +1050,8 @@
             "SimpleDescription": "긴 직선({Base_Value}*{Scaling_Factor})이 전방을 관통한다.",
             "Explanation": "물속성 수창",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "긴 수창이 {Passive_Cooldown}초에 한 번 전방을 한 번에 관통한다."
         },
         {
             "Id": 10028,
@@ -1036,7 +1063,7 @@
             "CastType": "Instant",
             "CastTime": 0,
             "AreaType": "Cone",
-            "Range": 3.2,
+            "Range": 5.2,
             "Angle": 70,
             "Width": 0,
             "Projectiles": 1,
@@ -1062,7 +1089,8 @@
             "SimpleDescription": "전방 부채꼴을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 휩쓴다.",
             "Explanation": "물속성 부채 급류",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "급류가 {Passive_Cooldown}초에 한 번 전방 부채꼴을 2회 휩쓴다."
         },
         {
             "Id": 10029,
@@ -1100,7 +1128,8 @@
             "SimpleDescription": "발밑 원형에 수압({Base_Value}*{Scaling_Factor})을 가한다.",
             "Explanation": "물속성 수압 파문",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "수압이 {Passive_Cooldown}초에 한 번 발밑의 원을 한 번에 짓누른다."
         },
         {
             "Id": 10030,
@@ -1138,7 +1167,8 @@
             "SimpleDescription": "긴 직선({Base_Value}*{Scaling_Factor})이 전방을 관통한다.",
             "Explanation": "물속성 장거리 창류",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "긴 창류가 {Passive_Cooldown}초에 한 번 전방을 관통한다."
         },
         {
             "Id": 10031,
@@ -1176,7 +1206,8 @@
             "SimpleDescription": "발밑 원형을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 친다.",
             "Explanation": "물속성 수주 연타",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "물기둥이 {Passive_Cooldown}초에 한 번 발밑에서 4회 치솟는다."
         },
         {
             "Id": 10032,
@@ -1214,7 +1245,8 @@
             "SimpleDescription": "주변 고리에 해류({Base_Value}*{Scaling_Factor})를 일으킨다.",
             "Explanation": "물속성 주변 고리",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "몸 둘레의 물 고리만 {Passive_Cooldown}초에 한 번 적을 때린다."
         },
         {
             "Id": 10033,
@@ -1252,7 +1284,8 @@
             "SimpleDescription": "넓은 원형에 심연({Base_Value}*{Scaling_Factor})을 일으킨다.",
             "Explanation": "물속성 광역 소용돌이",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "심연의 소용돌이가 {Passive_Cooldown}초에 한 번 넓은 원을 휩쓴다."
         },
         {
             "Id": 10034,
@@ -1290,7 +1323,8 @@
             "SimpleDescription": "물줄기 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 차례로 쏜다.",
             "Explanation": "물속성 네 발 사격",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "물줄기 4발이 {Passive_Cooldown}초에 한 번 조금 벌어져 차례로 나간다."
         },
         {
             "Id": 10035,
@@ -1302,7 +1336,7 @@
             "CastType": "Instant",
             "CastTime": 0,
             "AreaType": "Arc",
-            "Range": 3.5,
+            "Range": 5.5,
             "Angle": 140,
             "Width": 0,
             "Projectiles": 1,
@@ -1328,7 +1362,8 @@
             "SimpleDescription": "전방 호를 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 가른다.",
             "Explanation": "물속성 넓은 일섬",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "넓은 물 베기가 {Passive_Cooldown}초에 한 번 전방을 3회 가른다."
         },
         {
             "Id": 10036,
@@ -1366,7 +1401,8 @@
             "SimpleDescription": "가장 긴 직선({Base_Value}*{Scaling_Factor})이 전방을 관통한다.",
             "Explanation": "물속성 최장 관통",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "대해의 창이 {Passive_Cooldown}초에 한 번 전방을 길게 관통한다."
         },
         {
             "Id": 20001,
@@ -1404,7 +1440,8 @@
             "SimpleDescription": "가까운 원형에 화염 망치({Base_Value}*{Scaling_Factor})를 가하고 밀쳐낸다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 근접 망치",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "화염 망치를 {Passive_Cooldown}초에 한 번 내리쳐 가까운 적을 밀친다."
         },
         {
             "Id": 20002,
@@ -1442,7 +1479,8 @@
             "SimpleDescription": "직선으로 돌진하며 화염({Base_Value}*{Scaling_Factor})을 가하고 밀쳐낸다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 돌진",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "{Passive_Cooldown}초에 한 번 화염을 두르고 전방으로 돌진한다."
         },
         {
             "Id": 20003,
@@ -1480,7 +1518,8 @@
             "SimpleDescription": "주변 원형에 대폭발({Base_Value}*{Scaling_Factor})을 일으킨다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 광역 폭발",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "모은 화염을 {Passive_Cooldown}초에 한 번 주변에 한 번에 터뜨린다."
         },
         {
             "Id": 20004,
@@ -1518,7 +1557,8 @@
             "SimpleDescription": "원형에 화염 폭풍({Base_Value}*{Scaling_Factor})을 {Hit_Count}회 일으킨다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 지속 폭풍",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "화염 폭풍으로 {Passive_Cooldown}초에 한 번 같은 범위를 여러 번 태운다."
         },
         {
             "Id": 20005,
@@ -1556,7 +1596,8 @@
             "SimpleDescription": "원형에 운석검({Base_Value}*{Scaling_Factor})을 떨어뜨리고 밀쳐낸다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 운석 강타",
             "PassiveCooldown": 8,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "{Passive_Cooldown}초에 한 번 운석을 검으로 떨어뜨려 큰 폭발을 일으킨다."
         },
         {
             "Id": 20006,
@@ -1568,7 +1609,7 @@
             "CastType": "Charge",
             "CastTime": 0.45,
             "AreaType": "Cone",
-            "Range": 2.5,
+            "Range": 4.5,
             "Angle": 90,
             "Width": 0,
             "Projectiles": 1,
@@ -1588,13 +1629,14 @@
             "EffectDuration": 0,
             "SuperArmor": false,
             "CrowdControl": "None",
-            "Radius": 2.5,
+            "Radius": 4.5,
             "Length": 0,
             "Description": "짧게 모아 전방을 화염으로 벤다.",
             "SimpleDescription": "전방 부채꼴에 화염 베기({Base_Value}*{Scaling_Factor})를 가한다. 차징 {Cast_Time}초.",
             "Explanation": "불속성 근접 베기",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "{Passive_Cooldown}초에 한 번 짧게 모아 전방을 화염으로 벤다."
         },
         {
             "Id": 20007,
@@ -1632,7 +1674,8 @@
             "SimpleDescription": "주변 원형에 용암({Base_Value}*{Scaling_Factor})을 터뜨리고 밀쳐낸다.",
             "Explanation": "불속성 근접 폭발",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "{Passive_Cooldown}초에 한 번 발밑에 용암을 터뜨려 주변을 밀어낸다."
         },
         {
             "Id": 20008,
@@ -1670,7 +1713,8 @@
             "SimpleDescription": "열파 고리({Base_Value}*{Scaling_Factor})로 적을 밀어낸다.",
             "Explanation": "불속성 충격 고리",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "고리 형태로 열파를 {Passive_Cooldown}초에 한 번 터뜨린다."
         },
         {
             "Id": 20009,
@@ -1682,11 +1726,11 @@
             "CastType": "Charge",
             "CastTime": 0.65,
             "AreaType": "Circle",
-            "Range": 6,
+            "Range": 4,
             "Angle": 0,
             "Width": 0,
             "Projectiles": 1,
-            "Hits": 3,
+            "Hits": 1,
             "HitDelay": 0.18,
             "BaseValue": 12,
             "ScalingStat": "ATK",
@@ -1702,13 +1746,14 @@
             "EffectDuration": 0,
             "SuperArmor": true,
             "CrowdControl": "None",
-            "Radius": 6,
+            "Radius": 4,
             "Length": 0,
-            "Description": "불기둥을 세워 같은 지점을 3회 태운다.",
-            "SimpleDescription": "대상 지점에 불기둥({Base_Value}*{Scaling_Factor})을 {Hit_Count}회 세운다.",
+            "Description": "불기둥을 세워 남아 있는 동안 들어온 적을 한 번 태운다.",
+            "SimpleDescription": "대상 지점에 불기둥({Base_Value}*{Scaling_Factor})을 세워 들어온 적을 한 번 태운다.",
             "Explanation": "불속성 지속 기둥",
-            "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveCooldown": 7,
+            "PassiveScale": 0,
+            "PassiveDescription": "불기둥을 {Passive_Cooldown}초에 한 번 세워 남아 있는 동안 들어온 적을 한 번 태운다."
         },
         {
             "Id": 20010,
@@ -1720,7 +1765,7 @@
             "CastType": "Charge",
             "CastTime": 0.7,
             "AreaType": "Cone",
-            "Range": 3,
+            "Range": 5,
             "Angle": 80,
             "Width": 0,
             "Projectiles": 1,
@@ -1740,13 +1785,14 @@
             "EffectDuration": 0,
             "SuperArmor": true,
             "CrowdControl": "Knockback",
-            "Radius": 3,
+            "Radius": 5,
             "Length": 0,
             "Description": "태양 에너지를 모아 전방을 내리친다.",
             "SimpleDescription": "전방에 태양 강타({Base_Value}*{Scaling_Factor})를 가하고 밀쳐낸다.",
             "Explanation": "불속성 중량 강타",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "태양 에너지를 모아 {Passive_Cooldown}초에 한 번 전방을 내리친다."
         },
         {
             "Id": 20011,
@@ -1758,7 +1804,7 @@
             "CastType": "Charge",
             "CastTime": 0.75,
             "AreaType": "Arc",
-            "Range": 3.2,
+            "Range": 5.2,
             "Angle": 160,
             "Width": 0,
             "Projectiles": 1,
@@ -1778,13 +1824,14 @@
             "EffectDuration": 0,
             "SuperArmor": true,
             "CrowdControl": "None",
-            "Radius": 3.2,
+            "Radius": 5.2,
             "Length": 0,
             "Description": "홍련으로 넓은 호를 벤다.",
             "SimpleDescription": "전방 호 범위에 횡베기({Base_Value}*{Scaling_Factor})를 가한다.",
             "Explanation": "불속성 광역 횡베기",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "홍련으로 {Passive_Cooldown}초에 한 번 넓은 호를 벤다."
         },
         {
             "Id": 20012,
@@ -1822,7 +1869,8 @@
             "SimpleDescription": "십자 범위에 화염({Base_Value}*{Scaling_Factor})을 터뜨리고 밀쳐낸다.",
             "Explanation": "불속성 십자 폭발",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "십자 형태로 화염을 {Passive_Cooldown}초에 한 번 터뜨린다."
         },
         {
             "Id": 20013,
@@ -1860,7 +1908,8 @@
             "SimpleDescription": "원형 범위에 업화({Base_Value}*{Scaling_Factor})를 떨어뜨린다.",
             "Explanation": "불속성 낙화",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "{Passive_Cooldown}초에 한 번 먼 거리에 업화를 떨어뜨린다."
         },
         {
             "Id": 20014,
@@ -1898,7 +1947,8 @@
             "SimpleDescription": "직선에 멸화 일섬({Base_Value}*{Scaling_Factor})을 가한다.",
             "Explanation": "불속성 고위력 일섬",
             "PassiveCooldown": 8,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "한 줄기를 {Passive_Cooldown}초에 한 번 멸화로 가른다."
         },
         {
             "Id": 20015,
@@ -1936,7 +1986,8 @@
             "SimpleDescription": "넓은 원형에 붕괴({Base_Value}*{Scaling_Factor})를 {Hit_Count}회 일으킨다.",
             "Explanation": "불속성 광역 붕괴",
             "PassiveCooldown": 8.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "태양을 {Passive_Cooldown}초에 한 번 붕괴시켜 넓은 범위를 두 번 태운다."
         },
         {
             "Id": 20016,
@@ -1974,7 +2025,8 @@
             "SimpleDescription": "짧은 직선({Base_Value}*{Scaling_Factor})이 앞의 적을 관통한다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 근접 관통",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "모아 찌른 물결이 {Passive_Cooldown}초에 한 번 앞의 적을 관통한다."
         },
         {
             "Id": 20017,
@@ -1986,7 +2038,7 @@
             "CastType": "Charge",
             "CastTime": 0.5,
             "AreaType": "Arc",
-            "Range": 3.2,
+            "Range": 5.2,
             "Angle": 160,
             "Width": 0,
             "Projectiles": 1,
@@ -2012,7 +2064,8 @@
             "SimpleDescription": "전방 호({Base_Value}*{Scaling_Factor})를 가른다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 수압 일섬",
             "PassiveCooldown": 4,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "모아 둔 수압으로 {Passive_Cooldown}초에 한 번 전방을 넓게 가른다."
         },
         {
             "Id": 20018,
@@ -2024,7 +2077,7 @@
             "CastType": "Charge",
             "CastTime": 0.55,
             "AreaType": "Cone",
-            "Range": 3.5,
+            "Range": 5.5,
             "Angle": 90,
             "Width": 0,
             "Projectiles": 1,
@@ -2050,7 +2103,8 @@
             "SimpleDescription": "전방 부채꼴({Base_Value}*{Scaling_Factor})을 밀어 낸다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 부채 돌파",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "급류가 {Passive_Cooldown}초에 한 번 전방 부채꼴을 밀고 나간다."
         },
         {
             "Id": 20019,
@@ -2088,7 +2142,8 @@
             "SimpleDescription": "수창 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 쏜다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 이중 사격",
             "PassiveCooldown": 4.5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "수창 2발이 {Passive_Cooldown}초에 한 번 조금 벌어져 차례로 나가 처음 맞는 적에게 박힌다."
         },
         {
             "Id": 20020,
@@ -2126,7 +2181,8 @@
             "SimpleDescription": "긴 직선({Base_Value}*{Scaling_Factor})이 전방을 관통한다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 창격",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "긴 창격이 {Passive_Cooldown}초에 한 번 전방을 관통한다."
         },
         {
             "Id": 20021,
@@ -2164,7 +2220,8 @@
             "SimpleDescription": "발밑 원형을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 짓누른다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 수압 연타",
             "PassiveCooldown": 5,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "수압이 {Passive_Cooldown}초에 한 번 발밑의 원을 3회 짓누른다."
         },
         {
             "Id": 20022,
@@ -2202,7 +2259,8 @@
             "SimpleDescription": "긴 물기둥 {Projectile_Count}발({Base_Value}*{Scaling_Factor})을 쏜다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 장거리 수주",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "긴 물기둥이 {Passive_Cooldown}초에 한 번 멀리 날아가 처음 맞는 적에게 박힌다."
         },
         {
             "Id": 20023,
@@ -2240,7 +2298,8 @@
             "SimpleDescription": "주변 고리를 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 친다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 해일 고리",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "해일 고리가 {Passive_Cooldown}초에 한 번 몸 둘레를 4회 친다."
         },
         {
             "Id": 20024,
@@ -2278,7 +2337,8 @@
             "SimpleDescription": "직선({Base_Value}*{Scaling_Factor})이 전방을 관통한다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 심연 관통",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "심연의 물줄기가 {Passive_Cooldown}초에 한 번 전방을 관통한다."
         },
         {
             "Id": 20025,
@@ -2290,7 +2350,7 @@
             "CastType": "Charge",
             "CastTime": 0.75,
             "AreaType": "Arc",
-            "Range": 3.5,
+            "Range": 5.5,
             "Angle": 180,
             "Width": 0,
             "Projectiles": 1,
@@ -2316,7 +2376,8 @@
             "SimpleDescription": "넓은 전방 호({Base_Value}*{Scaling_Factor})를 휩쓴다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 횡단 수류",
             "PassiveCooldown": 6,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "수류가 {Passive_Cooldown}초에 한 번 전방을 거의 반원으로 휩쓴다."
         },
         {
             "Id": 20026,
@@ -2354,7 +2415,8 @@
             "SimpleDescription": "가는 직선({Base_Value}*{Scaling_Factor})이 멀리까지 관통한다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 최장 강관통",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "가늘고 긴 물줄기가 {Passive_Cooldown}초에 한 번 멀리까지 관통한다."
         },
         {
             "Id": 20027,
@@ -2392,7 +2454,8 @@
             "SimpleDescription": "넓은 원형에 파문({Base_Value}*{Scaling_Factor})을 일으킨다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 심해 파문",
             "PassiveCooldown": 7,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "깊은 파문이 {Passive_Cooldown}초에 한 번 발밑의 넓은 원을 덮는다."
         },
         {
             "Id": 20028,
@@ -2430,7 +2493,8 @@
             "SimpleDescription": "굵은 직선({Base_Value}*{Scaling_Factor})이 전방을 관통한다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 고위력 물줄기",
             "PassiveCooldown": 8,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "굵은 물줄기가 {Passive_Cooldown}초에 한 번 전방을 길게 관통한다."
         },
         {
             "Id": 20029,
@@ -2442,7 +2506,7 @@
             "CastType": "Charge",
             "CastTime": 0.9,
             "AreaType": "Arc",
-            "Range": 4,
+            "Range": 6,
             "Angle": 200,
             "Width": 0,
             "Projectiles": 1,
@@ -2468,7 +2532,8 @@
             "SimpleDescription": "아주 넓은 전방 호({Base_Value}*{Scaling_Factor})를 가른다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 절해 일섬",
             "PassiveCooldown": 8,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "절해의 일섬이 {Passive_Cooldown}초에 한 번 아주 넓은 전방을 가른다."
         },
         {
             "Id": 20030,
@@ -2506,7 +2571,8 @@
             "SimpleDescription": "넓은 원형을 {Hit_Count}회({Base_Value}*{Scaling_Factor}) 덮는다. 차징 {Cast_Time}초.",
             "Explanation": "물속성 대해 파도",
             "PassiveCooldown": 8,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": "대해의 파도가 {Passive_Cooldown}초에 한 번 발밑의 넓은 원을 2회 덮는다."
         },
         {
             "Id": 30001,
@@ -2544,7 +2610,8 @@
             "SimpleDescription": "최대 체력×{Scaling_Factor}를 {Hit_Delay}초마다 {Hit_Count}회 회복한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "지속 체력 회복",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30002,
@@ -2582,7 +2649,8 @@
             "SimpleDescription": "최대 체력×{Scaling_Factor}를 즉시 회복한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "즉시 체력 회복",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30003,
@@ -2620,7 +2688,8 @@
             "SimpleDescription": "최대 마력×{Scaling_Factor}를 즉시 회복한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "즉시 마력 회복",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30004,
@@ -2658,7 +2727,8 @@
             "SimpleDescription": "{Effect_Duration}초 동안 방어력이 {Scaling_Factor} 비율만큼 증가한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "방어력 증가",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30005,
@@ -2696,7 +2766,8 @@
             "SimpleDescription": "{Effect_Duration}초 동안 공격력이 {Scaling_Factor} 비율만큼 증가한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "공격력 증가",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30006,
@@ -2734,7 +2805,8 @@
             "SimpleDescription": "{Effect_Duration}초 동안 이동 속도가 {Scaling_Factor} 비율만큼 증가한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "이동 속도 증가",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30007,
@@ -2772,7 +2844,8 @@
             "SimpleDescription": "{Effect_Duration}초 동안 피해를 받지 않는다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "짧은 무적",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30008,
@@ -2810,7 +2883,8 @@
             "SimpleDescription": "{Effect_Duration}초 동안 속성 피해가 {Scaling_Factor} 비율만큼 증가한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "속성 피해 증가",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30009,
@@ -2848,7 +2922,8 @@
             "SimpleDescription": "{Effect_Duration}초 동안 최대 체력×{Scaling_Factor}의 방어막을 얻는다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "체력 비례 방어막",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         },
         {
             "Id": 30010,
@@ -2886,7 +2961,8 @@
             "SimpleDescription": "주변 원형에 {Hit_Delay}초마다 화염({Base_Value}+ATK×{Scaling_Factor})을 {Hit_Count}회 가한다. 쿨타임 6초, 횟수 1 소모, 스테이지당 5회.",
             "Explanation": "주변 화염 오라",
             "PassiveCooldown": 0,
-            "PassiveScale": 0
+            "PassiveScale": 0,
+            "PassiveDescription": ""
         }
     ],
     "rarities": [
@@ -2938,6 +3014,18 @@
             "Weight": 0,
             "Frame": "SkillIcons/SkillFrame_Fusion",
             "ColorHex": "#FFECA0"
+        }
+    ],
+    "fusions": [
+        {
+            "Id": 10007,
+            "Name": "태양 검",
+            "ActiveSkillId": 10003,
+            "ActiveSkillName": "화염 강타",
+            "PassiveCardId": 10003,
+            "PassiveCardName": "화염 강타 패시브",
+            "ActiveCondition": "MaxLevel",
+            "PassiveCondition": "Acquire"
         }
     ]
 }

@@ -255,7 +255,8 @@ public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
         guardInput?.Release();
         Array.Clear(ownedPassiveIds, 0, ownedPassiveIds.Length);
         Array.Clear(ownedPassiveTimers, 0, ownedPassiveTimers.Length);
-        tacticalUsesRemaining.Clear();
+        // 사망 후 부활해도 이번 스테이지에서 이미 쓴 전략 횟수는 유지합니다.
+        if (data == null || !data.IsDead) tacticalUsesRemaining.Clear();
         lightSkill?.Cancel();
         ResetHeavyCharge();
         actions?.Reset();

@@ -26,6 +26,7 @@ internal sealed class PlayerDefense
 
     public bool CanStart => canStart;
     public bool IsBlockingDamage => isParrying || isGuarding;
+    public bool IsGuarding => isGuarding;
     public bool IsMovementSlowed => IsBlockingDamage;
 
     public PlayerDefense(PlayerView view, float parryStartup, float parryActive,

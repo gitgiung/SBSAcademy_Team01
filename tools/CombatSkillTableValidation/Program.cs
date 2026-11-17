@@ -359,6 +359,25 @@ internal static class Program
             string text = (string)type.GetMethod("FormatDescription").Invoke(null, new object[] { Skill(10001) });
             Equal("불꽃으로 이루어진 탄환 1발(8*1.2)을 적에게 쏜다.", text);
         });
+        Test("passive description repeats the active action on the owned interval", () =>
+        {
+            var type = typeof(CombatSkillTable).Assembly.GetType("LevelUpSkillDraft");
+            var format = type.GetMethod("FormatPassiveDescription");
+            string flame = (string)format.Invoke(null, new object[] { Skill(10001) });
+            Equal("불꽃 탄환 1발을 적에게 3초에 한 번 쏜다.", flame);
+            Equal("불기둥을 {Passive_Cooldown}초에 한 번 세워 남아 있는 동안 들어온 적을 한 번 태운다.", Field(Skill(20009), "PassiveDescription"));
+            Equal("불기둥을 7초에 한 번 세워 남아 있는 동안 들어온 적을 한 번 태운다.", format.Invoke(null, new object[] { Skill(20009) }));
+            Equal("불꽃 탄환 3발을 4.5초에 한 번 연속으로 쏜다.", format.Invoke(null, new object[] { Skill(10002) }));
+            foreach (var skill in table.skills)
+            {
+                string passive = (string)Field(skill, "PassiveDescription");
+                bool attack = skill.Id >= 10000 && skill.Id < 30000;
+                if (attack && (string.IsNullOrEmpty(passive) || !passive.Contains("{Passive_Cooldown}")))
+                    throw new Exception(skill.Id + " 패시브 설명이 없습니다.");
+                if (!attack && !string.IsNullOrEmpty(passive))
+                    throw new Exception(skill.Id + " 전략 스킬에 패시브 설명이 있습니다.");
+            }
+        });
         Test("existing light attack values", () =>
         {
             Equal(76, table.skills.Count); var s = Skill(10001);
@@ -440,6 +459,26 @@ internal static class Program
             Equal("Cone", Skill(20018).AreaType);
             Equal("Circle", Skill(20030).AreaType);
         });
+        Test("slashes reach farther and the flame pillar hits once", () =>
+        {
+            Equal(5.5f, Skill(10007).Range); Equal(5.5f, (float)Field(Skill(10007), "Radius")); Equal(140f, Skill(10007).Angle);
+            Equal(5f, Skill(10011).Range); Equal(5f, (float)Field(Skill(10011), "Radius")); Equal(80f, Skill(10011).Angle);
+            Equal(5.2f, Skill(10028).Range); Equal(0f, (float)Field(Skill(10028), "Radius"));
+            Equal(5.5f, Skill(10035).Range);
+            Equal(4.5f, Skill(20006).Range); Equal(4.5f, (float)Field(Skill(20006), "Radius"));
+            Equal(5f, Skill(20010).Range); Equal(80f, Skill(20010).Angle);
+            Equal(5.2f, Skill(20011).Range);
+            Equal(5.2f, Skill(20017).Range);
+            Equal(5.5f, Skill(20018).Range);
+            Equal(5.5f, Skill(20025).Range);
+            Equal(6f, Skill(20029).Range);
+            Equal(3.5f, Skill(10013).Range);
+            var pillar = Skill(20009);
+            Equal(1, pillar.Hits); Equal(4f, pillar.Range); Equal(4f, (float)Field(pillar, "Radius"));
+            Equal(7f, pillar.PassiveCooldown); Equal("Circle", pillar.AreaType); Equal(0.18f, pillar.HitDelay);
+            Equal("불기둥을 세워 남아 있는 동안 들어온 적을 한 번 태운다.", Field(pillar, "Description"));
+            Equal("대상 지점에 불기둥({Base_Value}*{Scaling_Factor})을 세워 들어온 적을 한 번 태운다.", Field(pillar, "SimpleDescription"));
+        });
         Test("area radius and length remain independent", () =>
         {
             Equal(2.2f, Field(Skill(20001), "Radius"));
@@ -470,6 +509,33 @@ internal static class Program
                 });
             }
             Equal("inline skill", CombatSkillWorkbook.Read(path).skills.Single(s => s.Id == 10001).Name);
+        });
+        Test("fusion is the active at max level plus that skill's passive card", () =>
+        {
+            var field = typeof(CombatSkillTableFile).GetField("fusions");
+            if (field == null) throw new Exception("missing exported fusions");
+            var fusions = (System.Collections.IList)field.GetValue(table);
+            Equal(1, fusions.Count);
+            object fusion = fusions[0];
+            object Value(string name) => fusion.GetType().GetField(name).GetValue(fusion);
+            Equal(10007, Value("Id"));
+            Equal("태양 검", Value("Name"));
+            Equal(10003, Value("ActiveSkillId"));
+            Equal("화염 강타", Value("ActiveSkillName"));
+            Equal(10003, Value("PassiveCardId"));
+            Equal("화염 강타 패시브", Value("PassiveCardName"));
+            Equal("MaxLevel", Value("ActiveCondition"));
+            Equal("Acquire", Value("PassiveCondition"));
+            var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
+                File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+            var shippedFusions = (System.Collections.IList)field.GetValue(shipped);
+            Equal(1, shippedFusions.Count);
+            object shippedFusion = shippedFusions[0];
+            foreach (var fusionField in fusion.GetType().GetFields())
+            {
+                if (!Equals(fusionField.GetValue(fusion), fusionField.GetValue(shippedFusion)))
+                    throw new Exception($"fusion {fusionField.Name}: workbook={fusionField.GetValue(fusion)}, JSON={fusionField.GetValue(shippedFusion)}");
+            }
         });
         Test("shipped JSON keeps combat values and blank passive columns", () =>
         {

@@ -44,6 +44,8 @@ public sealed class CombatSkillRecord
     // 보유 중 자동 시전. 0이면 주기가 아직 없어 발사하지 않고, 배율 0은 피해 0.2를 뜻합니다.
     public float PassiveCooldown;
     public float PassiveScale;
+    // 카드의 패시브 문장. {Passive_Cooldown}은 위 초로 바뀐다. 비우면 패시브 칸을 숨긴다.
+    public string PassiveDescription;
 
     public const float DefaultPassiveScale = 0.2f;
 
@@ -81,11 +83,26 @@ public sealed class SkillRarityRecord
     }
 }
 
+/// <summary>액티브 만렙과 그 스킬의 패시브 카드 획득으로 융합 스킬이 됩니다.</summary>
+[Serializable]
+public sealed class SkillFusionRecord
+{
+    public int Id;
+    public string Name;
+    public int ActiveSkillId;
+    public string ActiveSkillName;
+    public int PassiveCardId;
+    public string PassiveCardName;
+    public string ActiveCondition;
+    public string PassiveCondition;
+}
+
 [Serializable]
 public sealed class CombatSkillTableFile
 {
     public List<CombatSkillRecord> skills = new List<CombatSkillRecord>();
     public List<SkillRarityRecord> rarities = new List<SkillRarityRecord>();
+    public List<SkillFusionRecord> fusions = new List<SkillFusionRecord>();
 }
 
 public static class CombatSkillTable
@@ -93,6 +110,7 @@ public static class CombatSkillTable
     private const string ResourcePath = "Data/CombatSkillTable";
     private static Dictionary<int, CombatSkillRecord> skills;
     private static List<SkillRarityRecord> rarities;
+    private static List<SkillFusionRecord> fusions;
     private static bool missingLogged;
 
     public static bool TryGet(int id, out CombatSkillRecord record)
@@ -109,6 +127,13 @@ public static class CombatSkillTable
         rarity = rarities?.Find(value => value != null
             && string.Equals(SkillRarityRecord.NormalizeId(value.Id), id, StringComparison.OrdinalIgnoreCase));
         return rarity != null;
+    }
+
+    public static bool TryGetFusion(int skillId, out SkillFusionRecord fusion)
+    {
+        EnsureLoaded();
+        fusion = fusions?.Find(value => value != null && value.Id == skillId);
+        return fusion != null;
     }
 
     public static int Count
@@ -136,6 +161,7 @@ public static class CombatSkillTable
         var result = new CombatSkillTableFile();
         if (skills != null) result.skills.AddRange(skills.Values);
         if (rarities != null) result.rarities.AddRange(rarities);
+        if (fusions != null) result.fusions.AddRange(fusions);
         return result;
     }
 
@@ -146,6 +172,8 @@ public static class CombatSkillTable
         if (asset == null)
         {
             skills = new Dictionary<int, CombatSkillRecord>();
+            rarities = new List<SkillRarityRecord>();
+            fusions = new List<SkillFusionRecord>();
             if (!missingLogged)
             {
                 missingLogged = true;
@@ -166,5 +194,6 @@ public static class CombatSkillTable
         }
         skills = loaded;
         rarities = file?.rarities ?? new List<SkillRarityRecord>();
+        fusions = file?.fusions ?? new List<SkillFusionRecord>();
     }
 }

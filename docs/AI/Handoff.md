@@ -1,5 +1,340 @@
 # 작업 인수인계
 
+## 2026-11-17 비스트 부자연스러운 모션 점검(수정 없음)
+
+- 요청은 확인. 런타임 PNG/meta/클립/코드는 수정하지 않고 현재 연속프레임8시트와 클립73개 키 시각을 점검했다. 상세 근거/프레임/확인절차는 tools/BeastClarity/motion-audit/README.md, 시트와 measurements.json. 재현 도구 audit-motion.mjs.
+- 우선 항목: Body-charge South0/SE0 등 몸과 떨어진 상단 이미지 조각; BossWalk8방향 마지막7번 자세0.1667초 유지(다른 프레임0.0833초); Run West만 구외형; Run NE2/6에서 가슴이 더 드러나는 시점 변화. 시각적 끊김 체감은 실제 재생 미확인.
+- 추가 후보: Move N/S 팔 움직임 부족, SwipeBoth SE/SW6→7 손 위치 큰 변화. 일반Swipe3번0.4167초 hold는 의도한 준비일 수 있어 오류로 확정하지 않음. 현재 코드 원형피해는 재생 직후 직접 호출하므로 과거 기록의 마지막프레임 피해 설명을 현재 동작으로 간주하지 않는다.
+- 이번 자동 모션품질 테스트0개, Unity컴파일/Play/영상재생 미실행. 정적 시트 육안/키 시각 확인을 재생검증으로 주장하지 않음. 앞선577통과는 알파/크기/참조 검사이며 Body-charge 잔여조각을 탐지하지 못했음.
+- 직접 확인: Animation BossWalk_South7→0 → BossRun_NE1→2→3/5→6→7 → West/East외형 → body-charge_South0. Tools > Play From Title 해제 후 MainScene 추격/방향전환/돌진/공격 확인. 정상은 일정한 걷기 박자·방향·체형 및 분리된 조각 없음. 다른 그림은 Reimport/Sprite참조/Console첫오류 확인.
+- 다음 수정 우선순위: 돌진 잔여조각 → Move 반복 박자 → Run West 외형/NE방향 유지. 승인된 Run 모션을 전면 재생성하지 말 것.
+
+
+## 2026-11-17 비스트 보스 나머지 모션 전체 선명도
+
+- 사용자 요청: 다른 부분도 가능한 전부 선명하게. 비스트 폴더 PNG577개 점검. 기존 소스에서 Run64/Body-charge88/Swipe64+FrameSources24/SwipeBoth128 =368 PNG를 두 배 해상도로 직접 재추출. 새 이미지 생성 없음. Run identity-v3와 현재 SwipeBoth East 원본, SW 반전 관계, Swipe North6 정리 패치 유지.
+- 264 또는352px 및 PPU200/Rect변경으로 기존 월드캔버스 크기 유지. 픽셀 반올림에 따른 미세 윤곽 차이는 존재. 전체577개 PNG의 압축을 None으로 통일(추가145개 설정 변경). Move64 포함 나머지209 PNG는 원본 바이트 유지. 더 큰 소스 없는 Idle/rotations/Sprint/Swipe-left 등은 압축 손실만 제거. 원본 묘사 한계는 남으며 메모리 증가/기기 측정 미실행.
+- 실행검증 tools/BeastClarity/validate.mjs: PNG577/577 검사 통과, 재추출368의 규격/알파/외곽, 월드크기, meta허용필드외 동일. 다른209PNG/PNG·meta외226파일 바이트동일. 클립/이벤트 변경 없음. comparison.png 육안 확인. Unity 컴파일/Play/Android 미실행.
+- 현재 공통 재생성 tools/BeastClarity/bake.mjs. Run/Charge/Swipe/SwipeBoth 기존 bake.mjs는 이 파이프라인으로 연결하여 낮은 PNG와 PPU200이 섞이지 않게 함. 이전 구현 bake-before-clarity.mjs는 기록용. Move 고해상도 도구는 별도 유지. 원본/검증/대상 목록/비교/상세 설명은 tools/BeastClarity. 시작 main/6e62a5e 및 사용자 변경 보존, 씬/프리팹 변경 없음. 시작백업 .utmp/beast-clarity/before.
+- 직접 확인: Play 종료 → 임포트 완료 → BossRun/Body-charge/Swipe/SwipeBoth Animation 재생 → Tools > Play From Title 해제 → MainScene 일반추격/돌진/공격. 크기/속도/타격시점은 같고 얼굴·무늬 선명도 증가가 정상. Idle도 압축으로 색이 흐트러지지 않는지 확인. 크기 이상 시 PPU200/Rect264·352, 구 그림/Missing이면 Reimport와 Sprite 참조/Console 첫 오류 확인.
+- 다음: MainScene 전환·타격 시각, Android 실기기 시각/메모리 확인.
+
+
+## 2026-11-17 비스트 Move 선명도 개선
+
+- 직전 Move 뭉개짐 제보에 이어 선명도 개선 요청. Move 64 PNG를 축소 출력본이 아니라 기존 원본 시트에서 직접 220px 칸으로 추출, 22px 여백/264캔버스로 출력. N/S는 gait-source 첫 두 행을 직접 사용하여 보폭 보정 유지. 새 그림 생성이나 모션 재설계 없음. Run/공격/Idle PNG는 수정하지 않았다.
+- PPU100→200 및 full Rect132→264로 월드 캔버스1.32/피벗/방향/재생타이밍 유지. Default/Standalone/Android textureCompression을0(None)으로 변경. Point/mipmap off 유지. GUID/internalID 및 나머지 meta 필드 동일 검사. 메모리 사용량 증가하며 기기 측정 미실행.
+- 시작 main/6e62a5e, 기존 사용자 변경 보존. .utmp/move-clarity에 이전 PNG/meta와 상태 기록. 현재 생성 진입점 tools/BeastMoveArt/bake.mjs → bake-hires.mjs. 소스/변경이유/비교는 README.md 및 clarity-comparison.png(위 이전/아래 개선).
+- 실제 검증 validate-hires.mjs 64/64 통과: 규격/알파/22px여백/압축None/월드크기/클립GUID/허용필드외 meta동일. 같은 표시 크기 비교 이미지 육안 확인, 얼굴/가슴 무늬 디테일 증가. Unity 컴파일/Play/Android 미실행.
+- 직접 확인: Play 종료 → 임포트 완료 → move/south/0.png Inspector에서 264px, Point, Compression None, PPU200 확인 → Animation 창 BossWalk_South/East/North 재생 → Tools > Play From Title 해제 → MainScene 보스 일반 추격. 걷기 크기/속도는 유지되고 얼굴·가슴 선이 더 또렷해야 한다. 크기가 달라지면 PPU200/Rect264, 구 이미지면 Reimport 및 Console 첫 오류 확인.
+- 다음: 실제 MainScene Walk/Idle/Run 전환과 Android 시각/메모리 확인. 과거 BeastChargeArt/bake 실행 후에는 Move bake를 마지막에 재실행해야 N/S 저해상도 덮어쓰기를 방지한다.
+
+
+## 2026-11-17 Run 모션 유지 기준으로 원본 캐릭터 외형 보정
+
+- 사용자: 현재 모션은 좋지만 캐릭터가 바뀜. 첨부한 Idle/rotations의 south/south-east/east/north/north-east를 외형 기준으로 사용했다. v2 모션 시트를 편집 대상으로 built-in imagegen으로 6방향 시트 제작, SW는 기존처럼 SE 반전. 두꺼운 상체/팔, 짧은 다리, 괴물 얼굴, 붉은 가슴·등 무늬, 어깨·무릎 상처/짙은 바지를 원본에 맞추는 보정. 생성 편집이라 프레임별 관절 픽셀 완전 동일은 아니다.
+- run 56 PNG 교체. 이번 시작 대비 meta 64/64 및 West PNG 8/8 SHA256 동일 확인. 8프레임 순서·12fps·클립·게임 로직·씬·프리팹 변경 없음. 시작 main/6e62a5e, 기존 사용자 변경 보존. .utmp/run-identity에 시작 상태/PNG 백업.
+- tools/BeastRunArt의 *-identity-v3.png, prompts-v3.md, bake-v3.mjs, contact-v3.png 및 GIF가 현재 산출물. bake.mjs는 v3로 연결. v2는 과거 기록으로 남김.
+- 실행 검증: validate-v2.mjs 64/64 통과(현재 PNG 규격/고유 그림/알파/여백/클립 참조/12fps/loop). 이번 전후 해시 비교 56 PNG 변경/64 meta 동일/West8 동일. 출력 contact sheet 육안 확인. 최초 SW PNG 쓰기 오류 후 재시도 로직 추가, 전체 재출력 성공. Unity 컴파일/Play 및 GIF 실제 재생 관찰 미실행.
+- 직접 확인: Unity 임포트 완료 → Animation 창 BossRun_South/East/North/대각선 재생. 원본 rotations와 얼굴·두꺼운 체형·가슴/등 붉은 무늬를 비교하고 기존 팔 교대/발 디딤이 유지되는지 확인한다. Tools > Play From Title 해제 → MainScene → 2페이즈 돌진에서 Idle/Run 외형 연결 확인. 구 그림이면 run 폴더 Reimport 및 Console 첫 오류/클립 Sprite 참조 확인.
+- 다음: 실제 MainScene에서 외형 일치와 승인한 모션 유지 체감 확인.
+
+
+## 2026-11-17 Run 방향별 자세와 팔 교대 보정
+
+- 요청: East 쏠림, South/North 팔 움직임 부족, 대각선 중간 끊김. 기존 원본/실제 N/S 보정 PNG와 12fps 8프레임 클립을 확인하고 built-in imagegen으로 방향별 4×2 시트를 다시 제작했다. 초반 통합 시트 2개는 미적용. 소스/정확한 프롬프트/현재 bake/미리보기는 tools/BeastRunArt에 보존.
+- East 기울기 완화 자세, N/S 가슴~골반 팔 교대, 대각선 고정 방향 자세로 교체. 골반 중심 x66 정렬, 방향 내 배율 고정, 기본 바닥 y116, 체공 3/7프레임 2px 상승. SW 생성이 오른쪽을 향하여 해당 시트를 SE에 사용하고 SW에는 좌우 반전. 전체 캐릭터가 재생성되어 팔 이외의 픽셀도 달라졌다.
+- run PNG 56장 교체. West 8장/64개 meta/GUID/internalID/클립/12fps/반복길이/로직 유지. 시작 main/6e62a5e 및 다수 사용자 변경 보존. 씬/프리팹 저장 없음. 작업 전 기록/백업 .utmp/run-feedback. 기존 bake는 v2 진입점으로 바꾸어 이전 gait override가 재적용되지 않게 했다.
+- 실제 검사: validate-v2.mjs 64/64 통과(규격, 고유그림, binary alpha, 여백, 클립 참조/12fps/loop, 작업 전 meta/West 바이트 동일). 출력 contact sheet 육안 확인. Unity 컴파일/EditMode/Play 및 GIF 재생 관찰 미실행. 모션 자연스러움까지 자동 검증했다고 간주하지 않는다.
+- 직접 확인: Play 종료 → Unity 임포트 완료 → Animation 창 BossRun_East/South/North 및 대각선 4개를 Samples12로 반복 재생. East 몸 중심/기울기, N/S 양팔 교대, 대각선 3→4와 7→0 연결을 확인한다. Tools > Play From Title 해제 → MainScene Play → 2페이즈 원거리 돌진으로 Run/Idle 크기 및 발 위치 전환 확인. 구 이미지면 run 폴더 Reimport, Console 첫 오류와 Sprite 참조 확인.
+- 다음: 실제 MainScene 반복 모션 체감과 Idle 연결 검증. 남아 있는 시각적 불연속은 해당 방향/프레임을 기준으로 추가 보정한다.
+
+
+## 2026-11-17 SwipeBoth East 앞팔 고정/끝 자세 튐 수정
+
+- 사용자 East 이상 지적. 실제 출력 16장 비교에서 앞팔 고정, 뒤팔 머리 위 들기 반복, 14번에서 팔이 갑자기 하강하는 문제 확인. built-in imagegen으로 East 4×4 시트를 다시 생성하고 East PNG16장만 교체했다. 오른쪽 전방으로 팔을 뻗어 하강→회수하는 자세로 수정. 이펙트 없음. 소스/프롬프트/미리보기는 tools/BeastSwipeBothArt/README.md 및 east-contact.png, east-preview.gif, east-slow.gif.
+- bake.mjs에 단일 방향 인자를 추가. 다른 방향 PNG와 클립은 재저장하지 않는다. 시작 상태 main/6e62a5e 및 다수 사용자 변경 보존, 씬/프리팹 변경 없음. 백업 .utmp/beast-east-fix.
+- 실제 검증: 변경 전후 SHA256 비교로 런타임 East PNG16장만 변경, 모든 meta/모든 클립/다른 방향 동일. 기존 정적 검사 재실행 128/128프레임 및 8/8클립 통과. 출력 contact sheet 16자세 확인. Unity컴파일/EditMode/Play 및 GIF재생 관찰은 미실행.
+- 직접 확인: 임포트 완료 후 BossSwipeBoth_East를 Animation 창에서 Samples24로 재생 → Tools > Play From Title 해제 후 MainScene에서 보스가 오른쪽을 보고 공격하도록 확인. 앞팔이 전방을 긁고 회수되며 끝에서 아래로 갑자기 꺾이지 않는지 확인. 구 이미지면 East PNG Reimport 및 Console 첫 오류 확인. 다음 검증은 실제 Play에서 동작 가독성/Idle 연결.
+
+## 2026-11-17 기획서에 스킬 융합 조건 반영
+
+- 요청: 바꾼 스킬 융합 규칙을 기획서에 넣고 고친다.
+- `Document/SBSAcademy_Team01_기획서.docx` 4.3.2 시너지 조합. 스킬 융합은 액티브 만렙(MaxLevel)과 해당 패시브 카드 획득(Acquire)이다. 태양 검(10007)은 화염 강타(10003) 만렙과 화염 강타 패시브다. 플레어 탄환은 재료가 아니다. 슬롯 통합·고유 판정·계수 상승의 기존 문장은 남기고, 패시브 카드의 슬롯 점유는 미정으로 적었다. 유물·증강 융합 표는 유지한다고 적었다. 개정 이력 26.11.17을 추가했다. 작성자 칸은 비웠다.
+- `Document/Zomso_Skill_기획서.docx`에 용어, 레어도 표 다음의 스킬 융합 절, 테스트 표 다음의 확인 문장, 개정 이력 26.11.17을 넣었다. 전투 중 융합 발동은 아직 연결하지 않았다고 적었다.
+- 검증: 두 문서 XML을 다시 읽어 위 문장이 해당 위치에 있는지 확인했다. Unity·Play는 실행하지 않았다.
+- 직접 확인: 두 기획서가 열려 있었다면 저장하지 말고 닫은 뒤 다시 연다. 본 기획서는 4.3.2, 스킬 기획서는 용어 정의와 레어도 표 다음을 본다. 예전 문장 “두 가지 이상의 스킬, 유물, 또는 증강”이 스킬 조건으로 남아 있으면 저장 전 파일이다.
+- 다음: 전투에서 융합이 실제로 일어나게 할지는 아직 정하지 않았다.
+
+## 2026-11-17 SwipeBoth 16프레임/24fps 및 발 기준 정렬
+
+- 사용자 '장수를 늘려도 되니까 좀 자연스럽게' 요청. 기존8장을 방향별16장으로 확대. imagegen으로 방향별4×4 시트8개를 따로 제작해 중간 팔꿈치/손목, 반대팔 전환, 후속 회수 추가. 이펙트 없음. SW 생성안은 정면에 가까워 최종 SW는 SE 시트를 좌우 반전했다. 다른7방향은 각 시트. 소스/프롬프트 요지는 tools/BeastSwipeBothArt/README.md.
+- 배치: 176×176, 방향 내 배율 고정, 발 중심x88/바닥y148. 긴 팔이 여백에 닿는 최초 배치는 에셋 출력 전 거절하고, 방향 전체 최대 폭을 반영해128장 안전 여백을 확보했다. 복제 프레임으로 수를 늘리지 않았다. bake는 이전8장/효과 소스를 읽지 않는다.
+- 8클립 12→24fps, 고유Sprite8→16. 총길이0.6666667초, 14번 키와 AreaDamage이벤트0.5833333초, 종료/비반복/피해 횟수/수치 유지. 기존0~7 PNG64장 meta/GUID보존, 8~15 PNG64장+meta신규. 다른 모션·씬·프리팹 변경 없음.
+- 실제 검증: 이전 클립8개가 모두8Sprite였음을 확인. 수정 후128/128 고유그림·규격·binary alpha·여백·바닥y148·키GUID/internalID일치 통과. 클립8/8은16Sprite/24fps이며 이벤트/설정블록은 이전과 동일. 기존64meta바이트동일, 신규64GUID는 Assets전체에서 각각1회. 대상 diff공백검사 통과. GUID검색 최초0건은 CRLF끝줄정규식 문제였으며 수정한 검색64/64확인. Unity회귀테스트 SwipeBothHasSixteenFramesWithoutChangingDamageTiming 추가했지만 Unity컴파일/EditMode/실제Play 미실행. 일반/느린GIF 생성, 시트/출력첫프레임 확인만 수행했으며 실제GIF재생 관찰 미실행.
+- 백업 `.utmp/beast-smooth/before`, `clips-before`. 다른 작업(스킬퓨전 등)/Handoff기록 유지.
+- 직접 확인: Play종료→임포트/컴파일완료→BossSwipeBoth_South의 Animation Samples24, 0~15프레임 재생. 다른7방향도 중간 손이 튀거나 발이 흔들리는지 확인. preview.gif 위 N/NE/E/SE 아래 S/SW/W/NW, preview-slow.gif는 점검용.
+- Tools>Play From Title해제→MainScene원형공격. 약0.583초 두번째rake피해/약0.667초종료 유지, Idle전환의 크기/발위치 확인. Missing이면 새8~15PNG/meta임포트, 클립키참조, Console첫오류 확인. 다음은 실제Play 공격가독성/전환검증.
+
+## 2026-11-17 부활 아이콘 지팡이 상위 티어 외형
+
+- 요청: 기존 지팡이에서 상위 티어로 진화한 느낌의 비주얼. built-in image_gen으로 금빛 네 갈래 별 확대/면 분할, 각진 은빛 테두리, 보라색 그립, 금속 고리와 은빛 끝장식을 추가했다. 하트/리본/분홍 장식 없이 날개·후광의 디자인과 배치 유지.
+- 적용: `Assets/Resources/UI/ReviveAngel.png` 1774×887 투명 RGBA. meta/GUID·RunEndPopup.cs SHA-256은 시작과 동일. 부활 아이콘 외 실제 플레이어 스프라이트/게임 등급/수치/씬·프리팹은 변경하지 않았다. 기존 다른 작업 보존. 프롬프트·미리보기는 `tools/RevivePopupValidation`.
+- 이번 검증: 별도 Unity 프로젝트 컴파일/PlayMode **4/4 통과**(upgraded-wand.xml). 투명 알파·규격·meta/UI 코드 불변 및 실제 uGUI 1600×900 렌더 육안 확인. 원본 MainScene Play·Android 미실행.
+- 직접 확인: Unity 임포트 완료 → MainScene Play → GameManager 컴포넌트 메뉴 `테스트/사망 후 부활 팝업 (Play 중)`. 중앙 지팡이가 더 큰 금빛 별과 은빛 테두리/끝장식을 가진 모습이어야 한다. 이전 작은 별이면 ReviveAngel.png Reimport 후 Play 재시작, Console 첫 오류 확인. 다음은 실제 전투 배경에서 아이콘 크기와 톤 확인.
+
+## 2026-11-17 스킬 퓨전은 액티브 만렙과 해당 패시브 카드
+
+- 요청: 스킬 퓨전을 액티브 만렙 + 액티브 만렙에서, 액티브 만렙 + 해당 패시브 카드 획득으로 바꾼다. 표와 데이터를 모두 바꾼다.
+- 표: `Document/SkillDatatable.xlsx`의 `FusionSkilltable`. 재료 스킬 A/B 열을 액티브(만렙)와 패시브 카드로 바꿨다. 조건 열은 `MaxLevel`, `Acquire`다. `Column_Description` 29~32행에 키 설명을 넣었다.
+- 데이터: 태양 검(10007)은 화염 강타(10003) 만렙과 화염 강타 패시브 카드(같은 10003, 이름 `화염 강타 패시브`) 획득이다. 예전 두 번째 액티브인 플레어 탄환(10006)은 퓨전 재료에서 뺐다. 플레어 탄환 스킬 자체는 그대로다. 만렙 숫자 7은 새로 정하지 않았고, 조건 값만 `MaxLevel`이다.
+- 배포: `Assets/Resources/Data/CombatSkillTable.json`의 `fusions` 1건. 변환기가 같은 시트를 읽는다. 전투 중 융합 발동은 이번 범위가 아니다.
+- 그대로 둔 표: `Strengthentable.xlsx`의 증강 퓨전(불타버린 추방자)과 유물 퓨전(봉황의 깃)은 액티브 두 장이 아니라서 바꾸지 않았다.
+- 검증(이번 변경에 실제 실행): `CombatSkillTableValidation` **33/34**. 새 검사 `fusion is the active at max level plus that skill's passive card`는 통과했다. 실패 1개는 `shipped JSON keeps combat values and blank passive columns`로, 10001 아이콘이 빈 칸이길 기대하는 기존 검사이며 이번 퓨전과 무관하다. Unity 컴파일·Play는 실행하지 않았다.
+- 직접 확인: 엑셀이 `Document/SkillDatatable.xlsx`를 열고 있었다면 저장하지 말고 닫은 뒤 다시 연다. `FusionSkilltable` 3행은 태양 검 / 화염 강타 10003 / 화염 강타 패시브 10003 / MaxLevel / Acquire다. 플레어 탄환은 이 행에 없다.
+- Play 종료 → Unity 임포트 후 `Tools > Parse Combat Skill Table`. Console에 `전투 스킬 76개, 등급 7개, 퓨전 1개`가 보여야 한다. `Assets/Resources/Data/CombatSkillTable.json`의 `fusions`도 같은 값이다. 전투 중에 태양 검으로 합쳐지지는 않는다.
+- 이상 시: Console 첫 오류, 엑셀 G3 수식 `=E3`, JSON `PassiveCardId` 10003. 예전 두 액티브가 보이면 엑셀이 저장 전 복사본을 연 것이다.
+- 다음: 전투에서 만렙과 패시브 카드 획득을 실제 융합으로 연결할지는 아직 정하지 않았다. GiungScene·Android 검증 제외.
+
+## 2026-11-17 패링·가드·피격·직접 공격 햅틱
+
+- 요청: 패링과 비슷한 타격 순간에 햅틱을 넣는다.
+- 이미 있던 패링 성공 진동(약 40ms)은 유지한다. 가드를 누르고만 있는 동안에는 여전히 울리지 않는다. 가드 중에 공격이 막힌 순간에만 짧은 진동이 난다.
+- 추가: 플레이어 체력이 실제로 깎일 때(사망 타격 포함). 보호막이 피해를 전부 흡수해 체력이 그대로면 울리지 않는다. 직접 누른 약공격·강공격이 적에게 들어가 체력을 깎을 때. 보유 자동 발사와 대시는 울리지 않는다.
+- 세기: 패링이 가장 강하고, 피격, 가드 막기, 공격 적중 순이다. 가드와 적중은 직전 진동 뒤 90ms가 지나야 다시 울린다. 한 번에 여러 명이 맞아도 그 간격 안에서는 한 번이다. 패링과 피격은 그 간격을 무시하고 울린 뒤, 이어지는 가벼운 진동을 90ms 미룬다.
+- 기기: 에디터와 PC에서는 재생하지 않는다. 안드로이드는 기존 `VIBRATE` 권한(`ParryHaptics.androidlib`)을 그대로 쓴다. 짧은 클릭을 지원하는 기기(API 30+)는 패링·가드·적중에 그 효과를 쓰고, 아니면 길이 진동이다. 피격은 길이 진동이다. iOS는 `Assets/Plugins/iOS/ImpactHaptics.mm`의 짧은 임팩트다. 예전의 긴 `Handheld.Vibrate`는 쓰지 않는다.
+- 씬·프리팹·전투 수치·판정은 바꾸지 않았다. 다른 진행 중 작업은 보존했다.
+- 검증: `tools/HapticValidation` **6/6 통과**. `RunCompile.ps1` 7개 어셈블리 컴파일 exit 0. Unity Play·Android/iOS 기기는 실행하지 않았다.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** Play. 에디터에서는 진동이 느껴지지 않는 것이 정상이다.
+  1) 안드로이드 또는 iOS 기기에 빌드한 뒤, 적 공격 순간에 패링이 성공하면 짧은 강한 진동.
+  2) 가드를 유지해도 가만히 있으면 진동이 없고, 그 상태로 공격을 막으면 패링보다 약한 진동이 한 번 난다.
+  3) 공격을 맞아 체력이 줄면 중간 세기. 체력이 안 줄면(무적, 대시, 보호막이 전부 막음) 그 진동은 없다.
+  4) 약공격·강공격 버튼을 눌러 적이 맞으면 가벼운 진동. 보유만 해서 자동으로 나가는 공격에는 없다.
+- 이상 시: Console 첫 오류, 안드로이드 진동 권한, iOS에서 `ImpactHaptics.mm`가 iOS 플러그인으로 임포트됐는지. 빌드가 androidlib 때문에 실패하면 `ParryHaptics.androidlib`을 먼저 확인한다.
+- 다음: 기기에서 네 가지 세기가 구분되는지 확인한다. 너무 잦거나 약하면 간격과 길이만 조정한다.
+
+## 2026-11-17 글자 1.3배는 기존 UI에만 고정
+
+- 요청: 보스 등장 이름처럼 나중에 넣은 UI까지 전역 1.3배에 밀려 커진다. 새 UI를 넣을 때마다 빠지게 하지 말고, 기존 UI만 큰 상태가 유지되게 한다.
+- 변경: 씬 로드 때 모든 TMP를 키우던 `UiFontScaleBootstrap`을 제거했다. 11월 12일 배율 이전에 있던 TMP는 저장 크기에 1.3을 곱해 두었다. 대상은 MainScene의 기존 글자, LobbyScene, LoadScene, `CombatUI` 프리팹이다. `BossName` 62와 타이머 `Digits` 46은 곱하지 않았다. 타이머에 붙였던 `UiFontScaleExempt`도 제거했다. HP/MP 숫자, 상태창, 전략 횟수, 대시 쿨타임처럼 코드로 만들던 글자는 기존 `UiFontScale.Size`를 유지한다. 새로 씬에 넣는 TMP는 지정한 fontSize 그대로다. GiungScene 파일은 수정하지 않았다.
+- 검증: Unity 컴파일·Play·자동 테스트는 이번 변경에서 실행하지 않았다.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene**.
+  1) `BossName` Font Size는 62다. Play 후 보스가 나올 때도 62이고 약 80으로 커지지 않는다.
+  2) `Canvas > Timer > Digits`는 46이고 Play에서도 46이다.
+  3) 쿨타임 숫자처럼 예전 HUD 글자는 Inspector에 이미 1.3배가 들어가 있고, Play에서도 그 크기다.
+  4) 새 TMP를 만들고 Font Size를 40으로 두면 Play에서도 40이다.
+- 이상 시: Console 첫 오류, `BossName` 62, `Digits` 46. 예전 글자가 갑자기 작으면 해당 TMP의 Font Size가 1.3배 값인지 확인한다.
+- 다음: MainScene Play에서 보스 이름과 타이머, 기존 HUD 글자 크기를 비교한다.
+
+## 2026-11-17 Swipe-both 교차 이펙트 제거·MVC식 좌우 교대 액션
+
+- 최종 사용자 명시: '교차 이펙트는 넣지 말고, Marvel Vs Capcom 의 울버린처럼 교차 액션'. 앞서 넣은 밝은 X자/발톱 궤적은 전부 폐기한다. 향후 이 모션에 효과선을 임의로 다시 넣지 않는다.
+- 참고: Fighters Generation `https://www.fightersgeneration.com/characters4/wolverine-a3.html`의 wolvie-bb.gif 5프레임/60ms 및 wolvie-berserker.gif 프레임을 실제 추출해 자세를 확인했다. 한 팔이 내려긁는 동안 반대쪽 어깨가 다음 공격을 준비하는 비대칭 교대를 기존 좀비에 적용했다. 원작 애니메이션의 완전 재현은 아니며 참고해 생성한 동작이다.
+- 최종 그림: imagegen `mvc-action-source.png` 및 별도 북쪽 `mvc-north-source.png`로 64장 교체. 한쪽 손 높게/반대 손 낮게, 어깨 회전과 대각선 rake를 번갈아 표현. 흰 궤적·X표시·붉은 오라·잔상 없음. 최초 북쪽 두 프레임이 셀 경계에 닿아 출력 전 검사가 실패했고, 에셋 적용 없이 북쪽 행을 다시 생성한 뒤 최종 통과했다.
+- 제작: `tools/BeastSwipeBothArt/bake.mjs`는 위 두 소스만 사용. 이전 효과 포함 source들은 실행 입력에서 제외. 176×176/binary alpha/여백16px, 기존 meta64장 SHA-256 동일. 모든 프레임 경계를 검사한 뒤 에셋을 출력한다. README는 폐기된 설명을 정리하고 최종 상태 기준으로 다시 썼다. GIF 갱신.
+- 검증: 64/64 원본과 다른 고유 그림·크기·alpha·여백·Rect/다른 meta 필드 보존 통과, 최종 셀 경계 통과. 전체 클립/meta146파일 시작과 SHA-256 동일. 공격 시간·피해 이벤트/횟수·게임 판정 변경 없음. 대상 diff 공백 검사 통과. 실제 south/5·south/7 육안 확인. Unity 컴파일·자동 테스트·MainScene Play·GIF 실제 재생 관찰은 미실행.
+- 적용 전 백업 `.utmp/beast-mvc/before`, 참고자료는 같은 임시 폴더. 사용자 다른 작업(부활 팝업 등)과 Handoff 기록은 보존했다. 다른 모션·씬·프리팹 변경 없음.
+- 직접 확인: Play 종료 → Unity 임포트 → BossSwipeBoth_South/East 미리보기. 팔짱 자세/X자 효과 대신 낮춘 상체에서 좌우 팔이 엇갈려 긁어야 한다. North를 포함한 다른 방향에서도 손 잘림/등 위 손이 없는지 확인. Tools > Play From Title 해제 → MainScene 원형 공격에서 확인. 시각적으로 교대하지만 피해 횟수는 기존 그대로다. 이전 효과가 남으면 swipe-both 폴더 Reimport 및 Console 첫 오류 확인. 별도 런타임 원형 범위/폭발 VFX는 변경하지 않았다. 다음은 실제 모션 가독성/전환 체감 검증이다.
+
+## 2026-11-17 천사 중앙을 플레이어 지팡이로 변경
+
+- 요청: 천사 아이콘 가운데 불을 플레이어가 들고 있는 지팡이로 변경. 실제 Pretty_Magical_Girl/Idle/rotations/south.png를 확대 확인해 금빛 네 갈래 별·연보라색 손잡이를 참고했다. built-in image_gen 편집으로 중앙 불씨를 세운 지팡이로 교체, 은빛 날개·후광 디자인 유지.
+- 적용: `Assets/Resources/UI/ReviveAngel.png` 1774×887 RGBA, 투명 배경. 기존 meta/GUID 및 RunEndPopup.cs SHA-256은 시작과 동일. 씬·프리팹·게임 규칙 변경 없음. 최종 프롬프트는 `tools/RevivePopupValidation/README.md`, 실제 uGUI 미리보기는 같은 폴더 preview-revive.png.
+- 이번 검증: 별도 Unity 프로젝트 컴파일/PlayMode **4/4 통과**(wand.xml), PNG 투명 알파·규격 및 meta/UI 코드 불변 확인, uGUI 렌더에서 지팡이 육안 확인. 원본 MainScene Play·Android 미실행.
+- 직접 확인: Unity 임포트 완료 → MainScene Play → GameManager 메뉴 `테스트/사망 후 부활 팝업 (Play 중)`. 중앙에 금빛 별/보라 손잡이 지팡이, 양옆 은빛 날개가 보여야 한다. 불씨가 남아 있으면 ReviveAngel.png Reimport 후 Play 재시작, Console 첫 오류 확인. 다음은 실제 전투 배경에서 확인.
+
+## 2026-11-17 부활 팝업 공주풍 제거
+
+- 사용자 피드백: 이전 천사/팝업이 너무 공주풍. built-in image_gen으로 하트·보석·리본·분홍색 대신 은빛 날개·후광·청록 불씨의 도트풍 천사를 재제작했다. `Assets/Resources/UI/ReviveAngel.png` 1774×887 RGBA, 투명 알파 및 기존 meta/GUID 유지.
+- `RunEndPopup` 3개 창을 남색 바탕·청록 주요 버튼·회청색 보조 버튼·밝은 회색 글자로 변경. 부활/광고 안내/결과 동작과 MainScene/프리팹은 이번에 변경하지 않았다. 다른 진행 중 작업 및 인수인계 항목 보존.
+- 이번 검증: 별도 Unity 검증 프로젝트 컴파일 및 PlayMode `RevivePopupTests` **4/4 통과**(restrained.xml). 실제 uGUI 1600×900 렌더로 천사·부활창·게임 오버 글자/버튼 확인. 미리보기 3장은 `tools/RevivePopupValidation/preview-*.png`, 최종 프롬프트는 같은 폴더 README. 실제 MainScene Play/Android 미실행.
+- 직접 확인: Unity 임포트 완료 → Tools > Play From Title 해제 → MainScene Play → GameManager 컴포넌트 메뉴 `테스트/사망 후 부활 팝업 (Play 중)`. 은빛 도트 천사와 남색 창이 보여야 하며 예/광고 안내 확인은 부활, 아니요는 같은 남색 게임 오버. 이전 그림이면 ReviveAngel.png Reimport 후 Play 재시작, Console 첫 오류 확인. 다음은 실제 전투 배경에서 색 대비/톤 확인.
+
+## 2026-11-17 액티브 스킬의 보유 패시브 설명
+
+- 요청: 카드 예시처럼 액티브와 같은 행동을 주기로 반복하는 패시브 설명을 엑셀에 구조로 추가한다.
+- 구조: `Document/SkillDatatable.xlsx` 약공격·강공격 시트의 AP열. 1행은 `보유 패시브 설명`, 2행 키는 `Passive_Desc`. 기존 AE~AO 열은 옮기지 않았다. `Column_Description` 28행에 같은 키를 적었다.
+- 문장: 기본 설명과 같은 행동 앞에 `{Passive_Cooldown}초에 한 번`을 넣었다. 카드에서는 이 토큰이 AH열 초로 바뀐다. 예시 그림의 4초는 목업이고, 불꽃 탄환의 표 값은 3초라 카드에는 `3초에 한 번`으로 나온다. 66개 약·강 스킬을 채웠다.
+- 전략 스킬(30000대)은 보유 자동 발사가 없어 패시브 설명을 비웠다. 비어 있으면 카드의 패시브 칸은 숨겨진다.
+- 연결: 변환기가 AP열을 `PassiveDescription`으로 읽고, 레벨업 카드의 패시브 칸에 표시한다. 배포 JSON도 같은 문장이다. 피해·쿨타임·판정은 바꾸지 않았다.
+- 검증(이번 변경에 실제 실행): `CombatSkillTableValidation` **32/33**. 새 검사 `passive description repeats the active action on the owned interval`과 엑셀·JSON 필드 일치는 통과했다. 실패 1개는 `shipped JSON keeps combat values and blank passive columns`로, 10001 아이콘이 빈 칸이길 기대하는 기존 검사이며 이번 문장과 무관하다. Unity 컴파일·Play는 실행하지 않았다.
+- 직접 확인: 엑셀이 열려 있었다면 저장하지 말고 닫은 뒤 다시 연다. 약공격 시트 AP열에서 `불꽃 탄환`은 `불꽃 탄환 1발을 적에게 {Passive_Cooldown}초에 한 번 쏜다.`이다. Play 종료 → Unity 임포트·컴파일 후 Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** Play → `CombatUI`의 `CombatPopupController` 메뉴 `테스트/원하는 카드 고르기`.
+  1) `불꽃 탄환`(10001) 액티브는 기존 피해 문장이고, 패시브는 `불꽃 탄환 1발을 적에게 3초에 한 번 쏜다.`
+  2) `불꽃 난사`(10002) 패시브는 `4.5초에 한 번`, `불기둥`(20009)은 `7초에 한 번`이다.
+  3) `급속 회복`(30003)처럼 전략 카드에는 패시브 칸이 없다.
+- 이상 시: Console 첫 오류, JSON `10001`의 `PassiveDescription`, 엑셀 AP3. 패시브 칸이 비면 Unity가 이전 JSON을 읽은 것이다. Play를 끄고 `Assets/Resources/Data/CombatSkillTable.json`을 Reimport한다.
+- 다음: MainScene에서 문장 길이와 줄바꿈을 본다. GiungScene·Android 검증 제외.
+
+## 2026-11-17 레벨업 셔플, 인벤토리 닫힘, 리롤 위치, 범위 시작점, 보스 피격
+
+- 요청: 레벨업 카드가 뜨자마자 눌리는 문제, 인벤토리 창의 버튼이 아닌 곳을 누르면 닫히는 문제, 리롤 횟수가 손에 가려지는 문제, 범위 스킬 시작선, 플레이어 중심 범위의 중심, 보스 피격점.
+- 레벨업: 카드가 가운데 더미에서 0.5초(실제 시간) 동안 자리로 퍼진 뒤에만 선택·정보·리롤이 된다. 레벨업은 시간을 멈추므로 `Time.timeScale`과 무관하다. 리롤 총횟수 `리롤 N`은 창 오른쪽 아래에서 제목 오른쪽 위로 옮겼다.
+- 인벤토리: 일시정지 상태창의 회색 바깥만 닫는다. 창 안쪽의 빈 곳, 스탯, 슬롯 사이는 닫지 않는다. 뒤로가기와 설정은 그대로다. 레벨업은 카드를 고르기 전에는 바깥을 눌러도 닫히지 않는다.
+- 범위: 원·고리·탄환은 플레이어 그림의 정중앙에서 시작한다. 예전처럼 사거리의 35%만큼 조준 방향으로 밀지 않는다. 직선·부채·호는 그 중심에서 그림이 끝나는 선부터 시작한다. 몸 안쪽은 판정에 넣지 않는다. 사거리 숫자와 각도는 바꾸지 않았다.
+- 보스: `BeastZombie`와 6·9·12·15·18분 프리팹의 피격 원과 몸통 캡슐을 대기 그림의 불투명 몸에 맞췄다. 피격 원은 중심 (0, 0.01), 반경 0.41. 몸통 캡슐은 중심 (0, 0.01), 크기 0.66×0.88. 예전 원은 반경 0.5로 몸 옆이 비었고, 캡슐은 발 아래에 있었다. 옆을 보는 프레임은 몸이 더 좁아 원이 조금 남을 수 있다. 슬라임·호드 로드는 측정하지 않았다.
+- 스킬 레벨 7과 4레벨부터의 특수 강화(투사체·사거리·범위·각도·타격)는 11월 16일 구현이 그대로다. 이번 요청으로 수치를 다시 정하지 않았다.
+- 검증: Unity 컴파일·Play·자동 테스트는 실행하지 않았다. 씬 파일은 바꾸지 않았다.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** Play.
+  1) `CombatUI`의 `CombatPopupController` 메뉴 `테스트/경험치 13 획득`. 카드가 가운데서 퍼지는 동안에는 눌리지 않고, 멈춘 뒤에만 고를 수 있다. `리롤 N`은 창 위쪽, 제목 오른쪽에 있다.
+  2) 오른쪽 위 일시정지 → 상태창의 스탯·빈 칸·슬롯 사이를 눌러도 창이 닫히지 않는다. 회색 바깥이나 `뒤로가기`만 닫는다.
+  3) `테스트/원하는 카드 고르기`에서 `화염 고리`(10014)는 플레이어 그림 한가운데에서 퍼진다. `화염 부채`(10011)·`화염창`(10005)은 몸 바깥에서 조준 방향으로 시작한다.
+  4) 같은 메뉴로 `불꽃 탄환`(10001)을 반복해 4번째 카드부터 `투사체` 또는 `사거리`가 뜨는지 본다. 7이면 그 카드는 더 나오지 않는다.
+  5) 보스가 나오면 몸통에 맞을 때만 피해가 들어가고, 몸 옆 빈 공간의 예전 큰 원에는 맞지 않는다.
+- 이상 시: Console 첫 오류. 카드가 바로 눌리면 `LevelUpSelectionPanel`의 셔플이 도는지. 창 안을 눌러 닫히면 `UI_CombatPopup`이 패널 안쪽을 거르는지. 범위가 몸에 겹치면 `SkillOrigin`. 보스 피격이 예전 크기면 `BeastZombie` 프리팹의 Circle 반경 0.41과 Capsule 0.66×0.88을 확인한다.
+
+## 2026-11-17 부활·게임 오버 팝업 프로토타입
+
+- 요청: 첨부 도안의 사망→부활 선택→거절 시 게임 오버, 예/광고 후 부활, 마법소녀 천사 이미지. 사용자 후속 승인: 광고 SDK는 미정, 광고 없음 안내의 확인 후 부활, HP 100%·부활권 무소모는 프로토타입 전용이다. `Document/SBSAcademy_Team01_기획서.docx`의 부활 후 HP/광고 횟수 미정과 구분한다.
+- 구현: MainScene의 기존 `GameManager`가 `RunEndPopup`을 런타임에 생성한다. 기존 씬/프리팹/직렬화 참조 수정 없음. `ReviveOffer` 상태에서 전투 정지, 예→`Player.TryRevive`로 HP/입력/오브젝트 복구, 광고 후 부활→광고 없음→확인→같은 부활, 아니요→Defeat 결과. 결과 예→기존 RestartGame(LoadScene), 아니요→ReturnToTitle. 부활 시 MP/레벨/보유 목록 유지, 사망 OnDisable에서 전략 사용 잔여 횟수가 리셋되지 않게 보완했다.
+- 결과: 실제 일반 몬스터 처치 누계(`EnemySpawnDirector.TotalKills`), 보스 전투도 포함한 생존 시간(팝업 정지 제외), 레벨, 유물/증강/스킬 목록. 처치 수는 **일반 몬스터만**이며 보스를 포함한 전체 집계는 아니다. 점수/골드는 미정 표시, 보상 지급 없음. 목록은 세로 스크롤. 부활권 지급·소모/광고 횟수/광고 SDK/유물 자동 부활/부활 무적은 미구현·미정이다.
+- 디자인: 아이보리·핑크·라일락 팝업, 배경 입력 차단, safe area 반영. built-in image_gen으로 하트 보석·천사 날개·금빛 헤일로·리본의 투명 PNG 제작. `Assets/Resources/UI/ReviveAngel.png`, 프롬프트/검증 실행기/미리보기는 `tools/RevivePopupValidation`.
+- 실제 검증: 최종 `tools/AndroidReadinessValidation/RunCompile.ps1`의 7개 어셈블리 컴파일 exit 0. 별도 짧은 임시 프로젝트에서 Unity 6000.5 PlayMode `RevivePopupTests` **4/4 통과, 실패·생략 0**. 반복 사망/부활, 중복 차단, HP/입력 복구, MP/전략 잔여 횟수, 거절 결과, 광고 안내의 확인 전 정지/확인 후 부활 검사. 실제 uGUI 1600×900 카메라 렌더 3장 육안 확인(검증용 배경이며 실제 MainScene 플레이 화면 아님).
+- 초기 검증 복사본의 ScreenCapture 모듈/글꼴 셰이더 누락을 실행기에서 보완했다. 재실행에서 4/4 통과 및 글자 렌더 확인. 최종 XML은 `.utmp/RevivePopup/verified.xml`, 영속 테스트 소스는 `Assets/Tests/PlayMode/SceneFlow/RevivePopupTests.cs`. 원본 MainScene Play, 결과 버튼의 실제 씬 로드, Android/기기는 이번에 검증하지 않았다.
+- 상태: 시작 main / 6e62a5e. 보스 그림·스킬 아이콘·LightSkillFx·UiFontScale·MainScene·ProjectSettings·기획 엑셀 등 기존 사용자 변경 보존. 커밋/브랜치 전환 없음. 기존 GameManager API·결과 UI 참조 보존, GiungScene 제외.
+- 직접 확인: Play 종료→Unity 임포트/컴파일 완료→`Tools > Play From Title` 해제→**MainScene** Play→GameManager 컴포넌트 메뉴 `테스트/사망 후 부활 팝업 (Play 중)` 또는 몬스터에게 사망. 가드/대시 중에는 테스트 피해가 막힐 수 있으므로 정지 상태에서 실행한다.
+  1. 천사 부활창에서 전투가 멈추고 예를 누르면 HP 만피, 플레이어/조작 복구. 재사망 후에도 동작해야 한다.
+  2. 광고 후 부활→광고 없음 안내, 확인 전까지 정지 유지, 확인 후 부활. 실제 광고는 재생하지 않는다.
+  3. 재사망→아니요→GAME OVER, 실제 레벨/시간/보유 목록. 예는 LoadScene을 거쳐 재시작, 아니요는 TitleScene으로 돌아간다.
+- 이상 시: Console 첫 오류, 씬 이름 MainScene, GameManager의 Player/PlayerData 참조와 Play 중 자식 RunEndCanvas, `Resources/UI/ReviveAngel` Sprite 임포트, CombatUI의 Nanum 폰트 확인. 다음 작업은 실제 MainScene에서 반복 부활·전투 복귀·두 결과 버튼의 씬 전환 확인이다.
+
+## 2026-11-17 Swipe-both 울버린식 X자 교차 할퀴기
+
+- 요청: swipe-both 공격이 이상하며, 이어서 '울버린처럼 교차로 긁어줘'로 방향 지정. 기존 머리 위로 손 올리기/손짓 그림을 확인하고 built-in imagegen으로 두 발톱이 가슴 앞에서 X자로 교차하는 8방향×8프레임을 제작했다. 첫 아래로 긁는 시안은 적용하지 않았다. 손톱/기존 캐릭터 유지, 금속 칼날/별도 X자 이펙트 추가 없음.
+- 북쪽 시안에서 손이 등 위로 교차하는 해부학 오류가 있어 북쪽 8프레임을 별도 보정했다. 뒤에서는 교차한 손이 앞가슴 쪽 몸통에 가려지고 등은 보인다. 소스/프롬프트 요지/재생성 도구/GIF는 `tools/BeastSwipeBothArt`에 보존한다.
+- 적용: `Idle/animations/swipe-both` PNG 64장 및 meta full Sprite Rect. 176×176, 그림 144px+16px 여백, binary alpha. GUID·internalID·PPU·기존 클립 참조 유지. 7번 프레임에 교차 타격, 기존 AreaDamage 이벤트 0.5833333초 및 종료 이벤트 0.6666667초 유지. 게임 수치·판정·준비시간·씬·프리팹 변경 없음. 다른 보스 모션 변경 없음.
+- 실제 검증: 원본 셀 경계에 alpha>=200 픽셀 없음 검사 64장 통과(재생성 도구도 잘린 셀을 거절). PNG 64/64 원본과 다른 고유 프레임·크기·binary alpha·여백·full Rect 및 Rect 외 meta 불변 검사 통과. 전체 애니메이션 클립/meta 146파일 SHA-256 시작과 동일. 대상 diff 공백 검사 통과. 적용 south/7 교차 및 north/7 등 가림 육안 확인. Unity 컴파일·자동 테스트·MainScene Play·GIF 실제 재생 관찰은 미실행이다.
+- 적용 전 에셋/클립 백업은 `.utmp/beast-swipe-both`. 시작 swipe-both 경로 Git 변경 없음. 다른 기존 변경 유지.
+- 직접 확인: Play 종료 → Unity 임포트 완료 → `Animator/Clips/BossSwipeBoth_South` 미리보기 재생. 양팔 준비 후 가슴 앞 X자 교차 타격이 보여야 한다. North는 손이 등 위에 붙지 않아야 한다. 나머지 6방향도 확인. `tools/BeastSwipeBothArt/preview.gif`는 위 N/NE/E/SE, 아래 S/SW/W/NW.
+- 이어 Tools > Play From Title 해제 → MainScene Play → 보스 원형 공격(등장 또는 2페이즈 진입 등)에서 확인. 피해 이벤트와 마지막 교차 자세가 맞는지, 다른 모션 전환 크기/발 위치 확인. 구버전이면 swipe-both 폴더 Reimport, BossSwipeBoth 클립 참조 및 Console 첫 오류 확인. 런타임 범위/폭발 VFX는 별도이며 이번 작업에서 바꾸지 않았다. 다음은 실제 Play 모션 및 타격 체감 검증이다.
+
+## 2026-11-17 Body-charge 일관성 및 북·남 팔자 보행 보정
+
+- 요청: Body-charge를 앞서 수정한 그림과 일관되게 맞추고, 북·남의 과한 팔자걸음을 수정. 기존 body-charge 11프레임과 Move/Run N/S의 발 벌림을 확인했다.
+- 구현: built-in imagegen으로 body-charge 11×8 시트와 Move/Run N/S 8×4 보정 시트를 제작했다. Body-charge는 같은 보스 체형/회색 팔/국소 어깨 상처, 0~3 준비·4~10 낮춘 돌진 루프. N/S는 무릎과 발끝이 진행 방향으로 향하고 골반 아래의 좁은 평행 보폭으로 교대한다. 팔/다리 외 픽셀도 재생성되어 원본과 동일하지 않다.
+- 적용: body-charge PNG 88장 및 meta full Rect, Move/Run north/south PNG 32장. 132×132 캔버스/전체 Rect, 110px 그림 +11px 여백, binary alpha. GUID·internalID·PPU·애니메이션 클립·준비/반복 상태·타이밍·돌진 이동/피해는 유지했다. 다른 Move/Run 방향은 기존 출력 그대로이며 Idle/Swipe·씬·프리팹 변경 없음.
+- 재생성: `tools/BeastChargeArt`에 원본/프롬프트 요지/도구/미리보기/보정 프레임 보존. 기존 BeastRunArt와 BeastMoveArt bake는 gait-frames의 N/S 보정본을 우선 읽도록 수정하여 구버전 보폭 재발을 방지한다. 두 도구 재실행 후 새 보정 유지 검사 통과. 이전 `.utmp` 복사 도구는 사용하지 않는다.
+- 실제 검증: 120/120 고유 변경 그림·규격·binary alpha·투명 여백·full Rect·Rect 외 meta 보존 검사 통과. 발 영역(각 프레임 불투명 높이 하위20%) 평균 폭은 Move N 40.3→22.5, Move S 36.5→21.0, Run N 26.6→20.5, Run S 25.3→18.6 px. 이는 발 벌림 감소 검사이며 모션 자연스러움을 자동 검증했다는 의미는 아니다. 원본/생성 시트 및 적용 body-charge east/5·move south/3 육안 확인. 대상 diff 공백 검사 통과, 클립 diff 없음. Unity 컴파일·자동 테스트·Play·GIF 실제 재생 관찰 미실행.
+- 백업: `.utmp/beast-charge/before` 및 move-north/move-south/run-north/run-south에 적용 전 파일 보존. 기존 다른 사용자 변경 유지.
+- 직접 확인: Play 종료 → 임포트 완료 → `Animator/Clips/body-charge_North`, `body-charge-loop_North` 및 South 미리보기. 준비 후 낮춘 돌진으로 이어지고 반복 중 일어서지 않아야 한다. `BossWalk_North/South`, `BossRun_North/South`는 발을 옆으로 크게 벌리지 않아야 한다. Body-charge 나머지 6방향도 확인한다.
+- 이어 Tools > Play From Title 해제 → MainScene Play → 북/남으로 보스 추격 유도 → 1페이즈 원거리 돌진, 2페이즈 Run 돌진 비교. Idle/Move/돌진 전환의 몸 크기·발 위치 확인. 이전 그림이면 body-charge와 Move/Run N/S Reimport, Sprite Rect 및 Console 첫 오류 확인. 다음은 실제 Play 모션 체감/전환 검증이다.
+
+## 2026-11-17 Swipe North 6번의 떨어진 손끝 조각 제거
+
+- 사용자 제보를 8프레임 확대 시트에서 확인했다. 생성 원본 시트의 앞 프레임 손끝이 north/6 왼쪽 가장자리로 넘어온 것으로, 본체와 떨어진 불필요한 조각이다.
+- 수정: built-in imagegen으로 조각 제거 시안을 만든 뒤 왼쪽 32×176 투명 영역만 사용해 본체는 원래 픽셀 그대로 유지했다. `tools/BeastSwipeArt/north-6-left-cleanup.png`와 bake의 north/6 전용 합성에 보존하여 재생성 시 재발하지 않는다. 최종 실제 에셋 변화는 `Idle/animations/swipe/north/6.png` 한 장이며 모든 다른 Swipe PNG/meta는 시작 SHA-256과 동일하다. GIF 갱신. 클립/이벤트/씬/프리팹 변경 없음.
+- 검증: 수정 전 조각 존재, 수정 후 왼쪽 스트립 alpha 전부 0 및 영역 밖 전체 RGBA 동일 검사 통과. 128개 Swipe PNG/meta 중 변경 1개 확인. 수정본 north/6 육안 확인. Unity 컴파일·자동 테스트·Play 및 GIF 실제 재생 관찰은 미실행.
+- 직접 확인: Unity 임포트 완료 → `Animator/Clips/Boss_Swipe_North` 미리보기 → 약 0.83초의 6번 프레임. 왼쪽에 떨어진 손끝이 없어야 한다. `Tools > Play From Title` 해제 → MainScene 북쪽 공격에서도 확인한다. 이전 조각이 보이면 north/6 PNG Reimport 후 Console 첫 오류 확인. 다음은 실제 연속 재생 확인이다.
+
+## 2026-11-17 Swipe 할퀴기 및 붉은 팔 이펙트 정리
+
+- 요청: Swipe가 가위바위보처럼 보이는 손동작과 팔에 남은 붉은 기운을 수정. 기존 시트에서 손 펼쳐 보이는 준비 및 붉은 궤적을 확인했다. built-in imagegen으로 동일 보스의 굽힌 발톱·팔 당기기·타격·회수 시트를 제작하고 붉은 오라/선/궤적을 제외했다. 어깨의 국소 상처는 유지한다. 전체 그림을 재생성했으므로 팔 밖 픽셀도 동일하지 않다.
+- 적용: `Idle/animations/swipe` PNG 64장과 full Sprite Rect. 동/서/북동이 실제 사용하는 `FrameSources/SwipeEastWestFullFrame`, `SwipeNorthEastFullFrame` PNG 사본 24장도 같은 그림으로 동기화했다. 사본 meta는 바꾸지 않았다. 그림 144×144 + 16px 여백, 176×176 전체 Rect, binary alpha. GUID·internalID·PPU·이벤트·클립 시간 유지. swipe-left/swipe-both·Move·Run·Idle·씬·프리팹 변경 없음.
+- 기존 Boss_Swipe_East의 3번 프레임은 약 0.25~0.6667초 준비 유지, 5번 프레임 약 0.75~0.8333초에 피해 이벤트 0.791666673초가 있다. 이 순서에 맞춘 그림이며 코드/타격 이벤트 변경 없음. `tools/BeastSwipeArt`에 생성 원본·프롬프트 요지·재생성 도구·약 1.083초 반복 미리보기 GIF 보존. 실제 공격 클립은 비반복이다.
+- 실제 검증: 64/64 원본과 다른 고유 그림·크기·binary alpha·여백·Rect 및 Rect 외 meta 보존 검사 통과. 사본 PNG 일치/사본 meta 불변 24/24 통과. 전체 클립/meta 146파일 SHA-256이 시작 시와 동일. 원본/생성 시트·적용 east/5와 south/5 육안 확인. 대상 diff 공백 검사 통과. Unity 컴파일·자동 테스트·MainScene Play·GIF 실제 재생 관찰은 미실행. 기존 BeastZombieArtTests의 FullFrameCopiesMatchTheSourceArt는 이번에도 적용되는 검사지만 Unity에서 실행하지 않았다.
+- 적용 전 Swipe와 FrameSources/Clips는 `.utmp/beast-swipe`에 백업했다. 기존 사용자 변경과 다른 작업은 보존했다.
+- 직접 확인: Play 종료 → Unity 임포트 완료 → `Animator/Clips/Boss_Swipe_East` 미리보기 재생 → 다른 7방향 확인. 손을 내밀어 가위바위보하는 대신 발톱 공격/회수가 보이고 팔 주변 붉은 궤적이 없어야 한다. `tools/BeastSwipeArt/preview.gif`도 확인 가능.
+- 이어 Tools > Play From Title 해제 → MainScene Play → 보스 근처에서 일반 할퀴기 유도. 기존 준비 시간과 공격 피해 시점을 유지하는지, 걷기/대기 전환에서 몸 크기·발 위치 확인. 구버전이 보이면 swipe와 위 FrameSources 두 폴더 Reimport, Console 첫 오류 및 Boss_Swipe_* 참조를 확인한다. 별도 런타임 공격 VFX와 어깨 상처는 이번 제거 대상이 아니다. 다음은 실제 Play 모션/피해 시점 체감 확인이다.
+
+## 2026-11-17 특수 아이템 드롭률 공유, 힐팩은 체력 비율
+
+- 요청: 특수 아이템 드롭률을 공유하고, 체력 아이템은 저체력과 고체력의 비율로 유동적으로 떨어지게 한다.
+- 규칙: 힐팩 0.7%·자석 0.4%·폭탄 0.3%는 그대로 기준 몫이다. 합 1.4%가 일반 몬스터 처치 1회당 특수 아이템 공유 드롭률이다. 새 확률 숫자는 넣지 않았다. 힐팩 몫은 저체력(최대−현재), 자석·폭탄 몫은 고체력(현재)에 비례하고, 다시 1.4% 안으로 맞춘다. 체력이 절반이면 기준 몫과 같다. 만피면 힐팩은 0이고 자석 0.8%·폭탄 0.6%다. 체력이 0이면 힐팩이 1.4% 전부다. 힐팩 기준이 0이면 체력이 낮아도 힐팩은 나오지 않는다. 플레이어 체력을 모르면 기준 몫 그대로다. 회복량 30%·자석·폭탄 효과·동시 12개는 그대로다.
+- 코드: `FieldItemDropSettings.SharedChances`·`Roll(roll, current, max)`. `SceneEnemyPool`이 처치 때 플레이어 체력을 넣어 굴린다. 씬·프리팹은 바꾸지 않았다.
+- 커밋: `6e62a5e` `힐팩이 체력 비율에 따라 공유 드롭률을 나누게 한다.` 대상은 `FieldItemDropSettings.cs`, `SceneEnemyPool.FieldItems.cs`, `tools/FieldItemValidation/Program.cs` 세 파일. `origin/main`에 푸시함(90c00c0..6e62a5e). 베기·불기둥, 보스 그림, 아이콘, 씬, 이 인수인계 문서는 넣지 않았다.
+- 검증(이번 변경에 실제 실행): `tools/FieldItemValidation` **48/48**. 기존 46개에 체력 비율 계산 1개, 만피/빈사 처치 드랍 1개를 더했다. Unity 컴파일·Play는 실행하지 않았다.
+- 직접 확인: Play 종료 → Unity 임포트·컴파일 후 Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** Play → Hierarchy `Enemy Spawn System`의 `Scene Enemy Pool` → `Field Items`.
+  1) 힐팩·자석·폭탄 확률이 0.007·0.004·0.003인지 본다. 시작 직후 만피에서 몬스터를 잡아도 힐팩은 거의 없고, 자석·폭탄만 가끔 나온다.
+  2) 체력을 절반쯤 낮춘 뒤 처치하면 세 종류가 예전 비율로 나온다. 체력이 더 낮으면 힐팩이 늘고 자석·폭탄은 줄어든다.
+  3) 빠른 확인은 컴포넌트 메뉴 `테스트/힐팩|자석|폭탄 떨어뜨리기 (Play 중)`이다. 이 메뉴는 확률을 건너뛰고 지정한 종류를 바로 떨어뜨린다.
+- 이상 시: Console 첫 오류, `Scene Enemy Pool` 활성, `Max Field Items`. 만피에서도 힐팩이 나오면 `Roll`에 현재 체력이 들어가는지 확인한다.
+- 다음: MainScene에서 체력별 체감. 공유 1.4% 자체가 적거나 많으면 그때 기준 몫만 조정한다. GiungScene·Android 검증 제외.
+
+## 2026-11-17 Move 팔 동작 보정
+
+- 요청: Move도 팔이 부자연스러워 수정. 기존 일부 프레임의 양손 내밀기/옆 벌리기를 확인하고, imagegen으로 기존 move 8×8 시트를 참고해 몸 옆의 작은 팔 스윙을 사용하는 걷기 시트를 제작했다. 팔만 픽셀 합성한 방식이 아니라 전체 시트 재생성이라 몸/다리 표현도 미세하게 달라진다.
+- 적용: `Idle/animations/move`의 64 PNG와 meta의 Sprite Rect. 132×132 공통 캔버스/전체 Rect, 내부 그림 110×110과 투명 11px 여백. GUID·내부 ID·PPU·클립 참조/재생 시간·이동 속도·씬·프리팹은 그대로다. Run과 좌우 아이들 복근은 건드리지 않았다. 제작 원본/프롬프트 요지/재생성 스크립트/GIF는 `tools/BeastMoveArt`에 보존한다.
+- 검증: 64/64가 수정 전과 다름, 방향당 8개 고유 프레임, 크기·binary alpha·투명 여백·full Rect·Rect 외 meta 필드 보존 검사 통과. 원본/생성 시트 및 적용 east/3 육안 확인. 대상 diff 공백 검사 통과. Unity 컴파일·자동 테스트·MainScene Play·GIF 실제 재생 관찰은 미실행이다. 자동 검사는 동작 자연스러움의 증거로 간주하지 않는다.
+- 시작 시 move 경로 자체는 Git 변경 없음. 기존 다른 작업(스킬 데이터/코드·Handoff 포함)은 보존했다. 적용 전 move PNG/meta는 `.utmp/beast-move/before`에 백업했다.
+- 직접 확인: Play 종료 → 임포트 완료 → `Animator/Clips/BossWalk_East` 미리보기 재생 → 다른 7방향 확인. 팔을 몸 가까이 두고 작게 움직여야 한다. `tools/BeastMoveArt/preview.gif`는 위 N/NE/E/SE, 아래 S/SW/W/NW 순서다.
+- 이어 `Tools > Play From Title` 해제 → MainScene Play → 보스 일반 추격에서 걷기, 정지 시 Idle, 2페이즈 돌진 시 Run 전환을 확인한다. 새 그림의 크기/발 위치와 방향 전환 연결도 확인한다. 이전 그림/잘림이 보이면 move 폴더 Reimport, Sprite Editor의 full 132×132 Rect, Console 첫 오류 확인. 다음은 MainScene 실제 모션 체감 검증이다.
+
+## 2026-11-17 베기 범위 확대, 불기둥 1타 잔존 판정
+
+- 요청: 화염 부채·태양 강타와 다른 베기류는 범위가 너무 짧다. 불기둥은 레어에서 가장 강하므로, 다단 히트를 빼고 기둥이 남아 있는 동안 들어온 적만 `TakeDamage` 하게 하고, 범위를 줄이고 쿨을 조금 늘린다.
+- 베기: 부채·호 판정의 `Range`를 2 늘렸다. 각도·피해·MP·타격 수는 그대로다. 불 스킬은 범위 시트의 반경도 같이 맞춰 표와 판정이 어긋나지 않게 했다. 물 베기는 범위 시트 반경이 0이라 `Range`만 바꿨다. 화염 연사(10013)는 실행 시 정면 연사라 범위를 건드리지 않았다. 플레이테스트용 폭이며 확정 밸런스가 아니다.
+  - 태양 검 3.5→5.5, 화염 부채 3→5, 화염 베기 2.5→4.5, 태양 강타 3→5, 홍련 횡베기 3.2→5.2.
+  - 급류 부채 3.2→5.2, 심해 일섬 3.5→5.5, 수압 일섬 3.2→5.2, 급류 돌파 3.5→5.5, 횡단 수류 3.5→5.5, 절해 일섬 4→6.
+- 불기둥(20009): 타격 3→1, 반경 6→4, 보유 자동 시전 `PassiveCooldown` 6→7초. 카드 문구는 3회 연타가 아니라 한 번 태우는 설명이다. 구운 그림 길이(24프레임, 30fps, 약 0.8초) 동안 범위 안의 적과 그 뒤에 들어온 적을 한 번씩만 `TakeDamage` 한다. 같은 적은 그 기둥에서 다시 맞지 않는다. 레벨 4 이후 `타격 +1` 강화를 고르면 기존처럼 0.18초 간격으로 한 번 더 맞힐 수 있다. 장착 강공격 버튼의 차징 0.65초와 MP 14는 그대로다. 그 버튼에는 별도의 재사용 대기시간이 없다.
+- 데이터: `Document/SkillDatatable.xlsx`와 `Assets/Resources/Data/CombatSkillTable.json`. 코드: `LightSkillFx`가 20009만 잔존 판정으로 처리한다. 다른 다단 히트 스킬은 이전과 같다. 씬·프리팹·이펙트 그림은 바꾸지 않았다.
+- 검증(이번 변경에 실제 실행): `CombatSkillTableValidation` **31/32**. 새 검사 `slashes reach farther and the flame pillar hits once`와 엑셀·JSON 필드 일치는 통과했다. 실패 1개는 `shipped JSON keeps combat values and blank passive columns`로, 10001 아이콘이 빈 칸이길 기대하는데 JSON은 `SkillIcons/SkillIcon_10001`이다. 변경 전 인수인계와 같은 기존 검사이고 이번 범위·불기둥 변경과 무관하다. Unity 컴파일·Play·자동 테스트는 실행하지 않았다.
+- 변경 보존: 시작 시 main/90c00c0. 스킬 아이콘·보스 달리기 그림·MainScene·ProjectSettings·UiFontScale 등 기존 로컬 변경은 유지했다. 커밋·브랜치 전환 없음.
+- 직접 확인: 엑셀이 `Document/SkillDatatable.xlsx`를 열고 있었다면 저장하지 말고 닫은 뒤 다시 연다. Play 종료 → Unity 임포트·컴파일 후 Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** Play → Hierarchy `CombatUI`의 `CombatPopupController` 메뉴 `테스트/원하는 카드 고르기`.
+  1) `화염 부채`(10011)·`태양 강타`(20010)·`화염 베기`(20006)·`태양 검`(10007)·`홍련 횡베기`(20011)는 조준 방향 부채·호가 이전보다 약 2 더 멀다. 각도는 그대로이고 뒤의 적은 맞지 않는다.
+  2) `급류 부채`(10028)·`심해 일섬`(10035)·`수압 일섬`(20017)·`급류 돌파`(20018)·`횡단 수류`(20025)·`절해 일섬`(20029)도 같은 폭으로 길다.
+  3) `불기둥`(20009) 바닥 원은 이전보다 작다. 안에 있던 적과, 기둥이 보이는 동안 새로 들어온 적은 한 번만 맞는다. 그 자리에 계속 서 있어도 추가 타격은 없다. 보유만 한 상태의 자동 발사는 약 7초마다다.
+- 이상 시: Console 첫 오류. JSON `20009`의 `Hits` 1, `Range`·`Radius` 4, `PassiveCooldown` 7. `10011`의 `Range`는 5. 기둥이 한 번 터지고 바로 사라지면 `Assets/Resources/LightSkills/Fx/Frames/FlamePillar.json`이 임포트됐는지 확인한다.
+- 다음: MainScene Play에서 베기 거리와 불기둥 한 방 체감. 아직 짧거나 세면 폭만 다시 조정한다. GiungScene·Android 검증 제외.
+
+## 2026-11-17 Run 체조 동작 제보 후 전용 달리기 그림 제작
+
+- 사용자 확인: 이전에 Run으로 복사한 Sprint도 몸 방향 회전·옆으로 다리 벌리기가 있어 체조처럼 보였다. 앞선 '정상 달리기' 판단은 잘못되었으며 아래 Sprint 재사용/재복사 기록은 폐기된 접근이다. `.utmp/beast-run-fix`의 apply/reapply는 다시 실행하지 않는다.
+- 최종: built-in imagegen으로 기존 보스 디자인을 참고한 Run 전용 8방향×8프레임을 새로 만들었다. 행마다 방향을 유지하고 팔을 허리~가슴 아래에 둔 채 다리를 앞뒤로 움직이도록 요청했다. 원본·프롬프트 요지·재생성 스크립트·12fps GIF는 `tools/BeastRunArt`에 보존한다. Run PNG 64장과 meta의 Sprite Rect를 적용했다. 132×132 공통 캔버스/전체 Rect, 그림 110×110 + 11px 투명 여백, binary alpha. GUID·내부 ID·클립 이름/재생 속도·게임 로직 유지. 이전 아이들 복근·씬·프리팹 변경 없음.
+- 검증: 새 PNG 64/64가 Sprint와 다르고 방향마다 8장 고유함, 132×132, 알파 0/255, 투명 외곽 여백, full Rect, Rect 외 meta 필드 보존 검사 통과. 원본 시트의 연속 프레임 및 실제 Run east/3 육안 확인. GIF 생성 완료. 대상 diff 공백 오류 없음(줄바꿈 변환 경고 있음). 기존 Sprint 바이트 일치 Unity 회귀 검사는 전용 그림/고정 전체 Rect 검사로 변경했다. Unity 컴파일/자동 테스트/실제 Play 및 GIF 실제 재생 관찰은 미실행이다. 그림의 동작 품질을 자동 검사로 검증했다고 간주하지 않는다.
+- 첫 파일 출력은 Unity 접근 중으로 추정되는 PNG 쓰기 오류로 중단됐으며 메모리 인코딩+짧은 쓰기 재시도로 64장 전체 재출력/검증 완료. 시작 run 백업은 `.utmp/beast-run-cycle/before`에 있다.
+- 직접 확인: Play 종료 → Unity 임포트/컴파일 완료 → `Animator/Clips/BossRun_East` 미리보기 재생 → 다른 7방향 확인. 이전처럼 몸이 다른 방향을 보거나 팔을 머리 위로 들며 다리를 옆으로 벌리지 않는지 본다. `tools/BeastRunArt/preview.gif`로 8방향 연속 동작을 비교할 수 있다.
+- 이어 `Tools > Play From Title` 해제 → MainScene Play → 보스 HP 50% 이하에서 원거리 돌진 유도. 새 달리기와 Idle 전환 시 몸 크기/발 위치도 확인한다. 이전 그림이 남으면 run 폴더 Reimport, Console 첫 오류와 BossRun 클립의 Sprite 참조를 확인한다. 다음 검증은 MainScene 실제 모션 체감·전환이다.
+
+## 2026-11-17 Run 동쪽 8프레임 이전 버전 복원 실수 재교체
+
+- 사용자 요청으로 재적용. 실제 확인 시 run/east의 0~7 PNG만 낮춘 팔 sprint 원본과 달랐고 다른 56장은 일치했다. Run 64장의 PNG/Rect를 다시 동기화했으며 GUID·Rect 외 meta 필드를 보존했다. BossRun의 원래 Run 클립 연결 유지. 아이들 복근·씬·프리팹·게임 로직 변경 없음.
+- 이번 정적 검사: 적용 전 그림 일치 56/64 → 적용 후 그림/Rect 일치 및 다른 meta 필드 보존 64/64 통과. 대상 diff 공백 검사 통과. Unity 컴파일·테스트·Play 실행 0개.
+- 재적용 직전 백업: `.utmp/beast-run-fix/reapply-59350b27f5fd45fb823ff7d63c206fe4` (임시). 기존 최초 백업은 보존했다.
+- 직접 확인: Play 종료 → Unity 임포트 완료 → run/east 0~7 이미지 → BossRun_East 미리보기 재생. 팔을 낮춘 달리기여야 한다. 이어 Tools > Play From Title 해제 → MainScene에서 2페이즈 돌진 확인. 구버전이 보이면 run 폴더 Reimport 및 Console 첫 오류 확인. 다음은 실제 게임 재생 확인이다.
+
+## 2026-11-17 Run 원본에도 낮춘 팔 달리기 적용 (앞 항목 보완)
+
+- 사용자 첨부처럼 Run을 직접 열면 머리 위로 팔을 든 그림이 남아 있었다. 직전 변경은 BossRun 상태의 클립 연결만 Sprint로 우회했기 때문이다. 이번에는 `Idle/animations/run` 8방향×8프레임 PNG 자체를 기존 같은 방향/번호의 sprint 그림으로 교체했다. 새 이미지 생성은 하지 않았다.
+- 각 run meta는 본체 Sprite Rect만 해당 sprint Rect와 같게 바꿨다. 그림 캔버스도 sprint 원본 규격을 사용한다. run의 GUID·internalID·이름·피벗·PPU·임포트 설정은 보존했고, 기존 BossRun 클립은 그대로 이 에셋을 읽는다. Boss.controller의 앞선 Sprint 우회 8줄은 원래 BossRun 클립 참조로 되돌려 정상 연결했다. 씬·프리팹·게임 로직·돌진 속도/피해 변경 없음. 좌우 아이들 복근은 유지한다.
+- 시작 시 run/east 8장에 추가 로컬 변경이 있었으므로 `.utmp/beast-run-fix/original-run`에 현재 run PNG/meta 전체를 백업한 뒤 요청한 교체를 적용했다. 다른 기존 변경은 유지했다. 이 백업은 임시 보존물이며 최종 에셋의 근거는 실제 run PNG/meta다.
+- 실제 정적 회귀 확인: 수정 전 낮춘 팔 그림 일치 0/64, 수정 후 PNG 일치·Rect 일치·Rect 외 meta 필드 보존 **64/64 통과**. Run east/5 실제 파일 육안 확인 및 앞서 확인한 sprint 전체 64프레임과 파일 해시 일치 확인. 대상 diff 공백 검사 통과. Unity 테스트는 추가/갱신했지만 이번 Unity 컴파일·테스트·실제 재생 실행 0개다.
+- 확인 순서: Play 종료 → Unity 임포트 완료 → Project `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/run/east`의 0~7 그림 확인 → `Animator/Clips/BossRun_East` 미리보기 재생. 이제 Run 원본/클립에서도 팔이 머리 위로 올라가지 않아야 한다. 다른 7방향도 동일하다.
+- 실제 확인: `Tools > Play From Title` 해제 → MainScene Play → 보스 HP 50% 이하, 원거리 돌진 유도. 오류 시 run 폴더 Reimport, Console 첫 오류, Sprite Editor의 Rect와 BossRun 방향별 참조를 확인한다. 다음은 MainScene에서 방향 전환/모션 연결/발 위치 확인. GiungScene 및 Android 검증 제외.
+
+
+## 2026-11-17 비스트 좀비 좌우 아이들 복근 및 달리기 팔 동작 수정
+
+- 요청: 좌우 아이들에서 배가 나온 모습을 복근으로 바꾸고, 달릴 때 팔을 머리 위로 응원하듯 흔드는 동작을 고친다.
+- 아이들: `Assets/2.Resources/Art/Beast_Zombie_Boss/Idle/animations/idle/{east,west}/0~3.png` 8장의 노출 복부만 교체했다. built-in imagegen으로 4×2 시트의 복근 시안을 만들고 System.Drawing으로 복부 영역만 원본에 합성했다. 최종 프롬프트 요지: 원래 회색 피부 픽셀 스타일·자세·8프레임 위치를 유지하고 둥근 복부만 선명한 복근/옆구리 근육으로 교체, 투명 배경. 실제 원본 크기는 east 96×96, west 96×95이며 그대로 보존했다. meta·GUID·Sprite Rect·아이들 클립·씬·프리팹 변경 없음.
+- 달리기 원인: `BossController.StartDashAnimation`은 2페이즈 돌진에 `BossRun`을 사용하며 기존 run 그림에 머리 위로 팔을 드는 프레임이 있다. 이미 있는 sprint 64프레임은 팔을 몸 옆에 두고 달린다. `Animator/Boss.controller`의 `BossRun Directions` 안 8개 클립 참조만 같은 방향 `BossSprint_*`로 바꿨다. 상태 이름·방향 좌표·돌진 속도·피해·1페이즈 body-charge·기존 원본 run/sprint 그림은 유지했다.
+- 실제 검증: PNG 8/8의 원본 크기·알파 0/255·복부 밖 보이는 픽셀 동일·meta SHA-256 동일 확인. 완성 시트 육안 확인. 달리기 참조 정적 회귀 검사는 수정 전 0/8, 수정 후 8/8이며 8방향 재생 길이·sample rate·loop 값이 기존 run과 동일하다. controller diff는 참조 8줄 교체뿐이다. 대상 코드/controller diff 공백 검사 통과.
+- Unity 회귀 테스트 `BeastZombieArtTests.PhaseTwoRunUsesLoweredArmSprintInEveryDirection`을 추가했지만 Unity 컴파일·EditMode 테스트·MainScene Play는 실행하지 않았다(이번 Unity 테스트 실행 0개). Android 빌드/기기 미검증. 이미지 합성 중 최초 복사 방식 및 west 높이 가정의 검사 실패를 수정한 뒤 최종 8/8 검사에 통과한 파일만 적용했다.
+- 변경 보존: 시작 main/90c00c0. 기존 스킬 아이콘 152장·관련 도구/UI 코드·MainScene·ProjectSettings·layout·Handoff의 변경을 보존하며 커밋/브랜치 전환 없이 작업했다.
+- 직접 확인: Play 종료 → 임포트/컴파일 완료 → Console 첫 오류 확인 → Project에서 Beast_Zombie_Boss/Animator/Boss.controller 열기 → `BossIdle` BlendTree의 FacingX/FacingY를 (1,0), (-1,0)으로 미리보기하면 배가 복근으로 보여야 한다. `BossRun` BlendTree는 8방향 모두 `BossSprint_*` 연결이며 재생 시 팔을 머리 위로 들지 않아야 한다.
+- 실제 게임: `Tools > Play From Title` 해제 → **MainScene** Play → 보스 등장 → HP 50% 이하로 2페이즈 진입 후 원거리에서 돌진 유도. 낮춘 팔로 달리고 돌진 이동/타격은 기존대로여야 한다. `Window > General > Test Runner > EditMode`에서 BeastZombieArtTests 실행 가능.
+- 이상 시: Console 첫 오류, PNG 및 Boss.controller Reimport, 실제 보스 Animator Controller 참조, BossRun의 8개 Sprint 연결을 확인한다. 다음 작업은 MainScene 실제 재생에서 아이들/돌진 전환·방향 전환·발 위치 확인이다. 임시 미리보기/검사 스크립트는 `.utmp/beast-abs`이며 영속 결과는 실제 PNG·controller·회귀 테스트다.
+
+
+## 2026-11-17 인게임 스킬 아이콘 76종 교체
+
+- 요청: 빈약한 인게임 스킬 아이콘을 각 스킬 컨셉에 맞게 전부 교체한다. 약공격 36·강공격 30·전략 10종을 반영했다. 불꽃·물결·얼음·바람·암석·전기, 탄환·창·파문·고리·파도, 회복·MP·방어·공격 역할을 큰 문양과 속성색으로 구분한다. 등급 테두리와 강공격 상단 마름모를 사용한다. 전략의 빈 등급은 중립 테두리로 표시하며 등급 데이터는 변경하지 않는다.
+- 에셋: `Assets/Resources/SkillIcons/Skill_<ID>.png` 76개(카드·장착 기본 그림), `Assets/2.Resources/Art/SkillIcons/SkillIcon_<ID>.png` 76개(투명 문양)를 256×256으로 교체했다. 기존 파일명·meta·GUID·Sprite Single·Point 설정은 보존했다. 스킬 JSON·엑셀·피해·MP·쿨타임·VFX는 변경하지 않았다. `SkillCardIcons`의 실행 로직은 그대로이며 PPT 원본이라는 낡은 주석만 갱신했다.
+- 제작: 기존 코드 기반 아이콘 제작 방식을 확장한 `tools/SkillIconArt/bake.mjs`. SVG 도형·그라데이션을 sharp 0.35.5로 PNG 렌더링한다. 외부 이미지/AI 이미지 생성은 사용하지 않았다. 재생성·검사 명령은 해당 README. 구형 `tools/WaterSkillIcons/bake.mjs`를 실행하면 물 그림이 구버전으로 돌아가므로 새 도구를 사용한다.
+- 검증: `tools/SkillIconValidation/Run.ps1` **7/7 통과**. 실제 `SkillCardIcons.cs`를 Unity 최소 대역과 함께 .NET에서 컴파일하여 로딩 우선순위·76개 fallback, 152개 PNG 규격·서로 다른 파일 내용·Sprite meta·GUID 중복 없음을 검사했다. 누락된 Validation.csproj와 그 파일의 Git ignore 예외를 추가하고, PPT와 바이트가 같아야 한다는 기존 검사를 새 디자인 규격으로 교체했다. `node tools/SkillIconArt/bake.mjs --check` **152/152 바이트 일치**. 전체 미리보기 육안 확인 완료. Unity 컴파일·실제 임포트·MainScene Play·Android 빌드/기기 검증은 이번 작업에서 실행하지 않았다.
+- 실행 중 제한: 첫 재출력에서 일시적 PNG 파일 접근 오류가 있어 짧은 재시도를 추가한 뒤 152개 재출력·검사 완료. 검증 도구 중복 실행으로 생긴 중간 DLL 잠금 오류는 중복 실행 종료 후 단독 재실행 7/7 통과로 확인했다. 이 환경 오류를 제품 실패로 계산하지 않는다.
+- 변경 보존: 시작 시 main/90c00c0, ProjectSettings.asset 사용자 변경 1개가 있었다. 해당 파일 SHA-256은 시작/종료 확인 때 동일하다. 작업 중 다른 작업의 MainScene 타이머 배율 제외·관련 스크립트·Handoff 기록과 layout1.wlt 파일이 추가된 것을 확인했으며 그대로 보존했다. 이 아이콘 작업에서는 씬·프리팹·meta를 수정하지 않았다. 전체 diff 공백 검사는 다른 작업의 MainScene `m_Name:` 공백을 보고했으며 이 작업의 코드·검증 파일 검사는 통과했다. 커밋·브랜치 전환 없음.
+- 직접 확인: Play 종료 → Unity 임포트 완료 및 Console 첫 오류 확인 → `Tools > Play From Title` 해제 → **MainScene** Play → Hierarchy `CombatUI`의 `CombatPopupController` 컴포넌트 메뉴 `테스트/원하는 카드 고르기`. 불꽃 탄환(10001), 물줄기(10022), 심연 소용돌이(10033), 화염 망치(20001), 대해 파도(20030), 급속 회복(30003), 물의 방패(30009)를 차례로 확인한다. 작은 중앙 점 대신 큰 속성 문양이 표시되어야 한다. 카드를 장착하고 상태창의 장착 스킬 그림도 확인한다.
+- 이상 시: Console 첫 오류, 해당 `Resources/SkillIcons/Skill_<ID>.png`의 Texture Type Sprite (2D and UI)·Sprite Mode Single 확인. 구형 그림이 남으면 Play 종료 후 해당 PNG를 Reimport하고 다시 Play한다. 명시 아이콘 캐시가 사용되는 경우 `2.Resources/Art/SkillIcons/SkillIcon_<ID>.png`도 갱신되었는지 확인한다.
+- 다음: MainScene 실제 Play에서 카드·상태창 축소 가독성과 화면 비율별 표시 확인. 전체 미리보기/목록은 `.utmp/skill-icons`에 생성되지만 영속 근거는 도구·실제 PNG·검증 코드다.
+
+## 2026-11-17 타이머 글자는 전역 1.3배에서 제외
+
+- 요청: 전역 글자 배율이 타이머처럼 그림에 맞춰 둔 글자까지 키워서 어색하다.
+- 변경: `UiFontScale.ApplyTo`는 자신이나 부모에 `UiFontScaleExempt`가 있으면 크기를 바꾸지 않는다. `MainScene`의 `Canvas/Timer`에만 이 컴포넌트를 붙였다. `Digits`의 46은 그대로다. 다른 TMP의 1.3배, GiungScene, 타이머 배경·폰트·시간 표시는 바꾸지 않았다.
+- 검증: Unity 컴파일·Play·자동 테스트는 이번 변경에서 실행하지 않았다.
+- 직접 확인: Play 종료 후 Unity 임포트·컴파일, Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** → `Canvas > Timer`에 `UiFontScaleExempt`가 있는지 확인 → Play. 타이머 숫자는 46으로 배경 안에 있고, 다른 UI 글자는 이전처럼 약 1.3배다. Play를 끄면 `Digits` Font Size는 46이다.
+- 이상 시: Console 첫 오류, Timer의 `UiFontScaleExempt`, Digits Font Size 46. 제외 컴포넌트가 Missing이면 스크립트 임포트가 안 끝난 것이다.
+- 다음: MainScene Play에서 타이머가 배경에 맞는지, 나머지 HUD 글자 크기를 확인한다.
+
 ## 2026-11-17 MainScene 타이머 배경·TMP 디지털 폰트 적용
 
 - 사용자 작업 기준: 앞으로 씬 작업은 **MainScene만** 한다. GiungScene은 무시하고 수정·검증하지 않는다. 로컬 `AGENTS.md`에도 기록했다.

@@ -421,6 +421,7 @@ public sealed class CombatPopupController : MonoBehaviour
             SkillId = skill.Id, Name = skill.Name, Rarity = rarity != null ? rarity.Id : id, Accent = accent,
             Icon = SkillCardIcons.Get(skill.Id, skill.Icon),
             ActiveDescription = description, ActiveButtonLabel = skill.Id >= 30000 ? "Skill" : skill.Id >= 20000 ? "C" : "N",
+            PassiveDescription = LevelUpSkillDraft.FormatPassiveDescription(skill),
             FlavorText = skill.Explanation
         };
     }

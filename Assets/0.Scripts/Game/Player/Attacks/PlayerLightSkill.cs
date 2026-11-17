@@ -78,7 +78,12 @@ internal sealed class PlayerLightSkill
             if (manualEmission != null) manualEmission();
             else
                 Managers.Pool.Pop(projectile, owner.transform.position, Quaternion.identity,
-                    initialize: go => go.GetComponent<Bullet>().InitDirection(direction, damage, speed));
+                    initialize: go =>
+                    {
+                        Bullet bullet = go.GetComponent<Bullet>();
+                        bullet.InitDirection(direction, damage, speed);
+                        bullet.ImpactHaptic = true;
+                    });
         }
         catch (System.Exception exception)
         {

@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class LightSkillFx : MonoBehaviour, IPoolable
 {
     private const int HeatWaveSkillId = 20008;
+    private const int FlamePillarSkillId = 20009;
     private const float HeatWaveKnockbackMultiplier = 3f;
 
     private SpriteRenderer spriteRenderer;
@@ -34,6 +35,8 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private bool clipLoop;
     private float clipTime;
     private bool homing;
+    // 불기둥은 같은 적을 여러 번 때리지 않습니다. 그림이 남아 있는 동안 범위에 있는 적과 새로 들어온 적을 한 번씩 맞습니다.
+    private bool pillarLinger;
     private Vector2 castOrigin;
     private Vector2 fallbackAim;
     private Collider2D target;
@@ -64,6 +67,8 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
     private const float HomingExtraLife = 0.8f;
 
     internal System.Action<Vector3> ProjectileHitFlash { get; set; }
+    // 직접 누른 공격만 적중 진동을 켭니다. 보유 자동 발사는 켜지 않습니다.
+    internal bool ImpactHaptic;
 
     public void OnPoolRent() => Cache();
     public void OnPoolReturn()
@@ -72,8 +77,10 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         bursting = false;
         forking = false;
         homing = false;
+        pillarLinger = false;
         target = null;
         ProjectileHitFlash = null;
+        ImpactHaptic = false;
         HideForks();
         StopAllCoroutines();
         hitIds.Clear();
@@ -90,12 +97,16 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
         float sizeMul = Mathf.Max(0.01f, projectileSize);
         hitsLeft = Mathf.Max(1, skill.Hits);
         hitTimer = 0f;
+        pillarLinger = skill.Id == FlamePillarSkillId;
+        // 강화로 타격이 늘었을 때만, 그 간격이 지난 뒤에 한 번 더 맞힐 수 있게 둡니다.
+        if (pillarLinger && hitsLeft > 1) hitTimer = skill.RepeatSpacing;
         traveled = 0f;
         life = projectile ? skill.Range / ProjectileSpeed + 0.2f : 0.45f + skill.RepeatSpacing * (hitsLeft - 1);
         frame = 0;
         frameTimer = 0f;
         hitIds.Clear();
         running = true;
+        ImpactHaptic = false;
         bursting = false;
         forking = false;
         homing = false;
@@ -314,7 +325,22 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             return;
         }
 
-        if (hitsLeft > 0)
+        if (pillarLinger)
+        {
+            if (hitsLeft > 1)
+            {
+                hitTimer -= Time.deltaTime;
+                if (hitTimer <= 0f)
+                {
+                    hitsLeft--;
+                    hitIds.Clear();
+                    hitTimer = skill.RepeatSpacing;
+                }
+            }
+            // 이미 맞은 적은 hitIds에 남아 다시 맞지 않습니다. 아직 안 맞은 적이 범위 안에 있으면 TakeDamage합니다.
+            Strike();
+        }
+        else if (hitsLeft > 0)
         {
             hitTimer -= Time.deltaTime;
             if (hitTimer <= 0f)
@@ -625,7 +651,9 @@ public sealed class LightSkillFx : MonoBehaviour, IPoolable
             health.TakeDamage(damage, HeatWaveKnockbackMultiplier);
         else
             damageable.TakeDamage(damage);
-        return health == null || health.CurrentHealth < previousHealth;
+        bool landed = health == null || health.CurrentHealth < previousHealth;
+        if (landed && ImpactHaptic) DeviceHaptics.Play(HapticCue.Hit);
+        return landed;
     }
 
     private void Finish()

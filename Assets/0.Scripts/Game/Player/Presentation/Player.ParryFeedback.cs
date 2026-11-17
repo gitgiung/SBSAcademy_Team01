@@ -98,25 +98,44 @@ public sealed partial class Player
         float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Max(0f, value);
 }
 
-/// <summary>패링 성공 순간의 짧은 기기 진동. 에디터와 PC에서는 재생하지 않습니다.</summary>
+/// <summary>패링·가드 막기·피격·직접 공격 적중의 짧은 진동. 에디터와 PC에서는 재생하지 않습니다.</summary>
 public static class DeviceHaptics
 {
+    private static long nextSoftMilliseconds;
+
     public static void Pulse(long milliseconds = 40)
     {
         if (milliseconds <= 0) return;
+        Play(HapticCue.Parry);
+    }
+
+    public static void Play(HapticCue cue)
+    {
+        long now = (long)(System.Diagnostics.Stopwatch.GetTimestamp()
+            * (1000.0 / System.Diagnostics.Stopwatch.Frequency));
+        if (!HapticSchedule.Accept(cue, now, ref nextSoftMilliseconds)) return;
 #if UNITY_ANDROID && !UNITY_EDITOR
-        try { AndroidPulse(milliseconds); }
+        try { AndroidPulse(cue); }
         catch (System.Exception exception)
         {
-            Debug.LogWarning("패링 진동을 재생하지 못했습니다: " + exception.Message);
+            Debug.LogWarning("햅틱을 재생하지 못했습니다: " + exception.Message);
         }
 #elif UNITY_IOS && !UNITY_EDITOR
-        Handheld.Vibrate();
+        try { SBSImpactHaptic(cue == HapticCue.Parry ? 2 : cue == HapticCue.Hurt ? 1 : 0); }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning("햅틱을 재생하지 못했습니다: " + exception.Message);
+        }
 #endif
     }
 
+#if UNITY_IOS && !UNITY_EDITOR
+    [System.Runtime.InteropServices.DllImport("__Internal")]
+    private static extern void SBSImpactHaptic(int style);
+#endif
+
 #if UNITY_ANDROID && !UNITY_EDITOR
-    private static void AndroidPulse(long milliseconds)
+    private static void AndroidPulse(HapticCue cue)
     {
         using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
         using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
@@ -126,17 +145,43 @@ public static class DeviceHaptics
             using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
             {
                 int sdk = version.GetStatic<int>("SDK_INT");
+                if (sdk >= 30 && TryPredefined(vibrator, cue)) return;
+                long milliseconds = HapticSchedule.Milliseconds(cue);
+                if (milliseconds <= 0) return;
                 if (sdk >= 26)
                 {
                     using (var effectClass = new AndroidJavaClass("android.os.VibrationEffect"))
                     {
                         int amplitude = effectClass.GetStatic<int>("DEFAULT_AMPLITUDE");
-                        using (var effect = effectClass.CallStatic<AndroidJavaObject>("createOneShot", milliseconds, amplitude))
+                        if (vibrator.Call<bool>("hasAmplitudeControl"))
+                            amplitude = HapticSchedule.Amplitude(cue);
+                        using (var effect = effectClass.CallStatic<AndroidJavaObject>(
+                            "createOneShot", milliseconds, amplitude))
                             vibrator.Call("vibrate", effect);
                     }
                 }
                 else vibrator.Call("vibrate", milliseconds);
             }
+        }
+    }
+
+    // 클릭·틱·강한 클릭은 API 29, 지원 확인은 API 30입니다. 없으면 길이 진동으로 돌아갑니다.
+    private static bool TryPredefined(AndroidJavaObject vibrator, HapticCue cue)
+    {
+        int effectId = cue == HapticCue.Parry ? 5 : cue == HapticCue.Guard ? 0 : cue == HapticCue.Hit ? 2 : -1;
+        if (effectId < 0) return false;
+        try
+        {
+            int[] support = vibrator.Call<int[]>("areEffectsSupported", new int[] { effectId });
+            if (support == null || support.Length == 0 || support[0] != 1) return false;
+            using (var effectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+            using (var effect = effectClass.CallStatic<AndroidJavaObject>("createPredefined", effectId))
+                vibrator.Call("vibrate", effect);
+            return true;
+        }
+        catch (System.Exception)
+        {
+            return false;
         }
     }
 #endif

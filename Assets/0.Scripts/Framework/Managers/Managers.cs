@@ -131,8 +131,6 @@ public class Managers : MonoBehaviour
         _sound.Init(transform);
         AndroidCapturePermit.EnsureOn(gameObject);
         GameScreenshot.EnsureOn(gameObject);
-        if (GetComponent<UiFontScaleBootstrap>() == null)
-            gameObject.AddComponent<UiFontScaleBootstrap>();
         Initialized = true;
     }
 

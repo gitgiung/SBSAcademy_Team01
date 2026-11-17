@@ -29,7 +29,7 @@ public static class CombatSkillTableExporter
         string jsonPath = Path.Combine(directory, "CombatSkillTable.json");
         File.WriteAllText(jsonPath, JsonUtility.ToJson(file, true), new UTF8Encoding(false));
         AssetDatabase.Refresh();
-        Debug.Log($"전투 스킬 {file.skills.Count}개와 등급 {file.rarities.Count}개를 저장했습니다: {jsonPath}");
+        Debug.Log($"전투 스킬 {file.skills.Count}개, 등급 {file.rarities.Count}개, 퓨전 {file.fusions.Count}개를 저장했습니다: {jsonPath}");
     }
 }
 
@@ -50,6 +50,7 @@ public static class CombatSkillWorkbook
 
         CombatSkillTableFile file = new CombatSkillTableFile();
         ReadRarities(zip, sheets, shared, file.rarities);
+        ReadFusions(zip, sheets, shared, records, file.fusions);
         List<int> ids = new List<int>(records.Keys);
         ids.Sort();
         foreach (int id in ids) file.skills.Add(records[id]);
@@ -73,6 +74,45 @@ public static class CombatSkillWorkbook
                 throw new InvalidDataException($"Skill_Rarity E{row}: 올바르지 않은 가중치입니다.");
             result.Add(new SkillRarityRecord { Id = id, Name = Cell(cells, "D", row), Weight = weight,
                 Frame = Cell(cells, "F", row), ColorHex = Cell(cells, "G", row) });
+        }
+    }
+
+    private static void ReadFusions(ZipArchive zip, Dictionary<string, string> sheets, List<string> shared,
+        Dictionary<int, CombatSkillRecord> skills, List<SkillFusionRecord> result)
+    {
+        if (!sheets.TryGetValue("FusionSkilltable", out string path))
+            throw new InvalidDataException("FusionSkilltable 시트가 없습니다.");
+        Dictionary<string, string> cells = ReadCells(zip, path, shared);
+        var seen = new HashSet<int>();
+        for (int row = 3; row < 1000; row++)
+        {
+            if (!int.TryParse(Cell(cells, "C", row), NumberStyles.Integer, CultureInfo.InvariantCulture, out int id))
+                continue;
+            string name = Cell(cells, "D", row);
+            if (string.IsNullOrEmpty(name)) continue;
+            if (!seen.Add(id)) throw new InvalidDataException($"FusionSkilltable C{row}: 중복 퓨전 {id}");
+            if (!skills.ContainsKey(id))
+                throw new InvalidDataException($"FusionSkilltable C{row}: 결과 스킬 {id}이 없습니다.");
+            if (!int.TryParse(Cell(cells, "E", row), NumberStyles.Integer, CultureInfo.InvariantCulture, out int activeId)
+                || !skills.ContainsKey(activeId))
+                throw new InvalidDataException($"FusionSkilltable E{row}: 만렙 액티브 스킬이 없습니다.");
+            if (!int.TryParse(Cell(cells, "G", row), NumberStyles.Integer, CultureInfo.InvariantCulture, out int passiveId))
+                throw new InvalidDataException($"FusionSkilltable G{row}: 패시브 카드 아이디가 없습니다.");
+            string activeCondition = Cell(cells, "I", row);
+            string passiveCondition = Cell(cells, "J", row);
+            if (string.IsNullOrEmpty(activeCondition)) activeCondition = "MaxLevel";
+            if (string.IsNullOrEmpty(passiveCondition)) passiveCondition = "Acquire";
+            result.Add(new SkillFusionRecord
+            {
+                Id = id,
+                Name = name,
+                ActiveSkillId = activeId,
+                ActiveSkillName = Cell(cells, "F", row),
+                PassiveCardId = passiveId,
+                PassiveCardName = Cell(cells, "H", row),
+                ActiveCondition = activeCondition,
+                PassiveCondition = passiveCondition
+            });
         }
     }
 
@@ -121,7 +161,8 @@ public static class CombatSkillWorkbook
                 SimpleDescription = Cell(cells, "AF", row),
                 Explanation = Cell(cells, "AG", row),
                 PassiveCooldown = Number(cells, "AH", row),
-                PassiveScale = Number(cells, "AI", row)
+                PassiveScale = Number(cells, "AI", row),
+                PassiveDescription = Cell(cells, "AP", row)
             };
         }
     }

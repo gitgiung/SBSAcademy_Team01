@@ -1,0 +1,8 @@
+{
+  "textures": 577,
+  "rebuilt": 368,
+  "unchangedPng": 209,
+  "unchangedOtherFiles": 226,
+  "checks": "world dimensions, metadata except size/PPU/compression, binary alpha/margins, all other files byte identical",
+  "unityPlay": "not run"
+}

@@ -73,10 +73,22 @@ public static class LevelUpSkillDraft
     public static string FormatDescription(CombatSkillRecord skill)
     {
         string value = string.IsNullOrEmpty(skill.SimpleDescription) ? skill.Description ?? "" : skill.SimpleDescription;
+        return ApplyTokens(skill, value);
+    }
+
+    public static string FormatPassiveDescription(CombatSkillRecord skill)
+    {
+        if (skill == null || string.IsNullOrEmpty(skill.PassiveDescription)) return "";
+        return ApplyTokens(skill, skill.PassiveDescription);
+    }
+
+    private static string ApplyTokens(CombatSkillRecord skill, string value)
+    {
         return value.Replace("{Projectile_Count}", Number(skill.Projectiles))
             .Replace("{Base_Value}", Number(skill.BaseValue)).Replace("{Scaling_Factor}", Number(skill.Factor))
             .Replace("{Cast_Time}", Number(skill.CastTime)).Replace("{Hit_Count}", Number(skill.Hits))
-            .Replace("{Hit_Delay}", Number(skill.HitDelay)).Replace("{Effect_Duration}", Number(skill.EffectDuration));
+            .Replace("{Hit_Delay}", Number(skill.HitDelay)).Replace("{Effect_Duration}", Number(skill.EffectDuration))
+            .Replace("{Passive_Cooldown}", Number(skill.PassiveCooldown));
     }
 
     private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);

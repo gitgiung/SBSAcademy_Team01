@@ -248,6 +248,7 @@ public sealed class BossEncounterController : MonoBehaviour
     private void OnBossDied()
     {
         if (Phase != EncounterPhase.BossFight) return;
+        EnemyHealth defeatedBoss = bossHealth;
         HideBossHealthBar();
         if (bossHealth != null)
         {
@@ -262,10 +263,30 @@ public sealed class BossEncounterController : MonoBehaviour
             nextRound++;
         }
         Phase = schedule != null && HasNextRound ? EncounterPhase.TimedCombat : EncounterPhase.AfterBoss;
+        if (defeatedBoss != null && defeatedBoss.IsDead)
+            DropBossMagnet(defeatedBoss.transform.position);
         ArmNextBoundary();
         ResumeCombat();
         TryBeginDueRound();
         RefreshDisplay(true);
+    }
+
+    private void DropBossMagnet(Vector3 position)
+    {
+        var dropper = spawnDirector != null ? spawnDirector.SpawnPool as IBossDefeatDropper : null;
+        if (dropper == null)
+        {
+            foreach (var behaviour in FindObjectsByType<MonoBehaviour>())
+            {
+                if (behaviour.gameObject.scene != gameObject.scene || !behaviour.isActiveAndEnabled ||
+                    !(behaviour is IBossDefeatDropper candidate)) continue;
+                dropper = candidate;
+                break;
+            }
+        }
+
+        try { dropper?.TryDropBossMagnet(position); }
+        catch (System.Exception exception) { Debug.LogException(exception, this); }
     }
 
     private bool PrepareScheduledBoss()

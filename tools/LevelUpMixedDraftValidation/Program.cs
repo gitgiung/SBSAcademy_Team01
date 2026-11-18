@@ -151,6 +151,27 @@ internal static class Program
             Check(Math.Abs(player.MoveSpeed - 5.25f) < 1e-5);
             Check(player.speed == 5f);
         });
+        Test("Editor defense bonus changes HP loss and stacks with defense cards", () =>
+        {
+            var player = new PlayerData();
+            Check(player.ApplyDamage(10f) && player.currentHealth == 90f);
+            player.TestDefenseBonus = 10f;
+            Check(player.ApplyDamage(10f, out float healthLost));
+            Check(Math.Abs(healthLost - 10f * 33.34f / 43.34f) < 1e-5);
+            Check(Math.Abs(player.currentHealth - (90f - 10f * 33.34f / 43.34f)) < 1e-5);
+            Check(player.TryUpgradeStat(Card(PlayerStat.DEF), 1) && player.Defense == 12f);
+            player.TestDefenseBonus = 0f;
+            Check(player.Defense == 2f);
+        });
+        Test("Reported HP loss accounts for shield absorption and remaining health", () =>
+        {
+            var player = new PlayerData { currentHealth = 5f };
+            player.GrantShield(10f, 5f);
+            Check(player.ApplyDamage(4f, out float absorbed) && absorbed == 0f && player.CurrentShield == 6f);
+            Check(player.ApplyDamage(8f, out float partial) && partial == 2f && player.currentHealth == 3f);
+            Check(player.ApplyDamage(10f, out float lethal) && lethal == 3f && player.IsDead);
+            Check(!player.ApplyDamage(10f, out float rejected) && rejected == 0f);
+        });
         Test("PlayerData composes damage and applies XP before fractional carry", () =>
         {
             var player = new PlayerData { experiencePickupDistance = 3f };

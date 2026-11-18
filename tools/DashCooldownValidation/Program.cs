@@ -20,6 +20,19 @@ static class Program
         Test("쿨타임 0은 즉시 준비 표시",()=>{var m=New(); m.TryBeginDash(new Vector2(1,0),.1f,2,0); Near(0,m.DashCooldownRemaining); Near(1,m.DashCooldownProgress);});
         Test("게임 시간이 멈추면 표시도 유지",()=>{var m=New(); m.TryBeginDash(new Vector2(1,0),.1f,2,3); Time.time=1; float before=m.DashCooldownProgress; Near(before,m.DashCooldownProgress);});
         Test("재사용 후 새 쿨타임 반영",()=>{var m=New(); m.TryBeginDash(new Vector2(1,0),.1f,2,3); m.Reset(); Time.time=3; Check(m.TryBeginDash(new Vector2(1,0),.1f,2,6)); Time.time=6; Near(.5f,m.DashCooldownProgress);});
+        Test("쿨타임 초기화는 진행 중인 대시를 유지하고 종료 뒤 즉시 재사용", () =>
+        {
+            var movement = New();
+            var direction = new Vector2(1, 0);
+            Check(movement.TryBeginDash(direction, .1f, 2, 3));
+            Time.time = 1;
+            movement.ResetDashCooldown();
+            Near(0, movement.DashCooldownRemaining);
+            Near(1, movement.DashCooldownProgress);
+            Check(movement.IsDashing);
+            movement.Reset();
+            Check(movement.TryBeginDash(direction, .1f, 2, 3));
+        });
         Console.WriteLine($"{count-failures}/{count} 통과"); return failures==0?0:1;
     }
 }

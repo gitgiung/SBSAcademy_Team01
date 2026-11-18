@@ -226,7 +226,7 @@ skills.forEach((skill, index) => {
     card[d] = g.px[s]; card[d + 1] = g.px[s + 1]; card[d + 2] = g.px[s + 2]; card[d + 3] = g.px[s + 3];
   }
   const glyphPath = path.join(root, `Assets/2.Resources/Art/SkillIcons/SkillIcon_${skill.id}.png`);
-  const cardPath = path.join(root, `Assets/Resources/SkillIcons/Skill_${skill.id}.png`);
+  const cardPath = path.join(root, skill.id === 10025 ? 'Assets/RemoteContent/SkillPilot/Skill_10025.png' : `Assets/Resources/SkillIcons/Skill_${skill.id}.png`);
   fs.writeFileSync(glyphPath, encodePng(32, 32, g.px));
   fs.writeFileSync(cardPath, encodePng(64, 64, card));
   if (!fs.existsSync(glyphPath + '.meta'))

@@ -103,10 +103,13 @@ for (const e of effects) {
   montage.push({ name: e.name, w: r.w, h: r.h, frames: r.frames.map((f) => f.clear) });
   console.log(`${e.name.padEnd(18)} ${String(n).padStart(2)} frames ${w}x${h} sheet ${W}x${H} ${(W * H * 4 / 1048576).toFixed(2)} MB${touches.length ? "  !! touches " + touches.join(",") : ""}`);
   if (previewOnly) continue;
-  writeFileSync(join(outDir, e.name + ".png"), encodePNG(W, H, sheet));
-  writeFileSync(join(jsonDir, e.name + ".json"), JSON.stringify(info, null, 1) + "\n");
-  keep(join(outDir, e.name + ".png.meta"), textureMeta);
-  keep(join(jsonDir, e.name + ".json.meta"), textMeta);
+  const targetDir = e.name === "WaterArrow" ? join(repo, "Assets", "RemoteContent", "SkillPilot") : outDir;
+  const targetFrames = e.name === "WaterArrow" ? join(targetDir, "Frames") : jsonDir;
+  mkdirSync(targetFrames, { recursive: true });
+  writeFileSync(join(targetDir, e.name + ".png"), encodePNG(W, H, sheet));
+  writeFileSync(join(targetFrames, e.name + ".json"), JSON.stringify(info, null, 1) + "\n");
+  keep(join(targetDir, e.name + ".png.meta"), textureMeta);
+  keep(join(targetFrames, e.name + ".json.meta"), textMeta);
 }
 console.log(`total ${(total / 1048576).toFixed(1)} MB uncompressed${previewOnly ? " (preview only, nothing written to Assets)" : ""}`);
 

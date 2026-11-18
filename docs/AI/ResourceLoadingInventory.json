@@ -1,0 +1,495 @@
+{
+  "date": "2026-11-17",
+  "branch": "adressable-resources-loading",
+  "commit": "90c00c0",
+  "unit": "MiB = 1048576 bytes; source file sizes, not Android build sizes",
+  "exclusions": [
+    ".meta bytes",
+    "GiungScene.unity and GiungScene.unity.meta contents",
+    "Packages and Library data"
+  ],
+  "assets": {
+    "count": 3327,
+    "bytes": 79559169
+  },
+  "folders": [
+    {
+      "name": "Assets/Plugins",
+      "count": 264,
+      "bytes": 26463651,
+      "MiB": 25.24
+    },
+    {
+      "name": "Assets/2.Resources",
+      "count": 2221,
+      "bytes": 23091614,
+      "MiB": 22.02
+    },
+    {
+      "name": "Assets/Resources",
+      "count": 505,
+      "bytes": 9874739,
+      "MiB": 9.42
+    },
+    {
+      "name": "Assets/UI",
+      "count": 6,
+      "bytes": 9037849,
+      "MiB": 8.62
+    },
+    {
+      "name": "Assets/Editor",
+      "count": 8,
+      "bytes": 3989525,
+      "MiB": 3.8
+    },
+    {
+      "name": "Assets/TextMesh Pro",
+      "count": 33,
+      "bytes": 3939235,
+      "MiB": 3.76
+    },
+    {
+      "name": "Assets/9.Scenes",
+      "count": 5,
+      "bytes": 1230667,
+      "MiB": 1.17
+    },
+    {
+      "name": "Assets/0.Scripts",
+      "count": 160,
+      "bytes": 737020,
+      "MiB": 0.7
+    },
+    {
+      "name": "Assets/Joystick Pack",
+      "count": 43,
+      "bytes": 569472,
+      "MiB": 0.54
+    },
+    {
+      "name": "Assets/1.Prefabs",
+      "count": 44,
+      "bytes": 383008,
+      "MiB": 0.37
+    },
+    {
+      "name": "Assets/Tests",
+      "count": 20,
+      "bytes": 100401,
+      "MiB": 0.1
+    },
+    {
+      "name": "Assets/InputSystem_Actions.inputactions",
+      "count": 1,
+      "bytes": 44581,
+      "MiB": 0.04
+    },
+    {
+      "name": "Assets/4.Tilemap",
+      "count": 2,
+      "bytes": 31266,
+      "MiB": 0.03
+    },
+    {
+      "name": "Assets/UniversalRenderPipelineGlobalSettings.asset",
+      "count": 1,
+      "bytes": 26619,
+      "MiB": 0.03
+    },
+    {
+      "name": "Assets/DefaultVolumeProfile.asset",
+      "count": 1,
+      "bytes": 19575,
+      "MiB": 0.02
+    },
+    {
+      "name": "Assets/AddressableAssetsData",
+      "count": 10,
+      "bytes": 14691,
+      "MiB": 0.01
+    },
+    {
+      "name": "Assets/Settings",
+      "count": 2,
+      "bytes": 3848,
+      "MiB": 0
+    },
+    {
+      "name": "Assets/3.Datas",
+      "count": 1,
+      "bytes": 1408,
+      "MiB": 0
+    }
+  ],
+  "runtimeResources": [
+    {
+      "name": "Assets/Resources",
+      "count": 505,
+      "bytes": 9874739,
+      "MiB": 9.42
+    },
+    {
+      "name": "Assets/TextMesh Pro/Resources",
+      "count": 8,
+      "bytes": 2288358,
+      "MiB": 2.18
+    }
+  ],
+  "resourcesBySubfolder": [
+    {
+      "name": "Assets/Resources/LightSkills",
+      "count": 283,
+      "bytes": 9026697,
+      "MiB": 8.61
+    },
+    {
+      "name": "Assets/TextMesh Pro/Resources/Fonts & Materials",
+      "count": 4,
+      "bytes": 2280470,
+      "MiB": 2.17
+    },
+    {
+      "name": "Assets/Resources/BossAttackVfx",
+      "count": 51,
+      "bytes": 431448,
+      "MiB": 0.41
+    },
+    {
+      "name": "Assets/Resources/PlayerAnimator",
+      "count": 49,
+      "bytes": 176825,
+      "MiB": 0.17
+    },
+    {
+      "name": "Assets/Resources/Data",
+      "count": 2,
+      "bytes": 107206,
+      "MiB": 0.1
+    },
+    {
+      "name": "Assets/Resources/PlayerDefenseVfx",
+      "count": 23,
+      "bytes": 62891,
+      "MiB": 0.06
+    },
+    {
+      "name": "Assets/Resources/FieldItems",
+      "count": 18,
+      "bytes": 36801,
+      "MiB": 0.04
+    },
+    {
+      "name": "Assets/Resources/SkillIcons",
+      "count": 76,
+      "bytes": 27626,
+      "MiB": 0.03
+    },
+    {
+      "name": "Assets/TextMesh Pro/Resources/Style Sheets",
+      "count": 1,
+      "bytes": 5620,
+      "MiB": 0.01
+    },
+    {
+      "name": "Assets/Resources/SkillProjectiles",
+      "count": 2,
+      "bytes": 5101,
+      "MiB": 0
+    },
+    {
+      "name": "Assets/TextMesh Pro/Resources/TMP Settings.asset",
+      "count": 1,
+      "bytes": 1904,
+      "MiB": 0
+    },
+    {
+      "name": "Assets/TextMesh Pro/Resources/LineBreaking Following Characters.txt",
+      "count": 1,
+      "bytes": 269,
+      "MiB": 0
+    },
+    {
+      "name": "Assets/Resources/Shadows",
+      "count": 1,
+      "bytes": 144,
+      "MiB": 0
+    },
+    {
+      "name": "Assets/TextMesh Pro/Resources/LineBreaking Leading Characters.txt",
+      "count": 1,
+      "bytes": 95,
+      "MiB": 0
+    }
+  ],
+  "sceneGuidCandidates": {
+    "Assets/9.Scenes/TitleScene.unity": {
+      "count": 4,
+      "bytes": 4056480,
+      "MiB": 3.87
+    },
+    "Assets/9.Scenes/LoadScene.unity": {
+      "count": 9,
+      "bytes": 8521566,
+      "MiB": 8.13
+    },
+    "Assets/9.Scenes/LobbyScene.unity": {
+      "count": 8,
+      "bytes": 8623922,
+      "MiB": 8.22
+    },
+    "Assets/9.Scenes/MainScene.unity": {
+      "count": 973,
+      "bytes": 21008733,
+      "MiB": 20.04
+    }
+  },
+  "runtimeResourceGuidCandidates": {
+    "count": 847,
+    "bytes": 13776959,
+    "MiB": 13.14
+  },
+  "guidCandidateUnion": {
+    "count": 1826,
+    "bytes": 36365296,
+    "MiB": 34.68
+  },
+  "bootstrapGuidCandidates": {
+    "count": 18,
+    "bytes": 12724411,
+    "MiB": 12.13
+  },
+  "mainOnlyGuidCandidates": {
+    "count": 962,
+    "bytes": 9872250,
+    "MiB": 9.41
+  },
+  "sceneResourceGuidOverlaps": {
+    "Assets/9.Scenes/TitleScene.unity": {
+      "count": 0,
+      "bytes": 0,
+      "MiB": 0
+    },
+    "Assets/9.Scenes/LoadScene.unity": {
+      "count": 1,
+      "bytes": 8324,
+      "MiB": 0.01
+    },
+    "Assets/9.Scenes/LobbyScene.unity": {
+      "count": 1,
+      "bytes": 8324,
+      "MiB": 0.01
+    },
+    "Assets/9.Scenes/MainScene.unity": {
+      "count": 8,
+      "bytes": 2662756,
+      "MiB": 2.54
+    }
+  },
+  "resourcesLoadSites": [
+    {
+      "path": "Assets/0.Scripts/Framework/Data/CombatSkillTable.cs",
+      "line": 145,
+      "code": "TextAsset asset = Resources.Load<TextAsset>(ResourcePath);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Combat/GroundShadow.cs",
+      "line": 116,
+      "code": "Sprite loaded = Resources.Load<Sprite>(ResourcePath);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Enemy/Boss/BossAttackHitVfx.cs",
+      "line": 238,
+      "code": "Sprite[] loaded = Resources.LoadAll<Sprite>(ImplosionResourceFolder);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Item/FieldItemSprites.cs",
+      "line": 43,
+      "code": "Sprite loaded = Resources.Load<Sprite>(ResourceFolder + \"/\" + name);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Item/FieldItemSprites.cs",
+      "line": 52,
+      "code": "Sprite loaded = Resources.Load<Sprite>(ResourceFolder + \"/\" + BlastRingName);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Item/FieldItemSprites.cs",
+      "line": 63,
+      "code": "Sprite[] loaded = Resources.LoadAll<Sprite>(ResourceFolder);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Data/PlayerStatProgress.cs",
+      "line": 50,
+      "code": "TextAsset asset = Resources.Load<TextAsset>(\"Data/PlayerStatTable\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Player.cs",
+      "line": 152,
+      "code": "playerAnimator.runtimeAnimatorController = Resources.Load<RuntimeAnimatorController>(\"PlayerAnimator/Player\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs",
+      "line": 80,
+      "code": "blazeSprites = Resources.LoadAll<Sprite>(\"LightSkills/Blaze\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs",
+      "line": 208,
+      "code": "Texture2D texture = Resources.Load<Texture2D>(BakedFolder + name);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs",
+      "line": 209,
+      "code": "TextAsset json = Resources.Load<TextAsset>(BakedFolder + \"Frames/\" + name);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs",
+      "line": 275,
+      "code": "template = Resources.Load<Material>(\"LightSkills/LightSkillGlow\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs",
+      "line": 287,
+      "code": "Texture2D texture = Resources.Load<Texture2D>(\"LightSkills/\" + resourceName);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/LightSkillVisuals.cs",
+      "line": 288,
+      "code": "TextAsset json = Resources.Load<TextAsset>(\"LightSkills/Frames/\" + resourceName);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/PlayerDefenseVfx.cs",
+      "line": 40,
+      "code": "parryMaterial = Resources.Load<Material>(\"PlayerDefenseVfx/ParryAdditive\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/PlayerDefenseVfx.cs",
+      "line": 164,
+      "code": "var loaded = Resources.LoadAll<Sprite>(\"PlayerDefenseVfx\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/Player/Presentation/PlayerView.cs",
+      "line": 101,
+      "code": "label.font = Resources.Load<TMPro.TMP_FontAsset>(\"Fonts & Materials/LiberationSans SDF\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/UI/DamageNumberDisplay.cs",
+      "line": 106,
+      "code": "if (font == null) font = Resources.Load<TMP_FontAsset>(\"Fonts & Materials/LiberationSans SDF\");"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/UI/SkillCardIcons.cs",
+      "line": 11,
+      "code": "if (custom == null) custom = Resources.Load<Sprite>(iconKey);"
+    },
+    {
+      "path": "Assets/0.Scripts/Game/UI/SkillCardIcons.cs",
+      "line": 14,
+      "code": "return skillId > 0 ? Resources.Load<Sprite>(\"SkillIcons/Skill_\" + skillId) : null;"
+    }
+  ],
+  "largestPngCandidates": [
+    {
+      "path": "Assets/2.Resources/UI/씬 UI/Title_Background.png",
+      "bytes": 4033560,
+      "width": 1920,
+      "height": 1080,
+      "rgbaMiB": 7.91,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/Hellfire.png",
+      "bytes": 683263,
+      "width": 1310,
+      "height": 1475,
+      "rgbaMiB": 7.37,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/FlamePillar.png",
+      "bytes": 920615,
+      "width": 1230,
+      "height": 1345,
+      "rgbaMiB": 6.31,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/FireStorm.png",
+      "bytes": 768529,
+      "width": 1155,
+      "height": 1368,
+      "rgbaMiB": 6.03,
+      "included": true
+    },
+    {
+      "path": "Assets/2.Resources/UI/실제 사용 UI/PlayerHUD.png",
+      "bytes": 1060560,
+      "width": 1798,
+      "height": 875,
+      "rgbaMiB": 6,
+      "included": true
+    },
+    {
+      "path": "Assets/2.Resources/UI/실제 사용 UI/joystick_except_center.png",
+      "bytes": 1208956,
+      "width": 1254,
+      "height": 1254,
+      "rgbaMiB": 6,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/SunCollapse.png",
+      "bytes": 507589,
+      "width": 1200,
+      "height": 1200,
+      "rgbaMiB": 5.49,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/GreatExplosion.png",
+      "bytes": 481821,
+      "width": 1190,
+      "height": 1190,
+      "rgbaMiB": 5.4,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/HeatWave.png",
+      "bytes": 572894,
+      "width": 1205,
+      "height": 980,
+      "rgbaMiB": 4.5,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/MeteorSword.png",
+      "bytes": 295129,
+      "width": 1050,
+      "height": 1060,
+      "rgbaMiB": 4.25,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/TidalLine.png",
+      "bytes": 366821,
+      "width": 880,
+      "height": 1056,
+      "rgbaMiB": 3.54,
+      "included": true
+    },
+    {
+      "path": "Assets/Resources/LightSkills/Fx/LavaEruption.png",
+      "bytes": 402983,
+      "width": 965,
+      "height": 960,
+      "rgbaMiB": 3.53,
+      "included": true
+    }
+  ],
+  "limitations": [
+    "GUID textual traversal includes source scripts and importer references that the Unity build may strip or transform.",
+    "Package dependencies, build profile overrides, Graphics/PlayerSettings roots, atlases, plugins and code-driven asset discovery are not modeled.",
+    "Not an AssetDatabase.GetDependencies result, Addressables Analyze result, BuildReport, APK/AAB measurement or device-memory measurement.",
+    "Non-candidate assets must not be treated as unused or safe to delete."
+  ]
+}

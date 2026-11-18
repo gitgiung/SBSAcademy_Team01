@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-18 Test와 원격 리소스 브랜치를 main에 통합
+
+- 통합 기준 main 4b4778d2, Test 5fe54e5f, adressable-resources-loading 702db357. MainScene의 bulletSpeed는 사용자 확인대로 8, Use Remote Content는 꺼짐(0)이다.
+- Test의 보스 패턴·방어·카드 연출과 main의 햅틱·스킬 융합을 함께 반영했다. 셔플 중에는 카드 등장 연출이 위치를 덮어쓰지 않으며 리롤은 바뀐 카드만 등장 연출한다. MainScene 외 씬과 Test의 임시 복구 씬은 통합 범위에서 제외했다. 충돌한 TMP 폰트는 Test의 일관된 아틀라스 전체를 사용했다.
+- 통합본에서 .NET 콘솔 검증 8개 묶음 143/143 통과. MainScene 오브젝트 ID·새로 끊긴 로컬 참조·탄속·로컬 모드와 이전 에셋 네 개 및 meta가 기존 main과 동일한지 확인했다. Unity 컴파일·Play·APK 빌드는 이번에 실행하지 않았다.
+- 다음 확인: Tools > Remote Content > Settings에서 Use Remote Content 꺼짐 확인 → MainScene에서 Tools > Play From Title 켜고 Play → 타이틀 시작 → 로비 → 전투. 다운로드 창 없이 진입하고 수살 아이콘·효과와 기본탄을 확인한다. 레벨업 카드 선택/리롤과 보스 패링·가드도 확인한다. 이상 시 Console 첫 오류와 MainScene 직렬화 참조, SkillPilot 에셋을 확인한다. 이후 원격을 끈 Android 로컬 APK 패키징을 확인한다.
+
+
 ## 2026-11-17 작업 트리 커밋·푸시
 
 - `main` `415c0f21`을 `origin/main`에 푸시했다. 이전 커밋은 `6e62a5e`. 메시지: 보스 모션과 한 판 전투 흐름을 현재 기준으로 맞춘다. 1456 files.
@@ -342,6 +350,88 @@
 - 직접 확인: Play 종료 후 Unity 임포트·컴파일, Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** → `Canvas > Timer`에 `UiFontScaleExempt`가 있는지 확인 → Play. 타이머 숫자는 46으로 배경 안에 있고, 다른 UI 글자는 이전처럼 약 1.3배다. Play를 끄면 `Digits` Font Size는 46이다.
 - 이상 시: Console 첫 오류, Timer의 `UiFontScaleExempt`, Digits Font Size 46. 제외 컴포넌트가 Missing이면 스크립트 임포트가 안 끝난 것이다.
 - 다음: MainScene Play에서 타이머가 배경에 맞는지, 나머지 HUD 글자 크기를 확인한다.
+## 남은 작업 체크리스트 (2026-11-18 갱신)
+
+현재 완료 범위는 원격 로딩 기반, 실제 스킬 네 에셋 시범, 개발용 APK 빌드 및 전투 표 검사 불일치 정리다. 이번에는 전투 표 검사만 다시 실행했다.
+
+- [ ] PC 원본 게임 통합 확인: MainScene만 열고 Tools > Play From Title → 타이틀 시작 → 다운로드 승인 → 로비 → 전투를 확인한다. 수살 그림·아이콘·동작, 로딩 UI 한글/배치를 육안 확인한다. 서버 중단 시 오류/다시 시도, 서버 복구 후 진행, 캐시 재사용 시 0바이트도 확인한다. 오류는 Console 첫 오류 → URL/호환 값 → 서버/포트 → Windows 타깃/기본 카탈로그 순으로 본다. 상세 명령은 `tools/SkillPilotValidation/README.md`.
+- [x] 전투 표 검사 불일치 정리: 사용자 확인에 따라 스킬 10001의 아이콘 키를 `SkillIcons/SkillIcon_10001`로 검사한다. 수정 전 30/31, 수정 후 31/31 통과. 배포 JSON과 아이콘 파일은 그대로 사용한다.
+- [x] 실제 스킬 이전 구현 커밋 존재 확인: 이번 조회 HEAD는 `e773eb2 실제 스킬 에셋 이전`, 브랜치는 `addressable-resources-loading`이다. 에이전트가 새 커밋/체크아웃하지 않았다. 이전 본문의 `9d80a66`/미커밋 설명은 당시 기록이다.
+- [ ] 현재 원격 설정 변경의 용도 확인·정리: 이번 조회의 유일한 미커밋 변경은 `Assets/Resources/RemoteContentSettings.asset`이다. 사용자 변경으로 보존한다. 구현 전체가 미커밋이라고 다시 안내하지 않는다. 테스트용 설정과 배포용 설정을 구분해 검토한다.
+- [ ] 리소스 이전 범위 확대·용량 최적화: 큰 에셋부터 포함 관계와 의존성을 조사하고 앱에 남길 최소 리소스/원격 대상을 정한다. 네 파일 외의 전체 이전은 미완료다. 확대 후 실제 APK 포함 내역과 크기를 다시 측정한다. 목표 크기와 모든 에셋의 원격 이전 여부는 미확정이다.
+- [ ] 운영 HTTPS 호스팅/CDN 및 배포 구성: 서비스/비용/주소를 결정하고 개발 loopback 주소를 운영 구성과 분리한다. 운영 콘텐츠 배포·접근 검증은 미완료다. 유료 가입·배포를 이미 승인/실행한 것으로 간주하지 않는다.
+- [ ] 리소스 단독 패치와 복구 운영: 앱/콘텐츠 호환, 구버전 앱 지원, 릴리스 보관/게시 순서, 오프라인 허용 범위, 이전 정상 릴리스 복구 정책을 확정하고 필요한 구현·검증을 수행한다. 현재 캐시 재사용과 재시도만으로 오프라인/롤백이 완성됐다고 보지 않는다. 빌드 결과는 임시 `.utmp` 외의 릴리스 보관 경로도 마련한다.
+- [ ] Android 실기기 검증: 기기가 준비됐을 때 설치/첫 다운로드/중단·재시도/앱 재실행/캐시/터치·화면 비율을 확인한다. 현재 사용자 범위는 기기 없는 APK 빌드까지이며 기기 검증 성공 기록은 없다.
+- [ ] 출시용 빌드·배포 검증: 운영 설정과 출시 서명, Release APK/AAB 생성 및 Google Play 배포 경로를 검증한다. 현재 산출물은 debug 서명의 Development APK다. 스토어 제출·출시 완료로 간주하지 않는다.
+
+다음 우선순위는 PC 실제 게임 통합 확인이다. 기기·호스팅·운영 정책에 의존하는 작업은 준비/결정 상태를 명시하고 진행한다.
+
+## 2026-11-18 Android 비교 빌드 `local-clean` 실패 조사
+
+- 사용자 실행에서 `local-clean` 종료 코드 1. Unity 로그에서 임시 `sbsp-*` 복사본의 패키지 캐시에 `.meta` 누락이 다수 확인됐고, NUnit과 Unity UI 참조가 컴파일에 실패했다. 누락이 발생한 원인은 확인되지 않았다.
+- 복사본에 대응 에셋이 남아 있는 `.meta` 4,307개를 채웠으나 대응 에셋이 없는 항목도 2,980개였다. 현재 복사본을 재사용하지 말고 `BuildRemote.ps1`을 `-ReuseBaseline` 없이 실행해 새 복사본을 만든 다음 `BuildComparison.ps1`을 실행한다. 두 APK와 각 `.report.json`의 `result: Succeeded`를 확인한다. 재발 시 `.utmp/skill-pilot/local-clean.log`의 첫 컴파일 오류를 확인한다.
+- 사용자 요청에 따라 Unity 빌드 재실행 0회, 테스트 실행 0개. 원본 프로젝트와 APK 비교 스크립트에는 변경을 가하지 않았다.
+
+## 2026-11-18 스킬 10001 아이콘 검사 수정
+
+- 현재 브랜치 `adressable-resources-loading`, HEAD `f2f4222c`. 기존 `AGENTS.md`와 AllIn1SpriteShader 셰이더 두 파일의 사용자 변경을 보존했다.
+- 전투 표 콘솔 검사에서 빈 아이콘 키 기대값으로 인한 실패를 재현한 뒤, 배포 JSON의 `SkillIcons/SkillIcon_10001`을 기대하도록 수정해 31/31 통과했다. 샌드박스의 사용자 NuGet 설정 접근 제한은 임시 설정과 오프라인 복원으로 우회했다.
+- 직접 확인은 `tools/CombatSkillTableValidation/Run.ps1` 실행 후 `Result: 31/31 passed`를 확인한다. Unity 화면 확인은 MainScene에서 Play 후 레벨업 선택에 스킬 10001이 나오면 카드 아이콘을 확인한다. 아이콘이 비면 Console 첫 오류와 `SkillIcon_10001.png` 리소스 연결을 확인한다. 이번 작업에서는 Unity Play 및 APK 검증을 실행하지 않았다.
+
+## 2026-11-17 실제 수살 에셋 원격 이전·기기 없는 APK 빌드
+
+- 사용자 요청: 실제 스킬 이전 다음 단계 진행. 기기 연결 질문에는 **기기 없이 APK 빌드까지만** 진행하라고 답했다. 설치/실기기/유료 호스팅/운영 배포는 하지 않았다. 시작·최종 조회 `addressable-resources-loading` / `9d80a66`. 커밋·브랜치 전환 없음.
+- 이전: CombatSkillTable.json, WaterArrow Texture/Frames JSON, Skill_10025.png와 meta를 `Assets/RemoteContent/SkillPilot`로 이동했다. 네 파일/메타 내용·GUID를 보존했다. 소비자와 생성/검사 도구 경로를 갱신했다. 원격은 명시 주소와 타입을 쓰고, 로컬 Editor는 AssetDatabase, 로컬 APK는 빌드 전용 holder로 유지한다. 원격 APK에는 holder를 넣지 않는다.
+- 준비: 앱 호환/contentProfile `skill-pilot-v1`을 함께 요구한다. 다운로드 후 추가 바이트 0 확인 → 타입별 메모리 로딩 → 전투 표/수살 형태와 프레임 검증 → Ready다. 실패 시 로컬 대체 없이 재시도를 기다린다. Resource.Clear는 정적 표/파생 Sprite를 원본 핸들보다 먼저 정리한다. 실제 번들에서 Sprite의 Object 요청이 Texture2D로 반환되던 문제를 타입별 요청으로 수정했다. 수치·MP·보상·씬 동작은 바꾸지 않았다.
+- 상태 보존: 시작 사용자 변경 MainScene, NanumGothic Combat SDF, Addressable 정렬 설정과 meta, RemoteContentSettings와 meta 6개의 hash 일치. 원본 설정은 꺼짐/기존 URL 그대로다. 원본 Packages/Project Settings diff 없음. 씬 재저장·GiungScene 확인/수정 없음.
+- 검증: 최종 격리 Windows HTTP PlayMode **48/48 통과, 실패·생략 0**(`.utmp/remote-download/skill-verified.xml`). 원본 C# 7개 어셈블리 exit 0(`.utmp/skill-pilot/compile-latest.log`). 표 검사 **30/31**, 기존 `shipped JSON keeps combat values and blank passive columns: expected , actual SkillIcons/SkillIcon_10001` 실패 유지. 독립 리뷰 4개 지적을 수정하고 검증했다. 테스트 캐시 간섭은 고유 캐시 이름/정리로 분리했고 최종 테스트는 Android 빌드 종료 후 단독 수행했다.
+- Android: 임시 복사본에서 ARM64 IL2CPP Development APK 실제 성공. baseline 76,430,118바이트, 같은 코드 로컬형 76,437,686바이트, 원격형 **76,433,550바이트**. 동일 코드 차이는 4,136바이트다. BuildReport에서 로컬형의 네 에셋/holder 포함과 원격형 제외 확인. 초기 증분 ZIP 잔여 데이터는 최종 새 패키징으로 제외했다. 네 파일 시범이며 전체 설치 용량 최적화가 아니다.
+- 콘텐츠: Android 표준 Addressables 카탈로그·네 번들(합계 22,551바이트), release.json, content state와 Build Layout 생성. SHA 일치/중복 에셋 없음 확인. 보관용 state/layout은 개발 HTTP 서버에서 404로 비공개다. 원본 Addressables 그룹은 운영 구성으로 전환하지 않았다. Windows는 실제 파일로 만든 격리 테스트 fixture다.
+- 산출물: `.utmp/skill-pilot/SkillPilot-remote-clean.apk`와 `.report.json`, `server/Android` 콘텐츠. 임시 생성물이므로 영속 근거는 `docs/AI/SkillPilotBuildValidation.md`에 수치·검증 범위를 기록했다. 재생성은 `tools/SkillPilotValidation/README.md`, 계획은 `docs/superpowers/plans/2026-11-17-skill-pilot-android.md`.
+- 직접 확인: README의 검증 명령 실행 → 도구 종료 후 별도 fixture 서버 실행 → Tools > Remote Content > Settings의 Windows `/pilot/release.json`, `skill-pilot-v1`, 개발 HTTP 허용 → MainScene에서 Tools > Play From Title 켜고 Play → 타이틀 시작 → 용량/다운로드 승인 → 스킬 준비 후 로비. 캐시가 있으면 0바이트 정상. 첫 다운로드 재확인은 Play/서버 종료 → 검증 도구 실행(같은 fixture는 SkipFixture 가능) → 서버 재실행 → Play. 전체 캐시 삭제 불필요. 확인 후 원격 끄고 직접 MainScene은 Play From Title 해제.
+- 오류/다음: Console 첫 오류, URL의 `/pilot/`, 호환 값, Windows 타깃과 기본 카탈로그, 개발 HTTP, 18763 포트를 확인한다. 원격 APK는 개발 loopback 주소라 현재 상태를 일반 설치·배포용으로 보지 않는다. 다음은 실제 MainScene 로딩/스킬 육안 확인, 사용자가 기기를 준비했을 때 설치/다운로드/재시작 검증이다. 이후 운영 HTTPS 호스팅 선정과 단독 패치/오프라인/이전 정상 릴리스 복구 정책을 확정·검증한다. AAB·기기·운영 CDN·실제 앱 재실행·화면 배치는 미검증이다.
+
+## 2026-11-17 선택적 원격 시작·카탈로그·동의/재시도 연결
+
+- 요청: 사용자가 다운로드 기반 확인 후 다음 단계 진행을 요청했다. 승인한 원격 배포 설계에 따라 기존 로딩 경로에 선택적 원격 준비를 연결했다. 계획은 `docs/superpowers/plans/2026-11-17-remote-startup.md`다.
+- 상태 보존: 시작 조회는 `adressable-resources-loading`/`90c00c0`와 이전 단계 미커밋 변경·사용자 두 씬/meta 삭제였다. 작업 도중 이전 단계가 `de76099 다운로드 기반 API 구현`으로 커밋된 것을 확인했다. 에이전트가 커밋/체크아웃/복구하지 않았고 현재 HEAD는 `de76099`다. GiungScene은 읽거나 검증하지 않았다.
+- 설정: 새 `RemoteContentSettings`는 기본 꺼짐이며 자동 asset 생성/운영 연결이 없다. `Tools > Remote Content > Settings`를 명시적으로 선택할 때만 꺼진 `Assets/Resources/RemoteContentSettings.asset`을 생성·선택한다. URL·앱 호환 계열·개발 HTTP 허용을 설정한다. HTTP는 Editor/Development Build와 설정 허용이 모두 필요하다. 원본 패키지/Project Settings/씬/프리팹은 변경하지 않았다.
+- 원격 정보: `RemoteContentRelease`의 formatVersion=1, 정확한 플랫폼/앱 호환, contentVersion, catalogUrl, catalogSha256(64 hex), requiredLabel을 검증한다. ResourceManager partial은 HTTP manifest→SHA-256 확인된 카탈로그 디스크 캐시→로컬 Addressables 등록을 수행한다. manifest 64KiB/catalog 16MiB 수신 상한은 DownloadHandlerScript에서 넘치는 청크를 저장하지 않는 방식으로 제한한다. 요청 timeout 15초, redirect 금지다. 현재 설치 버전의 기본 바이너리 카탈로그를 사용한다.
+- 수명: 같은 실행에서 하나의 릴리스 identity를 고정한다. Resource.Clear는 HTTP 요청을 abort/dispose하고 loaded locator를 제거한다. 등록 중 카탈로그는 취소 표시 후 실제 완료 콜백에서 늦은 locator와 handle을 정리하며, 새 등록은 이 정리가 끝나기를 기다린다. 디스크 캐시는 전체 삭제하지 않는다.
+- 진입: Managers partial이 옵션 snapshot·이번 실행 릴리스·영속 준비 코루틴을 소유한다. 상태는 Disabled/CheckingRelease/LoadingCatalog/CheckingSize/AwaitingConsent/Downloading/Ready/Failed다. LoadScene은 원격 Ready/Disabled 이전에 기존 PrepareGame/목적지 전환을 호출하지 않는다. 실패는 TestReady로 우회하지 않고 버튼 재시도를 기다린다. 원격 Ready는 필수 번들의 디스크 준비이며 GameDataReady/실제 전투 표 준비와 다르다.
+- UI: UI_LoadScene이 원격 모드일 때만 기존 로컬 TMP 폰트의 상태 패널을 런타임 생성한다. 추가 용량이 있으면 다운로드 동의를 받고, 바이트 진행과 실패·다시 시도 버튼을 표시한다. 기본 로컬 모드에는 생성하지 않는다. 기술 검증용 안내이며 게임 기획 팝업 내용을 확정한 것이 아니다. 실제 포인터 터치·화면 비율·한글 배치는 아직 눈으로 검증하지 않았다.
+- 실제 검증: 변경 전 릴리스/카탈로그 API 부재로 24개 중 기존 14 통과/새 10 실패, Managers 연결 전 30개 중 24 통과/6 실패, LoadScene/UI 연결 전 32개 중 30 통과/2 실패를 확인했다. 최종 격리 Windows Editor PlayMode **40/40 통과, 실패·생략 0**. 실제 HTTP 릴리스·카탈로그·번들, 동의 전 미다운로드, UI 승인/재시도, 메타데이터 크기/redirect/hash, 등록 중 Clear→재등록→locator/handle 반환, 동의 대기/Ready 후 Clear, 다른 릴리스 거부를 확인했다. `.utmp/remote-download/startup-final.xml/.log`는 Git 제외다.
+- 리뷰·컴파일: 독립 리뷰의 수신 메모리 상한 지적을 반영하고 빠진 수명 회귀를 보강했다. 원본 C# 7개 어셈블리 컴파일 exit 0(`startup-final-compile.log`). 격리 테스트는 Managers 주변 Data/UI/Sound/Scene 서비스만 경계로 대체하므로 원본 게임 전체 PlayMode/씬 검증은 아니다. 실제 Android APK/AAB·번들·기기·운영 CDN·앱 프로세스 재실행은 미검증이다. 유료 가입/결제/운영 배포는 하지 않았다.
+- 직접 확인: 루트 PowerShell에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\RemoteContentValidation\RunUnity.ps1 -ResultName result` 실행 → XML Passed, 실패·생략 0 확인. 이전 사용자 PowerShell 실행 정책 오류는 이 실행에 한정한 예외로 해결한다. 처음/fixture 변경 후에는 SkipFixture를 쓰지 않는다. 상세 설정과 직접 Editor 확인은 `tools/RemoteContentValidation/README.md`에 있다.
+- Editor 확인 순서: 검증 fixture 생성 → 별도 터미널에 loopback 서버 실행 → Play 종료/컴파일 완료 → Tools > Remote Content > Settings에서 Windows용 개발 설정 → 필요 시 현재 Windows 타깃의 로컬 기본 Addressables 카탈로그 빌드(Build Remote Catalog는 꺼짐 유지) → MainScene만 열고 Tools > Play From Title을 켜 Play → 타이틀 시작 영역 → 기존 로딩 화면의 용량·다운로드 버튼 → 승인 후 로비. 캐시가 있으면 0바이트로 동의 없이 진행할 수 있다. 서버를 끈 뒤 실패 안내, 서버 재시작 후 다시 시도를 확인한다. 확인 후 Use Remote Content를 끄고 MainScene 직접 테스트는 Play From Title을 해제한다.
+- 오류 확인: Console 첫 오류, 설정 asset 이름/Use Remote Content/URL/HTTP 개발 허용, 원본 로컬 Addressables 기본 빌드·타깃, 18763 포트와 server-error.log, manifest/catalog.bin이 같은 빌드인지 순서대로 확인한다. 이 fixture는 Windows 전용이고 Android의 127.0.0.1은 PC가 아니므로 APK에 그대로 사용하지 않는다. 전체 캐시 삭제·씬 재저장·GiungScene 수정은 하지 않는다.
+- 다음: 작은 실제 스킬 묶음(CombatSkillTable와 수살 10025 Texture/Frames/아이콘)의 공급 경로를 GUID 보존하며 이전하고 데이터·파생 Sprite 준비를 연결한다. 이번 전송 시범은 합성 TextAsset이며 실제 게임 리소스 원격 이전이나 설치 용량 절감이 완료된 상태가 아니다. 이후 Android 실제 크기 기준선·APK 기기 다운로드·실제 앱 재실행·리소스 단독 패치/복구 검증을 계속한다. 영속 정상 릴리스·오프라인/롤백 정책은 미정이며 자동 폴백하지 않는다.
+
+## 2026-11-17 원격 다운로드 기반 API 및 HTTP 검증
+
+- 사용자 승인: 설계 검토 완료 후 다음 단계 진행을 요청했다. 전체 원격 전환 중 첫 구현 단위를 다운로드 기반 API와 실제 HTTP 번들 검증으로 정했다. `docs/superpowers/plans/2026-11-17-remote-download-foundation.md`에 범위·인터페이스·후속 작업을 기록했다.
+- 시작 상태: 브랜치 `adressable-resources-loading`, HEAD `90c00c0`. 이전 조사 문서 변경 외에 사용자가 삭제한 `GiungScene.unity`, `dongjinScenes.unity`와 각각 meta가 있었다. 삭제를 보존했으며 해당 씬 내용 확인·복구·체크아웃·커밋은 하지 않았다.
+- 구현: 기존 `ResourceManager`를 partial로 확장하고 `ResourceManager.Downloads.cs`에 `GetDownloadSizeAsync(label, Action<long,string>)`, `DownloadDependenciesAsync(label, Action<long,long>, Action<bool,string>)`를 추가했다. 빈/누락 라벨 실패, 라벨/작업 종류별 동시 요청 공유, 실패 후 재시도, 바이트 진행, Clear 세대 방어, 대기자 이탈 후 핸들 정리를 지원한다. 다운로드는 디스크 캐시만 준비하며 기존 Load/Preload API와 메모리 캐시는 유지한다. `ResourceManager.Clear`에서 다운로드 요청도 정리하되 디스크 캐시는 삭제하지 않는다.
+- 게임 연결 범위: LoadScene·씬·프리팹·설정·패키지·에셋 위치·게임 수치·MP는 변경하지 않았다. 현재 게임이 자동으로 원격 서버에 연결되는 상태는 아니다. 카탈로그 선택·사용자 동의 UI·릴리스 호환/복구·실제 스킬 공급 경로 이전은 아직 후속 단위다. 새 전역 매니저나 런타임 asmdef 이동은 없다.
+- 검증 도구: `tools/RemoteContentValidation/RunUnity.ps1`가 원본과 별개 `.utmp/remote-download/project`에서 실제 ResourceManager를 컴파일한다. 표준 Addressables 공급자와 loopback HTTP 검증 번들로 확인한다. 원본 프로젝트의 두 번째 Unity는 열지 않았다. 처음 sandbox 실행은 라이선스 초기화 대기라 테스트 미시작이었다. 해당 검증 프로세스만 종료하고 권한을 허용한 격리 실행으로 검증했다. 원본 Play From Title 설정은 변경하지 않았다.
+- 테스트: API가 없는 변경 전 PlayMode **9/9 실패**를 확인했다(새 API 부재 단언). 구현 후 기본 **9/9**, 취소·캐시·이탈·예외·복구 확대 후 **14/14 통과**했다. 독립 리뷰의 실제 전송 중 취소 지적에 따라 `0 < received < total` 시점의 Clear와 같은 라벨 새 요청 완료를 검증하도록 보강했고, HTTP 실패 구간은 예상 `/missing`의 404 예외만 허용했다. 대기자 이탈 시 레지스트리 제거와 작업 핸들 반환도 추가 확인한다. 최종 XML·로그는 `.utmp/remote-download/final.*`이며 Git 제외다. 전체 원본 프로젝트 PlayMode/씬 테스트는 이번에 실행하지 않았다.
+- 컴파일: 기존 `tools/AndroidReadinessValidation/RunCompile.ps1`로 변경 전·후 7개 어셈블리 컴파일 exit 0(플러그인, Combat, Enemy, Boss, Encounter, Assembly-CSharp, Assembly-CSharp-Editor). 새 partial도 포함했다. 이는 전체 원본 소스의 C# 컴파일이며 실제 Android Player 빌드가 아니다. Android SDK/NDK/OpenJDK와 플랫폼 34/36 디렉터리는 확인했으나 도구 실행·APK/AAB·Android 번들·기기·운영 CDN은 미검증이다.
+- 직접 확인: 프로젝트 루트 PowerShell에서 `& tools/RemoteContentValidation/RunUnity.ps1 -ResultName result` 실행 → `.utmp/remote-download/result.xml`의 Passed/실패·생략 0 확인. 번들 생성 후 재검증은 `-SkipFixture`를 사용할 수 있다. 원본 Unity Test Runner에서 이 HTTP 클래스는 환경 안내와 함께 생략된다. 실패 시 fixture-build.log, 결과 로그 첫 오류, server-error.log와 18763 포트 점유를 순서대로 본다. 전체 캐시는 삭제하지 않는다.
+- 게임 보존 확인: Play 종료 → Console 첫 컴파일 오류 확인 → Tools > Play From Title 해제 → MainScene Play. 기존 HUD·스킬 동작이 유지돼야 하며 새 다운로드 UI는 아직 없다. 이번 세션에서 실제 MainScene Play를 검증했다고 주장하지 않는다. GiungScene은 제외한다.
+- 다음: 호환 릴리스 정보와 카탈로그 선택·다운로드 동의/재시도 UI를 기존 Managers/LoadScene에 연결하고, 작은 실제 스킬 묶음 공급 경로를 이전한다. Android 실제 크기 기준선·APK 기기 다운로드·캐시 재실행·리소스 단독 업데이트·복구 검증을 계속한다. 유료 호스팅 가입/결제·운영 배포는 하지 않았다.
+
+## 2026-11-17 Android 첫 다운로드·원격 리소스 패치 조사 및 설계 초안
+
+- 사용자 목표: Android 출시 시 작은 최초 설치, 첫 실행 콘텐츠 다운로드, 출시 후 스킬 수치·그림·사운드의 앱 업데이트 없는 패치. 이번 승인 범위는 포함 경로·용량 조사와 설계 문서 작성까지다. 런타임 이전이나 원격 배포는 하지 않았다.
+- 시작 상태: 실제 조회한 브랜치 `adressable-resources-loading`, HEAD `90c00c0`, 시작 시 Git 변경 없음. 브랜치 전환·커밋은 하지 않았다. Unity 6000.5.0f1 / Addressables 2.9.1 유지. GiungScene 내용은 읽거나 검증하지 않았다.
+- 산출물: `docs/AI/AndroidResourceLoadingAudit.md`, `docs/AI/ResourceLoadingInventory.csv`(3,327행), `docs/AI/ResourceLoadingInventory.json`, `docs/superpowers/specs/2026-11-17-android-remote-content-design.md`. 문서는 검토용 초안이며 구현 승인은 아직 받지 않았다.
+- 조사: meta·GiungScene을 제외한 Assets 원본 75.87 MiB. 실제 런타임 Resources는 513개/11.60 MiB이고 `Assets/2.Resources`는 자동 포함 폴더가 아니다. 4개 활성 씬과 Resources에서 시작한 GUID 후보 합집합은 원본 34.68 MiB다. 이는 APK/AAB·설치 크기·실행 메모리·절감량이 아니다. 도달하지 않은 파일을 미사용/삭제 가능으로 판단하면 안 된다. CSV·JSON에 집계 기준과 제한을 기록했다.
+- 현재 코드: 타이틀→로딩→로비→로딩→MainScene. LoadScene은 preloadLabel 빈 값/requireSkillData=false다. Addressables 그룹은 비어 있고 Build Remote Catalog 꺼짐, Remote.LoadPath 미정이다. Assets/0.Scripts에서 직접 Resources.Load/LoadAll 호출 20곳/11파일. 실제 CombatSkillTable·PlayerStatTable을 별도 SkillData 준비와 혼동하지 않는다.
+- 설계 방향: 기존 Managers/ResourceManager를 확장한다. 호환 릴리스 선택 → 디스크 다운로드 → 필요한 에셋 메모리 로딩 → 파생 Sprite/데이터 검증을 분리한다. 프로세스 단위 릴리스 고정, 구버전 앱 분리, 카탈로그 자동 갱신 제어, 이전 정상 릴리스 보존과 재시작 복구를 제안했다. CDN 업체·목표 용량·오프라인 정책·팝업 문구는 미정이며 수치·MP·전투 규칙은 바꾸지 않는다.
+- 다음 구현 시범 후보: 기존 CombatSkillTable.json과 수살(10025)의 WaterArrow Texture+Frames JSON 및 실제 Skill_10025.png. 표의 SkillIcon_10025 키는 현재 fallback에 의존하므로 매핑 계약부터 확인한다. MainScene 전체 원격 이전은 첫 시범 범위가 아니다.
+- 검증: 문서·CSV/JSON 수치 일치, 3,327행, 코드 호출 수 20, 로컬 문서 링크 6개 확인. 별도 구현 관점 검토에서 중요 미해결 질문 없음. 실제 Unity 컴파일·자동 테스트·Play 실행 0개. Android SDK/빌드 지원·AAB·카탈로그·번들·CDN·기기는 미검증이다. 과거 테스트 통과 수를 이번 결과로 재사용하지 않는다.
+- 직접 확인: 조사 보고서 → 설계 초안 순서로 읽는다. Unity Play 종료 → Window > Asset Management > Addressables > Groups에서 빈 그룹, Settings의 Build Remote Catalog 꺼짐을 읽기만 확인한다. Tools > Play From Title 해제 후 MainScene의 기존 HUD/적 참조를 Inspector에서 확인할 수 있다. 이번 변경으로 버튼·씬·게임 동작이 바뀌면 안 된다. 불일치 시 현재 Git 상태/Build Profile/해당 meta GUID와 Console 첫 오류를 확인한다. 씬 저장·GiungScene 검증은 하지 않는다.
+- 다음: 사용자의 설계 검토 후 구현 계획 작성. 이어서 Android 실제 크기 기준선과 작은 원격 다운로드 시범을 검증한다. 기존 MainScene 타이머 실플레이·화면 비율 검증도 그대로 남아 있다.
 
 ## 2026-11-17 MainScene 타이머 배경·TMP 디지털 폰트 적용
 

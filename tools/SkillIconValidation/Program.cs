@@ -35,12 +35,13 @@ Test("missing optional icon returns null",()=>{
     Check(SkillCardIcons.Get(30009,"missing")==null);
 });
 Test("all 76 skills have unique 256px runtime and source icons",()=>{
-    using var json=JsonDocument.Parse(File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+    using var json=JsonDocument.Parse(File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
     var hashes=new HashSet<string>();var ids=new HashSet<int>();var guids=new HashSet<string>();
     foreach(var skill in json.RootElement.GetProperty("skills").EnumerateArray()){
         int id=skill.GetProperty("Id").GetInt32();Check(ids.Add(id));
         Check(skill.GetProperty("Icon").GetString()=="SkillIcons/SkillIcon_"+id);
-        foreach(string path in new[]{ $"Assets/Resources/SkillIcons/Skill_{id}.png", $"Assets/2.Resources/Art/SkillIcons/SkillIcon_{id}.png" }){
+        string runtimeIcon = id == 10025 ? "Assets/RemoteContent/SkillPilot/Skill_10025.png" : $"Assets/Resources/SkillIcons/Skill_{id}.png";
+        foreach(string path in new[]{ runtimeIcon, $"Assets/2.Resources/Art/SkillIcons/SkillIcon_{id}.png" }){
             var bytes=File.ReadAllBytes(path);
             Check(bytes.Take(8).SequenceEqual(new byte[]{137,80,78,71,13,10,26,10}));
             Check(System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(16,4))==256);
@@ -55,7 +56,7 @@ Test("all 76 skills have unique 256px runtime and source icons",()=>{
 });
 Test("table keys fall back to corresponding shipped runtime icons",()=>{
     UnityEngine.Resources.Reset();Managers.Initialized=false;
-    using var json=JsonDocument.Parse(File.ReadAllText("Assets/Resources/Data/CombatSkillTable.json"));
+    using var json=JsonDocument.Parse(File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
     foreach(var skill in json.RootElement.GetProperty("skills").EnumerateArray()){
         int id=skill.GetProperty("Id").GetInt32();var icon=new UnityEngine.Sprite();
         UnityEngine.Resources.Items["SkillIcons/Skill_"+id]=icon;
@@ -74,6 +75,7 @@ namespace UnityEngine {
 }
 public static class Managers {
     public static bool Initialized;
+    public static T LoadGameplayAsset<T>(string key) where T:class => UnityEngine.Resources.Load<T>(key);
     public static ResourceCache Resource=new();
     public class ResourceCache {
         public readonly Dictionary<string,UnityEngine.Sprite> Items=new();

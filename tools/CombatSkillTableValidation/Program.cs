@@ -471,14 +471,16 @@ internal static class Program
             }
             Equal("inline skill", CombatSkillWorkbook.Read(path).skills.Single(s => s.Id == 10001).Name);
         });
-        Test("shipped JSON keeps combat values and blank passive columns", () =>
+        Test("shipped JSON keeps combat values, the flame icon, and blank passive data", () =>
         {
             var shipped = UnityEngine.JsonUtility.FromJson<CombatSkillTableFile>(
                 File.ReadAllText("Assets/RemoteContent/SkillPilot/CombatSkillTable.json"));
             CombatSkillRecord Find(int id) => shipped.skills.Single(s => s.Id == id);
             Equal(76, shipped.skills.Count);
             var flame = Find(10001);
-            Equal(8f, flame.BaseValue); Equal("", flame.Icon); Equal(3f, flame.PassiveCooldown); Equal(0f, flame.PassiveScale);
+            Equal(8f, flame.BaseValue);
+            Equal("SkillIcons/SkillIcon_10001", flame.Icon);
+            Equal(3f, flame.PassiveCooldown); Equal(0f, flame.PassiveScale);
             var hammer = Find(20001);
             Equal("Knockback", hammer.CrowdControl); Equal(2.2f, hammer.Radius); Equal(4f, hammer.PassiveCooldown);
             // 엑셀과 배포 JSON의 패시브 쿨타임이 서로 다르면 어느 한쪽이 덜 반영된 것입니다.

@@ -43,7 +43,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     private TMP_Text rerollCount;
     private bool selectionPending;
     private Coroutine deal;
-    private bool dealing;
+    private int dealChoiceCount;
     private int rerollsLeft;
     private GameObject messageRoot;
     private TMP_Text messageTitle;
@@ -52,6 +52,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     private Action onConfirmed;
 
     internal bool IsPlayingSelectionEffect { get; private set; }
+    private bool IsDealing => dealChoiceCount > 0;
 
     public void Initialize(RectTransform content, TMP_FontAsset font)
     {
@@ -130,7 +131,19 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
                 cards[i].BeginReveal(rerolledIndex < 0 ? i * .15f : 0f);
         }
         ShowReroll(choices.Count, rerollsRemaining, reroll != null && selected != null);
-        if (selected != null && choices.Count > 0 && rerolledIndex < 0) deal = StartCoroutine(DealCards(choices.Count));
+        if (selected != null && choices.Count > 0 && rerolledIndex < 0)
+        {
+            dealChoiceCount = choices.Count;
+            TryStartDeal();
+        }
+    }
+
+    private void OnEnable() => TryStartDeal();
+
+    private void TryStartDeal()
+    {
+        // 팝업을 열기 전에 준비한 카드는 활성화될 때 셔플합니다.
+        if (IsDealing && isActiveAndEnabled) deal = StartCoroutine(DealCards(dealChoiceCount));
     }
 
     private void LateUpdate()
@@ -138,13 +151,13 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
         float delta = Time.unscaledDeltaTime;
         if (headingFade != null && headingFade.alpha < 1f)
             headingFade.alpha = Mathf.MoveTowards(headingFade.alpha, 1f, delta / .25f);
-        foreach (var card in cards) card.TickReveal(delta, updatePosition: !dealing);
+        foreach (var card in cards) card.TickReveal(delta, updatePosition: !IsDealing);
         if (IsPlayingSelectionEffect) TickSelectionEffect(delta);
     }
 
     public void Focus()
     {
-        if (dealing) return;
+        if (IsDealing) return;
         if (messageRoot != null && messageRoot.activeSelf) { messageConfirm.Select(); return; }
         if (detailsRoot != null && detailsRoot.activeSelf) { detailsClose.Select(); return; }
         foreach (var card in cards)
@@ -153,7 +166,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 
     private void Select(int index)
     {
-        if (dealing || selectionPending || onSelected == null) return;
+        if (IsDealing || selectionPending || onSelected == null) return;
         selectionPending = true;
         IsPlayingSelectionEffect = true;
         selectionElapsed = 0f;
@@ -186,14 +199,13 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
 
     private void Reroll(int index)
     {
-        if (dealing || selectionPending || onReroll == null) return;
+        if (IsDealing || selectionPending || onReroll == null) return;
         onReroll(index);
     }
 
     /// <summary>카드가 자리 잡기 전에는 고르거나 리롤하지 못합니다. 레벨업은 시간을 멈추므로 실제 시간으로 재생합니다.</summary>
     private IEnumerator DealCards(int choiceCount)
     {
-        dealing = true;
         Canvas.ForceUpdateCanvases();
         for (int i = 0; i < cards.Count; i++) cards[i].SetSelectable(false);
         for (int i = 0; i < rerollButtons.Count; i++) rerollButtons[i].interactable = false;
@@ -244,7 +256,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
             cards[i].ResetMotion();
             cards[i].SetSelectable(shown[i] && onSelected != null);
         }
-        dealing = false;
+        dealChoiceCount = 0;
         deal = null;
         ShowReroll(choiceCount, rerollsLeft, onReroll != null && onSelected != null);
     }
@@ -253,7 +265,7 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     {
         if (deal != null) StopCoroutine(deal);
         deal = null;
-        dealing = false;
+        dealChoiceCount = 0;
         foreach (var card in cards) card.ResetMotion();
     }
 
@@ -320,7 +332,6 @@ public sealed class LevelUpSelectionPanel : MonoBehaviour
     {
         if (deal != null) StopCoroutine(deal);
         deal = null;
-        dealing = false;
         ResetSelectionEffect();
         if (detailsRoot != null) detailsRoot.SetActive(false);
     }

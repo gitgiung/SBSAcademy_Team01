@@ -1,5 +1,13 @@
 # 작업 인수인계
 
+## 2026-11-18 레벨업 팝업 셔플 코루틴 오류 수정
+
+- 시작 기준은 `main` `b01b1507`이다. 경험치 획득 시 컨트롤러가 비활성 `CombatLevelUpPopup`에 카드 데이터를 준비하는 동안 뷰가 셔플 코루틴을 시작해 Unity 오류가 발생했다.
+- `LevelUpSelectionPanel`은 준비한 카드 수를 보관하고 `OnEnable`에서 셔플을 시작한다. 열려 있는 팝업에 이어지는 새 선택지는 즉시 셔플하며, 리롤은 바뀐 카드만 등장한다. 변경 범위는 뷰 코드, PlayMode 회귀 테스트와 인수인계다.
+- Unity 6000.5.0f1의 임시 최소 프로젝트에서 해당 UI 소스로 컴파일하고 `LevelUpPopupTests`를 실행했다. 수정 전 1개 실패로 동일 오류를 재현했다. 수정 후 1/1 통과, 실패·생략 0, 종료 코드 0이다. 전투 시간이 0이어도 셔플 종료 후 카드와 리롤이 활성화되고 선택 콜백이 호출되는 것을 확인했다.
+- 직접 확인 순서는 Play 종료 및 컴파일 완료 → `Tools > Play From Title` 해제 → `MainScene` Play → Hierarchy의 `CombatUI`에서 `CombatPopupController` 컴포넌트 메뉴 `테스트/경험치 13 획득`이다. 셔플 후 리롤과 카드 선택이 되고 선택 후 전투가 재개되어야 한다. `테스트/경험치 30 획득 (연속 레벨업)`으로 두 번째 선택지에도 셔플이 시작되는지 확인한다. 이상 시 Console의 첫 오류와 Hierarchy의 `CombatLevelUpPopup` 활성 상태를 확인한다.
+- 다음 검증은 실제 `MainScene`의 경험치 아이템 획득·연속 레벨업·리롤 및 원격을 끈 Android 로컬 APK 패키징이다. 전체 프로젝트 테스트, 실제 씬 플레이와 Android 빌드는 이번 검증 범위 밖이다.
+
 ## 2026-11-18 Test와 원격 리소스 브랜치를 main에 통합
 
 - 통합 기준 main 4b4778d2, Test 5fe54e5f, adressable-resources-loading 702db357. MainScene의 bulletSpeed는 사용자 확인대로 8, Use Remote Content는 꺼짐(0)이다.

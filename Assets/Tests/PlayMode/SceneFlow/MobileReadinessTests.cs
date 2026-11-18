@@ -426,6 +426,71 @@ public sealed class MobileReadinessTests
         }
     }
 
+    [TestCase("Light", 10001)]
+    [TestCase("Heavy", 20006)]
+    [TestCase("Tactical", 30001)]
+    public void InventoryBadgeFollowsEquippingSwappingAndUnequippingIconSkills(string slot, int firstId)
+    {
+        var canvas = new GameObject("Inventory Canvas", typeof(RectTransform), typeof(Canvas));
+        try
+        {
+            var data = Get(player, "data");
+            var loadout = data.GetType().GetProperty("Loadout").GetValue(data);
+            bool tactical = slot == "Tactical";
+            string slotName = tactical ? "TacticalSlot" : "AttackSlot";
+            string addSkill = tactical ? "TryAddTacticalSkill" : "TryAddAttackSkill";
+            var skillType = RuntimeType("Data.SkillData");
+            for (int i = 0; i < 2; i++)
+            {
+                var skill = Activator.CreateInstance(skillType);
+                Set(skill, "DataId", firstId + i);
+                Set(skill, "Name", "테스트 스킬");
+                Assert.That(Call(loadout, addSkill, skill), Is.True);
+            }
+            object skillButton = Enum.Parse(RuntimeType("PlayerSkillButton"), slot);
+            Assert.That(Call(loadout, "TryEquip", skillButton, firstId), Is.True);
+
+            var panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>();
+            panel.SetParent(canvas.transform, false);
+            var content = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
+            content.SetParent(panel, false);
+            var back = new GameObject("Back", typeof(RectTransform), typeof(Button)).GetComponent<Button>();
+            back.transform.SetParent(panel, false);
+            var status = canvas.AddComponent(RuntimeType("PlayerStatusPanel"));
+            Call(status, "Initialize", content, back, data, null);
+
+            var first = content.Find("StatusContent/" + slotName + "0");
+            var second = content.Find("StatusContent/" + slotName + "1");
+            Assert.That(first.Find("Icon").GetComponent<Image>().sprite, Is.Not.Null);
+            Assert.That(second.Find("Icon").GetComponent<Image>().sprite, Is.Not.Null);
+            var firstBadge = first.Find("EquippedBadge");
+            var secondBadge = second.Find("EquippedBadge");
+            Assert.That(firstBadge, Is.Not.Null, "아이콘 위에 장착 표시의 독립된 배경이 필요합니다.");
+            Assert.That(secondBadge, Is.Not.Null);
+            var badgeImage = firstBadge.GetComponent<Image>();
+            Assert.That(badgeImage.color.a, Is.EqualTo(1f));
+            Assert.That(badgeImage.raycastTarget, Is.False);
+            Assert.That(firstBadge.GetSiblingIndex(), Is.GreaterThan(first.Find("Icon").GetSiblingIndex()));
+            Assert.That(firstBadge.GetComponentInChildren<TMPro.TMP_Text>().text, Is.EqualTo("장착 중"));
+            Assert.That(firstBadge.gameObject.activeSelf, Is.True);
+            Assert.That(secondBadge.gameObject.activeSelf, Is.False);
+
+            second.GetComponent<Button>().onClick.Invoke();
+            Assert.That(Call(loadout, "GetEquippedSkillId", skillButton), Is.EqualTo(firstId + 1));
+            Assert.That(firstBadge.gameObject.activeSelf, Is.False);
+            Assert.That(secondBadge.gameObject.activeSelf, Is.True);
+
+            second.GetComponent<Button>().onClick.Invoke();
+            Assert.That(Call(loadout, "GetEquippedSkillId", skillButton), Is.EqualTo(0));
+            Assert.That(secondBadge.gameObject.activeSelf, Is.False);
+            Assert.That(second.Find("Icon").GetComponent<Image>().sprite, Is.Not.Null);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(canvas);
+        }
+    }
+
     [Test]
     public void DashDisplayStillUsesDashCooldownAndKeepsItsClickListener()
     {

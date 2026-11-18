@@ -108,7 +108,7 @@ internal static class StatusPanelUI
         private readonly Image icon;
         private readonly TMP_Text label;
         private readonly TMP_Text skillLevelLabel;
-        private readonly TMP_Text equippedLabel;
+        private readonly RectTransform equippedBadge;
         private readonly RectTransform utilityFrame;
         private Button button;
         internal void SetAction(UnityAction action)
@@ -145,8 +145,15 @@ internal static class StatusPanelUI
                 utilityFrame.gameObject.SetActive(false);
                 skillLevelLabel = Text(StatusPanelUI.Rect(rect, "SkillLevel", 45, 368, 910, 89), "", font, 16, Ink);
                 skillLevelLabel.fontStyle = FontStyles.Bold;
-                equippedLabel = Text(StatusPanelUI.Rect(rect, "Equipped", 45, 50, 910, 90), "장착", font, 14, Ink);
-                equippedLabel.gameObject.SetActive(false);
+                equippedBadge = StatusPanelUI.Rect(rect, "EquippedBadge", 100, 35, 800, 133);
+                var badge = Image(equippedBadge, new Color32(119, 238, 186, 255));
+                badge.sprite = null;
+                badge.type = UnityEngine.UI.Image.Type.Simple;
+                var equippedLabel = Text(Stretch(equippedBadge, "Label"), "장착 중", font, 15, Ink);
+                equippedLabel.fontStyle = FontStyles.Bold;
+                equippedLabel.fontSizeMin = UiFontScale.Size(8);
+                equippedLabel.textWrappingMode = TextWrappingModes.NoWrap;
+                equippedBadge.gameObject.SetActive(false);
             }
         }
         internal void Show(string name, Sprite sprite = null, bool locked = false, bool equipped = false,
@@ -169,10 +176,10 @@ internal static class StatusPanelUI
                 outline.effectColor = owned ? rarityColor ?? Ink : Ink;
                 outline.effectDistance = owned && rarityColor.HasValue ? new Vector2(2, -2) : new Vector2(1, -1);
                 skillLevelLabel.text = owned ? $"Lv.{skillLevel}" : "";
-                equippedLabel.gameObject.SetActive(owned && equipped);
+                equippedBadge.gameObject.SetActive(owned && equipped);
                 label.text = locked ? "잠김" : name ?? "";
                 label.rectTransform.anchorMin = new Vector2(.045f, owned ? .29f : .04f);
-                label.rectTransform.anchorMax = new Vector2(.955f, icon.enabled ? .45f : owned && equipped ? .80f : .96f);
+                label.rectTransform.anchorMax = new Vector2(.955f, icon.enabled ? .45f : owned && equipped ? .65f : .96f);
                 return;
             }
             label.text = locked ? "잠김" : equipped ? "[장착]\n" + name : name ?? "";

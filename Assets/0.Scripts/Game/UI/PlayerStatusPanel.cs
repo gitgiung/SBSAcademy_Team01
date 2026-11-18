@@ -232,11 +232,14 @@ public sealed class PlayerStatusPanel : MonoBehaviour
     {
         if (mainRoot == null) return;
         RefreshStats();
+        int lightSkillId = loadout?.GetEquippedSkillId(PlayerSkillButton.Light) ?? 0;
+        int heavySkillId = loadout?.GetEquippedSkillId(PlayerSkillButton.Heavy) ?? 0;
+        int tacticalSkillId = loadout?.GetEquippedSkillId(PlayerSkillButton.Tactical) ?? 0;
         for (int i = 0; i < attacks.Count; i++)
         {
             var skill = loadout?.GetAttackSkill(i);
-            bool canEquip = TryGetAttackButton(skill, out PlayerSkillButton button);
-            bool equipped = canEquip && loadout.GetEquippedSkillId(button) == skill.DataId;
+            bool canEquip = TryGetAttackButton(skill, out _);
+            bool equipped = skill != null && (skill.DataId == lightSkillId || skill.DataId == heavySkillId);
             int level = skill != null ? loadout.GetAttackSkillStack(skill.DataId) : 0;
             ShowSkill(attacks[i], skill, level, i >= (loadout?.UnlockedAttackSlots ?? 6), equipped);
             attacks[i].SetInteractable(canEquip);
@@ -244,7 +247,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         for (int i = 0; i < tacticals.Count; i++)
         {
             var skill = loadout?.GetTacticalSkill(i);
-            bool equipped = skill != null && loadout.GetEquippedSkillId(PlayerSkillButton.Tactical) == skill.DataId;
+            bool equipped = skill != null && skill.DataId == tacticalSkillId;
             ShowSkill(tacticals[i], skill, skill != null ? 1 : 0, false, equipped);
             tacticals[i].SetInteractable(skill != null && skill.DataId >= 30000 && skill.DataId < 40000);
         }

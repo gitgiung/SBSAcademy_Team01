@@ -205,15 +205,19 @@ public static class LightSkillVisuals
 
     private static BakedClip LoadBaked(string name)
     {
-        Texture2D texture = Resources.Load<Texture2D>(BakedFolder + name);
-        TextAsset json = Resources.Load<TextAsset>(BakedFolder + "Frames/" + name);
+        Texture2D texture = Managers.LoadGameplayAsset<Texture2D>(BakedFolder + name);
+        TextAsset json = Managers.LoadGameplayAsset<TextAsset>(BakedFolder + "Frames/" + name);
         if (texture == null || json == null) return null;
-        BakedSheet sheet = JsonUtility.FromJson<BakedSheet>(json.text);
-        if (sheet == null || sheet.count <= 0 || sheet.columns <= 0 || sheet.frameWidth <= 0 || sheet.frameHeight <= 0)
+        BakedSheet sheet;
+        try { sheet = JsonUtility.FromJson<BakedSheet>(json.text); }
+        catch (System.Exception) { return null; }
+        if (sheet == null || sheet.count <= 0 || sheet.count > 4096 || sheet.columns <= 0 || sheet.frameWidth <= 0 || sheet.frameHeight <= 0
+            || !(sheet.fps > 0f) || float.IsInfinity(sheet.fps) || float.IsNaN(sheet.reach) || float.IsInfinity(sheet.reach) || sheet.reach < 0
+            || !(sheet.pivotX >= 0 && sheet.pivotX <= 1) || !(sheet.pivotY >= 0 && sheet.pivotY <= 1))
             return null;
-        int rows = (sheet.count + sheet.columns - 1) / sheet.columns;
+        long rows = ((long)sheet.count + sheet.columns - 1) / sheet.columns;
         // 가져오기 설정으로 그림이 줄어들었으면 자르는 자리가 어긋나므로 쓰지 않습니다.
-        if (sheet.columns * sheet.frameWidth > texture.width || rows * sheet.frameHeight > texture.height)
+        if ((long)sheet.columns * sheet.frameWidth > texture.width || rows * sheet.frameHeight > texture.height)
         {
             Debug.LogWarning("[LightSkillVisuals] 구운 시트 크기가 정보와 다릅니다: " + name);
             return null;
@@ -237,6 +241,29 @@ public static class LightSkillVisuals
             ReachPixels = sheet.reach,
             Loop = sheet.loop
         };
+    }
+
+    public static bool TryPrepareBaked(string name, out string error)
+    {
+        ClearBaked(name);
+        BakedClip clip = LoadBaked(name);
+        error = clip == null ? "스킬 그림 또는 프레임 정보가 올바르지 않습니다: " + name : null;
+        if (clip == null) return false;
+        BakedClips[name] = clip;
+        return true;
+    }
+
+    public static void ClearBaked(string name)
+    {
+        if (!BakedClips.TryGetValue(name, out BakedClip clip)) return;
+        BakedClips.Remove(name);
+        if (clip?.Frames == null) return;
+        foreach (Sprite sprite in clip.Frames)
+        {
+            if (sprite == null) continue;
+            if (Application.isPlaying) Object.Destroy(sprite);
+            else Object.DestroyImmediate(sprite);
+        }
     }
 
     /// <summary>구운 그림의 색을 그대로 보여 주는 재질입니다. 속성 색조 이동을 적용하지 않습니다.</summary>

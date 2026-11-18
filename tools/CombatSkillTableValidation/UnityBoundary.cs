@@ -9,6 +9,7 @@ namespace UnityEngine
     public sealed class ContextMenuAttribute : Attribute { public ContextMenuAttribute(string name) { } }
     public class Sprite { }
     public sealed class SerializeField : Attribute { }
+    public sealed class InspectorNameAttribute : Attribute { public InspectorNameAttribute(string name) { } }
     public sealed class TooltipAttribute : Attribute { public TooltipAttribute(string text) { } }
     public sealed class MinAttribute : Attribute { public MinAttribute(float value) { } }
     public sealed class RangeAttribute : Attribute { public RangeAttribute(float min, float max) { } }
@@ -69,3 +70,5 @@ namespace UnityEditor
     public sealed class MenuItem : Attribute { public MenuItem(string path) { } }
     public static class AssetDatabase { public static void Refresh() { } }
 }
+
+public static class Managers { public static T LoadGameplayAsset<T>(string key) where T:class => UnityEngine.Resources.Load<T>(key); }

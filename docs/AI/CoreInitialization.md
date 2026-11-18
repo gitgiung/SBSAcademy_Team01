@@ -1,6 +1,20 @@
 # Core 초기화와 게임 준비
 
+## 실제 원격 스킬 준비
+
+`skill-pilot-v1` 릴리스는 원격 디스크 다운로드 후 `PreparingAssets` 상태에서 실제 전투 표와 수살 그림/프레임/아이콘을 준비한다. 기존 `Ready` 이후 게임 준비와 씬 전환을 호출한다. 필수 에셋 누락·잘못된 표·잘못된 프레임은 실패 UI와 명시 재시도로 연결하며 로컬 fallback하지 않는다. 기존 `GameDataReady` 및 별도 `SkillData` 계약을 수살 전투 표와 혼동하지 않는다. 자동 테스트·Android APK 빌드 결과는 `docs/AI/SkillPilotBuildValidation.md`, 직접 확인 순서는 `tools/SkillPilotValidation/README.md`를 참조한다.
+
 ## 시작 경로
+
+### 2026-11-17 선택적 원격 준비 연결
+
+실제 버튼 흐름은 타이틀→로딩→로비→로딩→MainScene이다. LoadScene이 기존 `Managers.PrepareGame` 전에 `Managers.PrepareRemoteContent`를 기다린다. Resources의 RemoteContentSettings가 없거나 꺼져 있으면 기존 로컬 경로다. 켜져 있으면 호환 릴리스·카탈로그 검증과 필수 라벨 다운로드가 Ready가 되기 전에는 로비/게임 진입을 허용하지 않는다.
+
+Managers가 영속 원격 준비 코루틴·옵션 snapshot·이번 실행의 릴리스를 소유한다. UI는 `RemoteStatus`를 조회하고 `ApproveRemoteDownload`/`RetryRemoteContent`만 호출한다. 실패 중 자동 반복하지 않으며, 명시 재시도를 기다린다. Resource.Clear 중 세대가 바뀌면 실패하고, 재준비 시 같은 릴리스의 카탈로그/캐시 상태를 다시 확인한다.
+
+`RemoteContentState.Ready`는 **원격 필수 번들의 디스크 준비**다. 기존 `GameDataReady`/SkillData 준비나 실제 CombatSkillTable·효과 파생 준비 완료를 뜻하지 않는다. 실제 게임 에셋 공급 경로 이전은 다음 단위다. 영속 이전 정상 릴리스·오프라인 자동 복구는 아직 구현하지 않았다.
+
+메뉴·검증 및 선택적 Windows Editor 확인은 `tools/RemoteContentValidation/README.md`를 참조한다. 씬/프리팹/Project Settings/패키지 파일은 이 연결을 위해 변경하지 않았다. 아래 기존 기본값/검증 이력은 로컬 준비 계약의 설명으로 유지한다.
 
 `TitleScene → LoadScene → Managers.PrepareGame → MainScene`
 

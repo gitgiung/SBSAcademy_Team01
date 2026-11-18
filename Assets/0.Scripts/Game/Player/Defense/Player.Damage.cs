@@ -30,6 +30,7 @@ public sealed partial class Player
             data.GrantInvulnerable(parryInvulnerableDuration);
         if (version == lifecycleVersion && isActiveAndEnabled && !hasDied && !data.IsDead)
         {
+            movement.ResetDashCooldown();
             BeginParryFeedback(defense.LastParrySource);
             PlayParryCameraZoom();
         }
@@ -38,31 +39,34 @@ public sealed partial class Player
     /// <summary>Compatibility entry point used by boss attacks and existing scene logic.</summary>
     public void TakeDamage(float damage, GameObject attacker = null)
     {
+        TryDamageOrTriggerParry(damage, attacker);
+    }
+
+    private bool TryDamageOrTriggerParry(float damage, GameObject attacker)
+    {
         if (data == null || hasDied || defense == null || movement == null)
-            return;
+            return false;
 
         if (data.IsInvulnerable)
-            return;
+            return false;
 
-        if (movement.IsDashing || defense.IsBlockingDamage)
+        if (defense.IsBlockingDamage)
         {
-            if (defense.IsBlockingDamage)
-            {
-                bool blockedByGuard = defense.IsGuarding;
-                defense.NotifyIncomingAttackBlockedFrom(attacker);
-                if (blockedByGuard) DeviceHaptics.Play(HapticCue.Guard);
-                Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
-            }
-            return;
+            bool blockedByGuard = defense.IsGuarding;
+            bool parried = defense.TryRegisterParry(attacker);
+            if (blockedByGuard) DeviceHaptics.Play(HapticCue.Guard);
+            Debug.Log("[패링/가드 성공] 공격을 방어했습니다.");
+            return parried;
         }
 
-        float healthBefore = data.currentHealth;
-        if (!data.ApplyDamage(damage)) return;
-        if (data.currentHealth < healthBefore) DeviceHaptics.Play(HapticCue.Hurt);
-        if (IsHeavyCharging && !heavyCharge.SuperArmor) ResetHeavyCharge();
-        DamageApplied?.Invoke(this, damage);
+        if (movement.IsDashing || !data.ApplyDamage(damage, out float healthLost))
+            return false;
 
-        Debug.Log($"[피격] 받은 데미지: {damage} / 남은 체력: {data.currentHealth}");
+        if (healthLost > 0f) DeviceHaptics.Play(HapticCue.Hurt);
+        if (IsHeavyCharging && !heavyCharge.SuperArmor) ResetHeavyCharge();
+        if (healthLost > 0f) DamageApplied?.Invoke(this, healthLost);
+
+        Debug.Log($"[피격] 감소한 체력: {healthLost} / 남은 체력: {data.currentHealth}");
         if (data.IsDead)
         {
             hasDied = true;
@@ -71,10 +75,16 @@ public sealed partial class Player
             gameObject.SetActive(false);
         }
         else Damaged?.Invoke(damage, attacker);
+        return true;
     }
 
     public void TakeContactDamage(float damage, GameObject source)
     {
         TakeDamage(damage, source);
+    }
+
+    bool IContactDamageResultReceiver.TryDamageOrTriggerParry(float damage, GameObject source)
+    {
+        return TryDamageOrTriggerParry(damage, source);
     }
 }

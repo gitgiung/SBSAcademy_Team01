@@ -60,6 +60,13 @@
 - 검증: PPTX 패키지와 21장 순서·화면 크기를 검사했고 PowerPoint에서 렌더링을 확인했다. 시작 `main` / `4b4778d2`, 기존 미추적 팀 초안 보존. 임시 프로젝트의 Unity 6000.5.0f1 실행은 라이선스 권한 확인에서 중단됐다. Unity 컴파일·Play·Android 검증 미실행, Unity 테스트 0개. 원본 씬·프로젝트 설정·게임 코드는 수정하지 않았다.
 - 시연 리허설: 20번 발표자 메모 확인 → Unity `Tools > Play From Title` 해제 → `MainScene` Play → 이동·자동 사격 → `CombatPopupController`의 `테스트/경험치 13 획득` → 카드 선택 후 전투 재개 → `Boss Encounter`의 `다음 보스 즉시 소환`. 보스전에는 진행 시계가 멈추고 이동·패링·대시가 가능해야 한다. 소환이 작동하지 않으면 닫히지 않은 팝업과 Console 첫 오류를 확인한다. 라이선스 상태를 먼저 확인한 뒤 리허설을 진행한다.
 
+## 2026-11-18 Test와 원격 리소스 브랜치를 main에 통합
+
+- 통합 기준 main 4b4778d2, Test 5fe54e5f, adressable-resources-loading 702db357. MainScene의 bulletSpeed는 사용자 확인대로 8, Use Remote Content는 꺼짐(0)이다.
+- Test의 보스 패턴·방어·카드 연출과 main의 햅틱·스킬 융합을 함께 반영했다. 셔플 중에는 카드 등장 연출이 위치를 덮어쓰지 않으며 리롤은 바뀐 카드만 등장 연출한다. MainScene 외 씬과 Test의 임시 복구 씬은 통합 범위에서 제외했다. 충돌한 TMP 폰트는 Test의 일관된 아틀라스 전체를 사용했다.
+- 통합본에서 .NET 콘솔 검증 8개 묶음 143/143 통과. MainScene 오브젝트 ID·새로 끊긴 로컬 참조·탄속·로컬 모드와 이전 에셋 네 개 및 meta가 기존 main과 동일한지 확인했다. Unity 컴파일·Play·APK 빌드는 이번에 실행하지 않았다.
+- 다음 확인: Tools > Remote Content > Settings에서 Use Remote Content 꺼짐 확인 → MainScene에서 Tools > Play From Title 켜고 Play → 타이틀 시작 → 로비 → 전투. 다운로드 창 없이 진입하고 수살 아이콘·효과와 기본탄을 확인한다. 레벨업 카드 선택/리롤과 보스 패링·가드도 확인한다. 이상 시 Console 첫 오류와 MainScene 직렬화 참조, SkillPilot 에셋을 확인한다. 이후 원격을 끈 Android 로컬 APK 패키징을 확인한다.
+
 ## 2026-11-17 작업 트리 커밋·푸시
 
 - `main` `415c0f21`을 `origin/main`에 푸시했다. 이전 커밋은 `6e62a5e`. 메시지: 보스 모션과 한 판 전투 흐름을 현재 기준으로 맞춘다. 1456 files.
@@ -402,6 +409,88 @@
 - 직접 확인: Play 종료 후 Unity 임포트·컴파일, Console 첫 오류 없음 → `Tools > Play From Title` 해제 → **MainScene** → `Canvas > Timer`에 `UiFontScaleExempt`가 있는지 확인 → Play. 타이머 숫자는 46으로 배경 안에 있고, 다른 UI 글자는 이전처럼 약 1.3배다. Play를 끄면 `Digits` Font Size는 46이다.
 - 이상 시: Console 첫 오류, Timer의 `UiFontScaleExempt`, Digits Font Size 46. 제외 컴포넌트가 Missing이면 스크립트 임포트가 안 끝난 것이다.
 - 다음: MainScene Play에서 타이머가 배경에 맞는지, 나머지 HUD 글자 크기를 확인한다.
+## 남은 작업 체크리스트 (2026-11-18 갱신)
+
+현재 완료 범위는 원격 로딩 기반, 실제 스킬 네 에셋 시범, 개발용 APK 빌드 및 전투 표 검사 불일치 정리다. 이번에는 전투 표 검사만 다시 실행했다.
+
+- [ ] PC 원본 게임 통합 확인: MainScene만 열고 Tools > Play From Title → 타이틀 시작 → 다운로드 승인 → 로비 → 전투를 확인한다. 수살 그림·아이콘·동작, 로딩 UI 한글/배치를 육안 확인한다. 서버 중단 시 오류/다시 시도, 서버 복구 후 진행, 캐시 재사용 시 0바이트도 확인한다. 오류는 Console 첫 오류 → URL/호환 값 → 서버/포트 → Windows 타깃/기본 카탈로그 순으로 본다. 상세 명령은 `tools/SkillPilotValidation/README.md`.
+- [x] 전투 표 검사 불일치 정리: 사용자 확인에 따라 스킬 10001의 아이콘 키를 `SkillIcons/SkillIcon_10001`로 검사한다. 수정 전 30/31, 수정 후 31/31 통과. 배포 JSON과 아이콘 파일은 그대로 사용한다.
+- [x] 실제 스킬 이전 구현 커밋 존재 확인: 이번 조회 HEAD는 `e773eb2 실제 스킬 에셋 이전`, 브랜치는 `addressable-resources-loading`이다. 에이전트가 새 커밋/체크아웃하지 않았다. 이전 본문의 `9d80a66`/미커밋 설명은 당시 기록이다.
+- [ ] 현재 원격 설정 변경의 용도 확인·정리: 이번 조회의 유일한 미커밋 변경은 `Assets/Resources/RemoteContentSettings.asset`이다. 사용자 변경으로 보존한다. 구현 전체가 미커밋이라고 다시 안내하지 않는다. 테스트용 설정과 배포용 설정을 구분해 검토한다.
+- [ ] 리소스 이전 범위 확대·용량 최적화: 큰 에셋부터 포함 관계와 의존성을 조사하고 앱에 남길 최소 리소스/원격 대상을 정한다. 네 파일 외의 전체 이전은 미완료다. 확대 후 실제 APK 포함 내역과 크기를 다시 측정한다. 목표 크기와 모든 에셋의 원격 이전 여부는 미확정이다.
+- [ ] 운영 HTTPS 호스팅/CDN 및 배포 구성: 서비스/비용/주소를 결정하고 개발 loopback 주소를 운영 구성과 분리한다. 운영 콘텐츠 배포·접근 검증은 미완료다. 유료 가입·배포를 이미 승인/실행한 것으로 간주하지 않는다.
+- [ ] 리소스 단독 패치와 복구 운영: 앱/콘텐츠 호환, 구버전 앱 지원, 릴리스 보관/게시 순서, 오프라인 허용 범위, 이전 정상 릴리스 복구 정책을 확정하고 필요한 구현·검증을 수행한다. 현재 캐시 재사용과 재시도만으로 오프라인/롤백이 완성됐다고 보지 않는다. 빌드 결과는 임시 `.utmp` 외의 릴리스 보관 경로도 마련한다.
+- [ ] Android 실기기 검증: 기기가 준비됐을 때 설치/첫 다운로드/중단·재시도/앱 재실행/캐시/터치·화면 비율을 확인한다. 현재 사용자 범위는 기기 없는 APK 빌드까지이며 기기 검증 성공 기록은 없다.
+- [ ] 출시용 빌드·배포 검증: 운영 설정과 출시 서명, Release APK/AAB 생성 및 Google Play 배포 경로를 검증한다. 현재 산출물은 debug 서명의 Development APK다. 스토어 제출·출시 완료로 간주하지 않는다.
+
+다음 우선순위는 PC 실제 게임 통합 확인이다. 기기·호스팅·운영 정책에 의존하는 작업은 준비/결정 상태를 명시하고 진행한다.
+
+## 2026-11-18 Android 비교 빌드 `local-clean` 실패 조사
+
+- 사용자 실행에서 `local-clean` 종료 코드 1. Unity 로그에서 임시 `sbsp-*` 복사본의 패키지 캐시에 `.meta` 누락이 다수 확인됐고, NUnit과 Unity UI 참조가 컴파일에 실패했다. 누락이 발생한 원인은 확인되지 않았다.
+- 복사본에 대응 에셋이 남아 있는 `.meta` 4,307개를 채웠으나 대응 에셋이 없는 항목도 2,980개였다. 현재 복사본을 재사용하지 말고 `BuildRemote.ps1`을 `-ReuseBaseline` 없이 실행해 새 복사본을 만든 다음 `BuildComparison.ps1`을 실행한다. 두 APK와 각 `.report.json`의 `result: Succeeded`를 확인한다. 재발 시 `.utmp/skill-pilot/local-clean.log`의 첫 컴파일 오류를 확인한다.
+- 사용자 요청에 따라 Unity 빌드 재실행 0회, 테스트 실행 0개. 원본 프로젝트와 APK 비교 스크립트에는 변경을 가하지 않았다.
+
+## 2026-11-18 스킬 10001 아이콘 검사 수정
+
+- 현재 브랜치 `adressable-resources-loading`, HEAD `f2f4222c`. 기존 `AGENTS.md`와 AllIn1SpriteShader 셰이더 두 파일의 사용자 변경을 보존했다.
+- 전투 표 콘솔 검사에서 빈 아이콘 키 기대값으로 인한 실패를 재현한 뒤, 배포 JSON의 `SkillIcons/SkillIcon_10001`을 기대하도록 수정해 31/31 통과했다. 샌드박스의 사용자 NuGet 설정 접근 제한은 임시 설정과 오프라인 복원으로 우회했다.
+- 직접 확인은 `tools/CombatSkillTableValidation/Run.ps1` 실행 후 `Result: 31/31 passed`를 확인한다. Unity 화면 확인은 MainScene에서 Play 후 레벨업 선택에 스킬 10001이 나오면 카드 아이콘을 확인한다. 아이콘이 비면 Console 첫 오류와 `SkillIcon_10001.png` 리소스 연결을 확인한다. 이번 작업에서는 Unity Play 및 APK 검증을 실행하지 않았다.
+
+## 2026-11-17 실제 수살 에셋 원격 이전·기기 없는 APK 빌드
+
+- 사용자 요청: 실제 스킬 이전 다음 단계 진행. 기기 연결 질문에는 **기기 없이 APK 빌드까지만** 진행하라고 답했다. 설치/실기기/유료 호스팅/운영 배포는 하지 않았다. 시작·최종 조회 `addressable-resources-loading` / `9d80a66`. 커밋·브랜치 전환 없음.
+- 이전: CombatSkillTable.json, WaterArrow Texture/Frames JSON, Skill_10025.png와 meta를 `Assets/RemoteContent/SkillPilot`로 이동했다. 네 파일/메타 내용·GUID를 보존했다. 소비자와 생성/검사 도구 경로를 갱신했다. 원격은 명시 주소와 타입을 쓰고, 로컬 Editor는 AssetDatabase, 로컬 APK는 빌드 전용 holder로 유지한다. 원격 APK에는 holder를 넣지 않는다.
+- 준비: 앱 호환/contentProfile `skill-pilot-v1`을 함께 요구한다. 다운로드 후 추가 바이트 0 확인 → 타입별 메모리 로딩 → 전투 표/수살 형태와 프레임 검증 → Ready다. 실패 시 로컬 대체 없이 재시도를 기다린다. Resource.Clear는 정적 표/파생 Sprite를 원본 핸들보다 먼저 정리한다. 실제 번들에서 Sprite의 Object 요청이 Texture2D로 반환되던 문제를 타입별 요청으로 수정했다. 수치·MP·보상·씬 동작은 바꾸지 않았다.
+- 상태 보존: 시작 사용자 변경 MainScene, NanumGothic Combat SDF, Addressable 정렬 설정과 meta, RemoteContentSettings와 meta 6개의 hash 일치. 원본 설정은 꺼짐/기존 URL 그대로다. 원본 Packages/Project Settings diff 없음. 씬 재저장·GiungScene 확인/수정 없음.
+- 검증: 최종 격리 Windows HTTP PlayMode **48/48 통과, 실패·생략 0**(`.utmp/remote-download/skill-verified.xml`). 원본 C# 7개 어셈블리 exit 0(`.utmp/skill-pilot/compile-latest.log`). 표 검사 **30/31**, 기존 `shipped JSON keeps combat values and blank passive columns: expected , actual SkillIcons/SkillIcon_10001` 실패 유지. 독립 리뷰 4개 지적을 수정하고 검증했다. 테스트 캐시 간섭은 고유 캐시 이름/정리로 분리했고 최종 테스트는 Android 빌드 종료 후 단독 수행했다.
+- Android: 임시 복사본에서 ARM64 IL2CPP Development APK 실제 성공. baseline 76,430,118바이트, 같은 코드 로컬형 76,437,686바이트, 원격형 **76,433,550바이트**. 동일 코드 차이는 4,136바이트다. BuildReport에서 로컬형의 네 에셋/holder 포함과 원격형 제외 확인. 초기 증분 ZIP 잔여 데이터는 최종 새 패키징으로 제외했다. 네 파일 시범이며 전체 설치 용량 최적화가 아니다.
+- 콘텐츠: Android 표준 Addressables 카탈로그·네 번들(합계 22,551바이트), release.json, content state와 Build Layout 생성. SHA 일치/중복 에셋 없음 확인. 보관용 state/layout은 개발 HTTP 서버에서 404로 비공개다. 원본 Addressables 그룹은 운영 구성으로 전환하지 않았다. Windows는 실제 파일로 만든 격리 테스트 fixture다.
+- 산출물: `.utmp/skill-pilot/SkillPilot-remote-clean.apk`와 `.report.json`, `server/Android` 콘텐츠. 임시 생성물이므로 영속 근거는 `docs/AI/SkillPilotBuildValidation.md`에 수치·검증 범위를 기록했다. 재생성은 `tools/SkillPilotValidation/README.md`, 계획은 `docs/superpowers/plans/2026-11-17-skill-pilot-android.md`.
+- 직접 확인: README의 검증 명령 실행 → 도구 종료 후 별도 fixture 서버 실행 → Tools > Remote Content > Settings의 Windows `/pilot/release.json`, `skill-pilot-v1`, 개발 HTTP 허용 → MainScene에서 Tools > Play From Title 켜고 Play → 타이틀 시작 → 용량/다운로드 승인 → 스킬 준비 후 로비. 캐시가 있으면 0바이트 정상. 첫 다운로드 재확인은 Play/서버 종료 → 검증 도구 실행(같은 fixture는 SkipFixture 가능) → 서버 재실행 → Play. 전체 캐시 삭제 불필요. 확인 후 원격 끄고 직접 MainScene은 Play From Title 해제.
+- 오류/다음: Console 첫 오류, URL의 `/pilot/`, 호환 값, Windows 타깃과 기본 카탈로그, 개발 HTTP, 18763 포트를 확인한다. 원격 APK는 개발 loopback 주소라 현재 상태를 일반 설치·배포용으로 보지 않는다. 다음은 실제 MainScene 로딩/스킬 육안 확인, 사용자가 기기를 준비했을 때 설치/다운로드/재시작 검증이다. 이후 운영 HTTPS 호스팅 선정과 단독 패치/오프라인/이전 정상 릴리스 복구 정책을 확정·검증한다. AAB·기기·운영 CDN·실제 앱 재실행·화면 배치는 미검증이다.
+
+## 2026-11-17 선택적 원격 시작·카탈로그·동의/재시도 연결
+
+- 요청: 사용자가 다운로드 기반 확인 후 다음 단계 진행을 요청했다. 승인한 원격 배포 설계에 따라 기존 로딩 경로에 선택적 원격 준비를 연결했다. 계획은 `docs/superpowers/plans/2026-11-17-remote-startup.md`다.
+- 상태 보존: 시작 조회는 `adressable-resources-loading`/`90c00c0`와 이전 단계 미커밋 변경·사용자 두 씬/meta 삭제였다. 작업 도중 이전 단계가 `de76099 다운로드 기반 API 구현`으로 커밋된 것을 확인했다. 에이전트가 커밋/체크아웃/복구하지 않았고 현재 HEAD는 `de76099`다. GiungScene은 읽거나 검증하지 않았다.
+- 설정: 새 `RemoteContentSettings`는 기본 꺼짐이며 자동 asset 생성/운영 연결이 없다. `Tools > Remote Content > Settings`를 명시적으로 선택할 때만 꺼진 `Assets/Resources/RemoteContentSettings.asset`을 생성·선택한다. URL·앱 호환 계열·개발 HTTP 허용을 설정한다. HTTP는 Editor/Development Build와 설정 허용이 모두 필요하다. 원본 패키지/Project Settings/씬/프리팹은 변경하지 않았다.
+- 원격 정보: `RemoteContentRelease`의 formatVersion=1, 정확한 플랫폼/앱 호환, contentVersion, catalogUrl, catalogSha256(64 hex), requiredLabel을 검증한다. ResourceManager partial은 HTTP manifest→SHA-256 확인된 카탈로그 디스크 캐시→로컬 Addressables 등록을 수행한다. manifest 64KiB/catalog 16MiB 수신 상한은 DownloadHandlerScript에서 넘치는 청크를 저장하지 않는 방식으로 제한한다. 요청 timeout 15초, redirect 금지다. 현재 설치 버전의 기본 바이너리 카탈로그를 사용한다.
+- 수명: 같은 실행에서 하나의 릴리스 identity를 고정한다. Resource.Clear는 HTTP 요청을 abort/dispose하고 loaded locator를 제거한다. 등록 중 카탈로그는 취소 표시 후 실제 완료 콜백에서 늦은 locator와 handle을 정리하며, 새 등록은 이 정리가 끝나기를 기다린다. 디스크 캐시는 전체 삭제하지 않는다.
+- 진입: Managers partial이 옵션 snapshot·이번 실행 릴리스·영속 준비 코루틴을 소유한다. 상태는 Disabled/CheckingRelease/LoadingCatalog/CheckingSize/AwaitingConsent/Downloading/Ready/Failed다. LoadScene은 원격 Ready/Disabled 이전에 기존 PrepareGame/목적지 전환을 호출하지 않는다. 실패는 TestReady로 우회하지 않고 버튼 재시도를 기다린다. 원격 Ready는 필수 번들의 디스크 준비이며 GameDataReady/실제 전투 표 준비와 다르다.
+- UI: UI_LoadScene이 원격 모드일 때만 기존 로컬 TMP 폰트의 상태 패널을 런타임 생성한다. 추가 용량이 있으면 다운로드 동의를 받고, 바이트 진행과 실패·다시 시도 버튼을 표시한다. 기본 로컬 모드에는 생성하지 않는다. 기술 검증용 안내이며 게임 기획 팝업 내용을 확정한 것이 아니다. 실제 포인터 터치·화면 비율·한글 배치는 아직 눈으로 검증하지 않았다.
+- 실제 검증: 변경 전 릴리스/카탈로그 API 부재로 24개 중 기존 14 통과/새 10 실패, Managers 연결 전 30개 중 24 통과/6 실패, LoadScene/UI 연결 전 32개 중 30 통과/2 실패를 확인했다. 최종 격리 Windows Editor PlayMode **40/40 통과, 실패·생략 0**. 실제 HTTP 릴리스·카탈로그·번들, 동의 전 미다운로드, UI 승인/재시도, 메타데이터 크기/redirect/hash, 등록 중 Clear→재등록→locator/handle 반환, 동의 대기/Ready 후 Clear, 다른 릴리스 거부를 확인했다. `.utmp/remote-download/startup-final.xml/.log`는 Git 제외다.
+- 리뷰·컴파일: 독립 리뷰의 수신 메모리 상한 지적을 반영하고 빠진 수명 회귀를 보강했다. 원본 C# 7개 어셈블리 컴파일 exit 0(`startup-final-compile.log`). 격리 테스트는 Managers 주변 Data/UI/Sound/Scene 서비스만 경계로 대체하므로 원본 게임 전체 PlayMode/씬 검증은 아니다. 실제 Android APK/AAB·번들·기기·운영 CDN·앱 프로세스 재실행은 미검증이다. 유료 가입/결제/운영 배포는 하지 않았다.
+- 직접 확인: 루트 PowerShell에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\RemoteContentValidation\RunUnity.ps1 -ResultName result` 실행 → XML Passed, 실패·생략 0 확인. 이전 사용자 PowerShell 실행 정책 오류는 이 실행에 한정한 예외로 해결한다. 처음/fixture 변경 후에는 SkipFixture를 쓰지 않는다. 상세 설정과 직접 Editor 확인은 `tools/RemoteContentValidation/README.md`에 있다.
+- Editor 확인 순서: 검증 fixture 생성 → 별도 터미널에 loopback 서버 실행 → Play 종료/컴파일 완료 → Tools > Remote Content > Settings에서 Windows용 개발 설정 → 필요 시 현재 Windows 타깃의 로컬 기본 Addressables 카탈로그 빌드(Build Remote Catalog는 꺼짐 유지) → MainScene만 열고 Tools > Play From Title을 켜 Play → 타이틀 시작 영역 → 기존 로딩 화면의 용량·다운로드 버튼 → 승인 후 로비. 캐시가 있으면 0바이트로 동의 없이 진행할 수 있다. 서버를 끈 뒤 실패 안내, 서버 재시작 후 다시 시도를 확인한다. 확인 후 Use Remote Content를 끄고 MainScene 직접 테스트는 Play From Title을 해제한다.
+- 오류 확인: Console 첫 오류, 설정 asset 이름/Use Remote Content/URL/HTTP 개발 허용, 원본 로컬 Addressables 기본 빌드·타깃, 18763 포트와 server-error.log, manifest/catalog.bin이 같은 빌드인지 순서대로 확인한다. 이 fixture는 Windows 전용이고 Android의 127.0.0.1은 PC가 아니므로 APK에 그대로 사용하지 않는다. 전체 캐시 삭제·씬 재저장·GiungScene 수정은 하지 않는다.
+- 다음: 작은 실제 스킬 묶음(CombatSkillTable와 수살 10025 Texture/Frames/아이콘)의 공급 경로를 GUID 보존하며 이전하고 데이터·파생 Sprite 준비를 연결한다. 이번 전송 시범은 합성 TextAsset이며 실제 게임 리소스 원격 이전이나 설치 용량 절감이 완료된 상태가 아니다. 이후 Android 실제 크기 기준선·APK 기기 다운로드·실제 앱 재실행·리소스 단독 패치/복구 검증을 계속한다. 영속 정상 릴리스·오프라인/롤백 정책은 미정이며 자동 폴백하지 않는다.
+
+## 2026-11-17 원격 다운로드 기반 API 및 HTTP 검증
+
+- 사용자 승인: 설계 검토 완료 후 다음 단계 진행을 요청했다. 전체 원격 전환 중 첫 구현 단위를 다운로드 기반 API와 실제 HTTP 번들 검증으로 정했다. `docs/superpowers/plans/2026-11-17-remote-download-foundation.md`에 범위·인터페이스·후속 작업을 기록했다.
+- 시작 상태: 브랜치 `adressable-resources-loading`, HEAD `90c00c0`. 이전 조사 문서 변경 외에 사용자가 삭제한 `GiungScene.unity`, `dongjinScenes.unity`와 각각 meta가 있었다. 삭제를 보존했으며 해당 씬 내용 확인·복구·체크아웃·커밋은 하지 않았다.
+- 구현: 기존 `ResourceManager`를 partial로 확장하고 `ResourceManager.Downloads.cs`에 `GetDownloadSizeAsync(label, Action<long,string>)`, `DownloadDependenciesAsync(label, Action<long,long>, Action<bool,string>)`를 추가했다. 빈/누락 라벨 실패, 라벨/작업 종류별 동시 요청 공유, 실패 후 재시도, 바이트 진행, Clear 세대 방어, 대기자 이탈 후 핸들 정리를 지원한다. 다운로드는 디스크 캐시만 준비하며 기존 Load/Preload API와 메모리 캐시는 유지한다. `ResourceManager.Clear`에서 다운로드 요청도 정리하되 디스크 캐시는 삭제하지 않는다.
+- 게임 연결 범위: LoadScene·씬·프리팹·설정·패키지·에셋 위치·게임 수치·MP는 변경하지 않았다. 현재 게임이 자동으로 원격 서버에 연결되는 상태는 아니다. 카탈로그 선택·사용자 동의 UI·릴리스 호환/복구·실제 스킬 공급 경로 이전은 아직 후속 단위다. 새 전역 매니저나 런타임 asmdef 이동은 없다.
+- 검증 도구: `tools/RemoteContentValidation/RunUnity.ps1`가 원본과 별개 `.utmp/remote-download/project`에서 실제 ResourceManager를 컴파일한다. 표준 Addressables 공급자와 loopback HTTP 검증 번들로 확인한다. 원본 프로젝트의 두 번째 Unity는 열지 않았다. 처음 sandbox 실행은 라이선스 초기화 대기라 테스트 미시작이었다. 해당 검증 프로세스만 종료하고 권한을 허용한 격리 실행으로 검증했다. 원본 Play From Title 설정은 변경하지 않았다.
+- 테스트: API가 없는 변경 전 PlayMode **9/9 실패**를 확인했다(새 API 부재 단언). 구현 후 기본 **9/9**, 취소·캐시·이탈·예외·복구 확대 후 **14/14 통과**했다. 독립 리뷰의 실제 전송 중 취소 지적에 따라 `0 < received < total` 시점의 Clear와 같은 라벨 새 요청 완료를 검증하도록 보강했고, HTTP 실패 구간은 예상 `/missing`의 404 예외만 허용했다. 대기자 이탈 시 레지스트리 제거와 작업 핸들 반환도 추가 확인한다. 최종 XML·로그는 `.utmp/remote-download/final.*`이며 Git 제외다. 전체 원본 프로젝트 PlayMode/씬 테스트는 이번에 실행하지 않았다.
+- 컴파일: 기존 `tools/AndroidReadinessValidation/RunCompile.ps1`로 변경 전·후 7개 어셈블리 컴파일 exit 0(플러그인, Combat, Enemy, Boss, Encounter, Assembly-CSharp, Assembly-CSharp-Editor). 새 partial도 포함했다. 이는 전체 원본 소스의 C# 컴파일이며 실제 Android Player 빌드가 아니다. Android SDK/NDK/OpenJDK와 플랫폼 34/36 디렉터리는 확인했으나 도구 실행·APK/AAB·Android 번들·기기·운영 CDN은 미검증이다.
+- 직접 확인: 프로젝트 루트 PowerShell에서 `& tools/RemoteContentValidation/RunUnity.ps1 -ResultName result` 실행 → `.utmp/remote-download/result.xml`의 Passed/실패·생략 0 확인. 번들 생성 후 재검증은 `-SkipFixture`를 사용할 수 있다. 원본 Unity Test Runner에서 이 HTTP 클래스는 환경 안내와 함께 생략된다. 실패 시 fixture-build.log, 결과 로그 첫 오류, server-error.log와 18763 포트 점유를 순서대로 본다. 전체 캐시는 삭제하지 않는다.
+- 게임 보존 확인: Play 종료 → Console 첫 컴파일 오류 확인 → Tools > Play From Title 해제 → MainScene Play. 기존 HUD·스킬 동작이 유지돼야 하며 새 다운로드 UI는 아직 없다. 이번 세션에서 실제 MainScene Play를 검증했다고 주장하지 않는다. GiungScene은 제외한다.
+- 다음: 호환 릴리스 정보와 카탈로그 선택·다운로드 동의/재시도 UI를 기존 Managers/LoadScene에 연결하고, 작은 실제 스킬 묶음 공급 경로를 이전한다. Android 실제 크기 기준선·APK 기기 다운로드·캐시 재실행·리소스 단독 업데이트·복구 검증을 계속한다. 유료 호스팅 가입/결제·운영 배포는 하지 않았다.
+
+## 2026-11-17 Android 첫 다운로드·원격 리소스 패치 조사 및 설계 초안
+
+- 사용자 목표: Android 출시 시 작은 최초 설치, 첫 실행 콘텐츠 다운로드, 출시 후 스킬 수치·그림·사운드의 앱 업데이트 없는 패치. 이번 승인 범위는 포함 경로·용량 조사와 설계 문서 작성까지다. 런타임 이전이나 원격 배포는 하지 않았다.
+- 시작 상태: 실제 조회한 브랜치 `adressable-resources-loading`, HEAD `90c00c0`, 시작 시 Git 변경 없음. 브랜치 전환·커밋은 하지 않았다. Unity 6000.5.0f1 / Addressables 2.9.1 유지. GiungScene 내용은 읽거나 검증하지 않았다.
+- 산출물: `docs/AI/AndroidResourceLoadingAudit.md`, `docs/AI/ResourceLoadingInventory.csv`(3,327행), `docs/AI/ResourceLoadingInventory.json`, `docs/superpowers/specs/2026-11-17-android-remote-content-design.md`. 문서는 검토용 초안이며 구현 승인은 아직 받지 않았다.
+- 조사: meta·GiungScene을 제외한 Assets 원본 75.87 MiB. 실제 런타임 Resources는 513개/11.60 MiB이고 `Assets/2.Resources`는 자동 포함 폴더가 아니다. 4개 활성 씬과 Resources에서 시작한 GUID 후보 합집합은 원본 34.68 MiB다. 이는 APK/AAB·설치 크기·실행 메모리·절감량이 아니다. 도달하지 않은 파일을 미사용/삭제 가능으로 판단하면 안 된다. CSV·JSON에 집계 기준과 제한을 기록했다.
+- 현재 코드: 타이틀→로딩→로비→로딩→MainScene. LoadScene은 preloadLabel 빈 값/requireSkillData=false다. Addressables 그룹은 비어 있고 Build Remote Catalog 꺼짐, Remote.LoadPath 미정이다. Assets/0.Scripts에서 직접 Resources.Load/LoadAll 호출 20곳/11파일. 실제 CombatSkillTable·PlayerStatTable을 별도 SkillData 준비와 혼동하지 않는다.
+- 설계 방향: 기존 Managers/ResourceManager를 확장한다. 호환 릴리스 선택 → 디스크 다운로드 → 필요한 에셋 메모리 로딩 → 파생 Sprite/데이터 검증을 분리한다. 프로세스 단위 릴리스 고정, 구버전 앱 분리, 카탈로그 자동 갱신 제어, 이전 정상 릴리스 보존과 재시작 복구를 제안했다. CDN 업체·목표 용량·오프라인 정책·팝업 문구는 미정이며 수치·MP·전투 규칙은 바꾸지 않는다.
+- 다음 구현 시범 후보: 기존 CombatSkillTable.json과 수살(10025)의 WaterArrow Texture+Frames JSON 및 실제 Skill_10025.png. 표의 SkillIcon_10025 키는 현재 fallback에 의존하므로 매핑 계약부터 확인한다. MainScene 전체 원격 이전은 첫 시범 범위가 아니다.
+- 검증: 문서·CSV/JSON 수치 일치, 3,327행, 코드 호출 수 20, 로컬 문서 링크 6개 확인. 별도 구현 관점 검토에서 중요 미해결 질문 없음. 실제 Unity 컴파일·자동 테스트·Play 실행 0개. Android SDK/빌드 지원·AAB·카탈로그·번들·CDN·기기는 미검증이다. 과거 테스트 통과 수를 이번 결과로 재사용하지 않는다.
+- 직접 확인: 조사 보고서 → 설계 초안 순서로 읽는다. Unity Play 종료 → Window > Asset Management > Addressables > Groups에서 빈 그룹, Settings의 Build Remote Catalog 꺼짐을 읽기만 확인한다. Tools > Play From Title 해제 후 MainScene의 기존 HUD/적 참조를 Inspector에서 확인할 수 있다. 이번 변경으로 버튼·씬·게임 동작이 바뀌면 안 된다. 불일치 시 현재 Git 상태/Build Profile/해당 meta GUID와 Console 첫 오류를 확인한다. 씬 저장·GiungScene 검증은 하지 않는다.
+- 다음: 사용자의 설계 검토 후 구현 계획 작성. 이어서 Android 실제 크기 기준선과 작은 원격 다운로드 시범을 검증한다. 기존 MainScene 타이머 실플레이·화면 비율 검증도 그대로 남아 있다.
 
 ## 2026-11-17 MainScene 타이머 배경·TMP 디지털 폰트 적용
 
@@ -540,6 +629,101 @@
   3) 보스 등장의 큰 빨간 확산은 이전과 같아야 한다.
 - 이상 시: Console 첫 오류, `BossAttackVfx/Implosion_*` 임포트, `BossAttackHitVfx`의 Area Burst Sprite(등장용), Phase Two Area Radius. 다시 구우려면 위 굽기 명령을 실행한다.
 - 다음: 실제 Play로 크기·지속 시간 체감 확인. 예고 원까지 implosion 흡입 구간과 맞추거나 등장 폭발도 바꾸려면 별도 요청.
+## 2026-11-17 BossController 간소화와 네 가지 오류 수정
+
+- BossController를 899줄에서 752줄로 줄였다. 할퀴기·돌진 범위는 Assets/Editor/BossAttackRangeGizmos.cs의 DrawGizmo 콜백이 공개 범위 값을 읽어서 그린다. 기존 씬과 프리팹에서 연결 작업이 필요 없다. 직접 만든 Gizmo Mesh의 생성·캐시·파기 및 중복 사망 정리를 없앴다.
+- 반복 원형은 패턴 1 한 타와 패턴 2 두 타의 실제 타격 콜백이 모두 실행됐으며 피해·패링 성공이 없을 때 예약한다. 할퀴기는 범위에 들어온 콜라이더에서만 수신자를 중복 제거한다. 돌진은 물리 대기 직후 타깃을 다시 확인하고 종료 경로에서 애니메이션을 정리한다. 스폰 세대가 바뀌면 기본 이동속도를 복원한다. 피해와 패턴 간격은 기본 필드를 덮어쓰지 않고 페이즈에 맞게 계산한다.
+- 검증: Unity 참조 기반 Roslyn 어셈블리 6개와 새 기즈모 스크립트 컴파일 성공. 별도 최소 프로젝트의 Unity 6000.5.0f1 EditMode 10/10 통과, 실패·생략 0. 변경 전 동작은 소스로 대조했고 변경 전 격리 실행은 라이선스 서비스 연결 타임아웃으로 결과 없음. 원본 MainScene Play, Scene 뷰 렌더링, Android 검증은 미실행.
+- 직접 확인: Tools > Play From Title 해제 → MainScene Play → Boss Encounter Controller의 ⋮ > 다음 보스 즉시 소환. BeastZombie 2페이즈에서 일반 할퀴기 3타를 모두 피하면 반복 원형을 쓰고, 한 타에 피해를 입거나 패링하면 패턴 1로 돌아간다. Scene 뷰 Gizmos를 켜면 빨간 할퀴기 부채꼴과 돌진 도착 반경이 보인다. 이상 시 Console 첫 오류, Animator의 ApplySlashDamage 이벤트, ActivePattern 및 Gizmos 토글을 확인한다.
+
+## 2026-11-17 BossController 전체 코드 리뷰
+
+- Test / 1ea7146의 작업 트리 기준으로 BossController 전체와 EnemyFollow, EnemyHealth, BossEncounterController, BeastZombie 프리팹과 패턴 테스트를 정적으로 확인했다. 게임 코드와 에셋 변경 없음. Unity 및 테스트 실행 0회.
+- 검토 결과: 공격 애니메이션·타격 이벤트가 실행되지 않아도 패턴 1·2가 완료되어 반복 원형을 예약할 수 있다. 할퀴기 충돌체 중복 제거가 각도·거리 검사 전에 있어 멀티 콜라이더 대상은 유효 충돌체를 건너뛸 수 있다. 돌진은 FixedUpdate 대기 뒤 타깃 수명을 검사하지 않고 위치를 읽는다. 인스턴스 재사용 시 페이즈를 초기화하지만 2페이즈에 변경한 피해·이동속도·패턴 간격은 복원하지 않는다. 현재 일정은 회차별 새 인스턴스를 생성한다.
+- 다음 확인: MainScene에서 Boss Encounter Controller의 다음 보스 즉시 소환으로 2페이즈 패링/일반 가드를 확인한다. 별도 테스트 복사본에서 할퀴기 이벤트 누락, 멀티 콜라이더, 돌진 도중 타깃 제거를 재현하고 Console 및 ActivePattern을 확인한다.
+
+## 2026-11-17 레벨업 카드 선택 연출
+
+- 카드 선택 즉시 122%로 키우고 창이 닫힐 때까지 크기를 유지한다. 0.08초 뒤부터 창 전체를 0.38초 동안 페이드아웃한다. 선택 즉시 보상은 한 번 적용되고, 팝업 완료는 연출이 끝난 뒤 처리한다. 연속 레벨업은 전투를 정지한 채 다음 카드로 교체한다.
+- 검증: Unity 참조 기반 Roslyn 어셈블리 6개 컴파일과 diff 공백 검사 통과. Unity Play 및 테스트 실행 0회.
+- 직접 확인: Tools > Play From Title 해제 → MainScene Play → CombatUI > CombatPopupController의 ⋮ → 테스트/경험치 13 획득 → 카드 선택. 선택 카드가 커진 상태로 창과 함께 사라져야 한다. 경험치 30 획득은 전투가 멈춘 채 두 번째 카드가 보여야 한다. 이상 시 Console 첫 오류와 단일·연속 레벨업 중 어느 경우인지 확인한다.
+
+## 2026-11-17 레벨업 카드 등장 연출 시험
+
+- 기존 레벨업 창에서 카드를 22 UI 단위 아래로부터 0.35초 동안 띄우고 페이드인한다. 사용자가 처음 0.30초 연출이 빠르다고 해 왼쪽부터 0.15초씩 시작을 늦춰 세 장 기준 약 0.65초로 늘렸다. 첫 개방의 제목은 페이드인하고 연속 레벨업은 카드만, 리롤은 해당 칸만 다시 연출한다. 정지 중에도 unscaledDeltaTime으로 재생하며 등장 중 해당 카드 입력은 CanvasGroup으로 막는다. 씬·프리팹과 보상 규칙은 변경하지 않았다.
+- 검증: 기존 Unity 참조 기반 Roslyn 어셈블리 6개 컴파일 및 diff 공백 검사 통과. Unity Play와 실제 렌더링 확인 0회.
+- 직접 확인: Tools > Play From Title 해제 → MainScene Play → CombatUI > CombatPopupController의 ⋮ → 테스트/경험치 13 획득. 카드가 왼쪽부터 차례로 올라오고 나타난다. 리롤 버튼은 바꾼 칸만 움직인다. 테스트/경험치 30 획득 (연속 레벨업)으로 다음 카드 묶음도 확인한다. 이상 시 Console의 첫 오류와 문제 동작이 첫 개방·연속·리롤 중 어느 경우인지 확인한다.
+
+## 2026-11-17 NanumGothic TMP 재임포트 경고 조사
+
+- Unity 임포트 로그의 이 폰트 GUID 비교에서 의존성 해시와 기록된 생성 파일 해시가 일치하고 임포트 결과 ID가 달랐다. 같은 새 결과로 반복 재임포트해도 이전 ID와 비교하며 경고가 재발했다. 폰트·meta·코드는 수정하지 않았다. Unity 재실행 및 새 Library에서의 확인은 남아 있다.
+- 직접 확인: Unity 종료 후 다시 열고 MainScene의 한글 카드 표시를 확인한다. 재발하면 Unity 종료 상태에서 Library 폴더를 백업 이름으로 옮긴 뒤 새 캐시로 같은 폰트의 Reimport 및 한글 표시를 확인한다. 새 캐시에서도 재발하면 Import Activity의 해당 에셋 Produced Files와 로그의 ConsistencyChecker 줄을 확인한다.
+
+## 2026-11-17 패링 대시 쿨타임 초기화와 버튼 표시 정리
+
+- `Player.HandleParrySucceeded`에서 실제 패링에 성공하면 `PlayerMovement.ResetDashCooldown`을 호출한다. 대시를 다시 쓸 수 있는 시각만 현재로 되돌린다. 다음 대시는 기존 입력·MP·재사용 규칙을 사용한다.
+- `SprintCooldownUI`의 숨김 경로와 RectTransform 설정 중복을 정리했다. 대시/전략 버튼의 기존 쿨다운 값과 입력 연결을 사용한다. 씬·프리팹 수정 없음.
+- 사용자 요청으로 패링 보호막 보상은 보류. 기존 `PlayerShieldBar`가 보호막이 있는 동안 캐릭터 위에 잔량을 표시한다. 패링 보호막 체력·지속시간 미정.
+- 검증: PlayerMovement 소스를 사용한 대시 쿨다운 검사 9/9 통과. Unity 참조 기반 Roslyn 런타임·에디터 6개와 SceneFlow.PlayModeTests 컴파일 성공. 실제 패링에서 대시 가능 상태와 UI 숨김을 확인하는 PlayMode 사례 1개 추가, Unity 실행 0회.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → 대시 버튼을 눌러 남은 초가 보이는 동안 가드 버튼으로 적의 타격을 패링한다. 정상은 대시 숫자/덮개가 바로 사라지고 MP가 충분하면 대시를 다시 쓸 수 있는 것이다. 일반 가드에서는 남은 시간이 흐른다. 이상 시 Console 첫 오류, `[패링 성공]` 로그, 남은 MP와 Sprint 버튼의 `SprintCooldownUI`를 확인한다.
+
+
+## 2026-11-17 BeastZombie 할퀴기 판정과 Scene 핸들 간소화
+
+- 반복 원형 결정에는 피해 또는 패링의 발생 여부만 필요하다. 결과 열거형과 중간 집계를 제거하고, 기존 플레이어 피해 처리에서 받은 bool을 패턴 한 회차에 기록한다. 패턴 1을 시작할 때 초기화한다. 내부 패링 전달 메서드의 미사용 진입점과 Scene 뷰에서 반경 하나만 그리는 범용 핸들 메서드도 정리했다. 기존 공개 피해 함수, 보스 발동 규칙, 씬·프리팹은 유지했다.
+- 검증: diff 공백 검사 및 Unity 참조 기반 Roslyn 어셈블리 6개 컴파일 성공. 중복 단언을 합친 패턴 테스트 6개를 컴파일했으며 Unity 테스트 실행과 Scene/Play 확인은 0회다.
+- 직접 확인: `MainScene` Play → BeastZombie 2페이즈 진입 → 할퀴기 3타를 회피하거나 일반 가드하면 반복 원형, 한 타를 패링하면 패턴 1로 돌아간다. Play 종료 후 BeastZombie를 선택해 `Show Scene Area Range`의 주황색 반경 핸들이 동작하는지 본다. 이상 시 Console 첫 오류, 패링 성공 로그, 반경 Inspector 값을 확인한다.
+
+
+## 2026-11-17 BeastZombie Scene 뷰 원형 핸들 오류 수정
+
+- 원형 발동 거리 필드 제거 뒤 `BossPatternRangeViewEditor.OnSceneGUI`가 해당 직렬화 속성의 `vector2Value`를 계속 읽어 NullReferenceException이 발생했다. 발동 거리 조회와 핸들을 제거했고, 실제 원형 피해 반경 핸들과 0.01 최솟값은 유지했다. 색·변경 감지는 예외에도 정리되는 Unity 스코프를 쓴다.
+- 검증: 수정 전 누락 속성 접근을 소스 대조로 확인했다. 수정 후 거리 접근 제거 및 피해 반경 읽기·쓰기 경로 정적 확인, diff 공백 검사, Unity 참조 기반 Roslyn 어셈블리 6개 컴파일 성공. Unity Scene 뷰 조작 및 테스트 실행 0회.
+- 직접 확인: Unity 컴파일 후 Console의 Clear를 누르고 `MainScene`의 BeastZombie나 Project의 BeastZombie 프리팹을 선택한다. `Boss Pattern Range View > Show Scene Area Range`를 켜고 Scene 뷰에서 주황색 `원형 피해 반경` 핸들을 움직이면 Console 오류 없이 `BossController > Phase Two Area Radius`가 변해야 한다. 확인 후 Ctrl+Z로 원래 반경을 복원한다. 오류가 다시 나오면 Clear 후 첫 예외, 선택한 보스, 스택의 파일과 줄 번호를 확인한다.
+
+
+## 2026-11-17 BeastZombie 2페이즈 반복 원형 발동 조건 변경
+
+- 기준은 `Test` / `1ea7146`. 작업 시작 시 `ProjectSettings/ShaderGraphSettings.asset` 수정이 있었으며 보존했다.
+- `BossController`의 반복 원형은 발동 거리 대신 2페이즈 할퀴기 패턴 1과 패턴 2의 피해 결과를 사용한다. 패턴 2의 두 타격까지 포함해 피해와 패링 성공이 모두 없으면 기존 패턴 대기와 원형 쿨타임이 끝난 뒤 거리에 관계없이 원형을 쓴다. 한 번이라도 HP 또는 보호막에 피해를 주거나 플레이어가 해당 할퀴기를 패링하면 패턴 1로 돌아간다. 빗나감·일반 가드·무적·대시는 반복 원형 조건에 포함된다. 패링 여부는 해당 타격의 실제 패링 성공 판정에서 받는다.
+- 기존 HP 50% 진입 시 1회 원형과 등장 원형은 기존 경로를 사용한다. 일반 추격 돌진과 원거리 돌진은 반복 원형이 예약되지 않았을 때 기존 조건을 사용한다. 이전 원형 발동 거리 Inspector 필드와 Scene 뷰의 거리 표시를 제거했다. 실제 피해 원은 표시한다. 씬·프리팹 편집 없음.
+- 검증: Unity 6000.5.0f1 참조를 이용한 Roslyn 빌드에서 Combat.Runtime, Enemy.Runtime, Boss.Runtime, Encounter.Runtime, Assembly-CSharp, Assembly-CSharp-Editor 6개 성공. 패링 성공 시 반복 원형을 건너뛰는 사례를 포함해 BossAreaFollowupTests의 7개 사례를 컴파일했다. Unity Test Runner·MainScene Play·Android 실행 0회.
+- 직접 확인: `Tools > Play From Title` 해제 → `MainScene` Play → BeastZombie 체력을 50% 이하로 낮춰 진입 원형을 본다. 이후 근거리에서 패턴 1과 패턴 2를 시작하게 하고 세 번의 할퀴기를 전부 피하거나 일반 가드로 막는다. 기존 대기·쿨타임 후 원형 예고가 나와야 한다. 다음 회차에서 할퀴기 한 번을 패링하고 나머지를 피하면 다시 패턴 1로 이어져야 한다. 한 타에 HP나 보호막을 잃은 경우도 같다. 아예 접근하지 않으면 거리만으로 반복 원형이 나오지 않아야 한다. 오류가 나면 Console 첫 예외, 패턴 진행 순서, 패링 성공 로그, 각 타격 뒤 HP·보호막 변화, `BossController > Phase Two Area Cooldown`을 확인한다. 다음은 실제 Play에서 위 절차와 애니메이션 피해 이벤트 확인이다.
+
+
+## 2026-11-16 기본 자동탄 공격력 연동
+
+- `PlayerCombat`의 기본 자동탄은 발사 시 `PlayerData.AttackDamage`를 읽는다. Inspector의 기본 공격력과 런 중 `데미지` 스탯 카드 증가분을 합산한 값이다. 발사된 탄환은 그 시점의 값을 보관한다. 장착 패시브 탄환은 기존 스킬 표의 피해를 사용한다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → `Player > PlayerData > 공격 설정 > Attack Damage`를 4로 설정 → 일반 적에게 기본 자동탄을 맞혀 4 표시 확인. `CombatPopupController`의 컴포넌트 메뉴 `테스트/원하는 카드 고르기`에서 `데미지` 카드의 첫 단계를 선택하면 다음 자동탄은 5가 된다. 이상 시 Console 첫 오류, Player의 Bullet Prefab, 스탯 화면의 공격력과 피해 숫자를 확인한다.
+- `tools/LevelUpMixedDraftValidation/Run.ps1` 14/14 통과. 실제 스탯 표를 사용해 증가량 합산과 제거 후 복원을 검증했다. 발사와 충돌 핸들러에 4 → 5가 전달되는 Unity 회귀 테스트를 추가했으며 Unity 테스트와 MainScene Play는 미실행이다.
+
+## 2026-11-16 보스 처치 자석 드랍
+
+- `BossEncounterController`에서 실제로 처치된 보스의 위치를 필드 아이템 풀에 전달한다. 일정의 각 회차 또는 기존 단일 보스를 처치하면 자석 한 개가 생성된다. 보스 자석은 확률과 동시 개수 제한을 우회하고, 일반 몬스터 드랍은 기존 확률과 한도를 사용한다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → Hierarchy `Boss Encounter` → `Boss Encounter Controller`의 ⋮ → `다음 보스 즉시 소환`. 등장 연출 후 보스를 처치하면 사망 위치에 자석 한 개가 생긴다. 가까이 가면 같은 씬의 경험치가 끌려온다. 이상 시 Console 첫 오류와 `Enemy Spawn System > Scene Enemy Pool` 활성 상태, Director의 Pool Provider를 확인한다.
+- `tools/FieldItemValidation/Run.ps1` 47/47 통과. 확률 0이고 필드가 가득 찬 경우에도 자석이 지정 위치에 생기는지 확인했다. 회차별 1회 전달과 사망 위치를 확인하는 Unity PlayMode 단언을 추가했으며 Unity 컴파일·테스트·MainScene Play는 미실행이다.
+
+## 2026-11-16 플레이어 피격 숫자 보정
+
+- `Player.TakeDamage`의 숫자 표시 이벤트가 원래 공격력을 전달하던 경로를 수정했다. `PlayerData.ApplyDamage`에서 방어력·방어막과 남은 체력을 반영해 구한 실제 HP 감소량을 넘긴다. 방어막이 모두 흡수하면 플레이어 숫자가 표시되지 않는다. 피격 연출 이벤트는 기존 방식으로 전달된다.
+- 직접 확인: `Tools > Play From Title` 해제 → MainScene Play → Hierarchy `Player` → `PlayerData > 플레이어 기본 설정 > 테스트용 추가 방어력`을 0과 10으로 바꿔 같은 공격에 맞는다. 빨간 숫자가 실제 HP 감소량과 소수점 한 자리 기준으로 맞아야 한다. 이상 시 Console 첫 오류 및 `감소한 체력` 로그, 방어막과 무적 상태를 확인한다.
+- `tools/LevelUpMixedDraftValidation/Run.ps1` 14/14 통과. 방어력 적용 후 보고값, 방어막 전부/일부 흡수, 치명타로 남은 HP까지만 줄어드는 경우를 확인했다. Unity MainScene 실제 폰트 확인은 남아 있다.
+
+## 2026-11-16 플레이어 방어력 테스트 입력
+
+- `PlayerData > 플레이어 기본 설정`의 `테스트용 추가 방어력`은 Edit Mode와 Play Mode 모두 표시된다. 기본값은 0이며 에디터에서 스탯 카드 방어력에 합산한다. Play 전에 입력하고 씬·프리팹을 저장하면 테스트값도 저장된다. Play 중 단일 선택 시 `플레이 중 스탯 > 현재 적용 방어력`에서 합계를 볼 수 있다. 실제 피격과 일시정지 스탯 화면이 같은 합계를 읽는다.
+- 직접 확인은 `Tools > Play From Title` 해제 → MainScene → Hierarchy `Player` → Inspector `PlayerData > 플레이어 기본 설정`. 방어력 카드와 방어막이 없는 상태에서 테스트값 0과 10으로 같은 공격의 HP 감소량을 비교한다. 10이면 0일 때보다 약 23.1% 적게 감소한다. 항목이 안 보이면 컴포넌트 펼침 상태와 Console 첫 컴파일 오류를 확인한다. 비교 시 가드·패링·대시·무적을 피한다.
+- `tools/LevelUpMixedDraftValidation/Run.ps1` 실제 실행 13/13 통과. 테스트값 0·10의 HP 감소 차이와 카드 합산·제거를 검증했다. Unity Inspector 표시와 MainScene Play 확인은 남아 있다.
+
+## 2026-11-16 현재 프로젝트 정적 분석
+
+- 확인 시점은 `Test` / `9e41d80`. 로컬 `main`과 로컬에 기록된 `origin/main`, `origin/Test`도 같은 커밋이다. 시작부터 셰이더 두 파일, `EditorBuildSettings.asset`, `UniversalRenderPipelineGlobalSettings.asset`이 수정 상태였다. Git 내용 diff는 URP Global Settings의 `m_RuntimeSettings.m_List`가 빈 목록으로 바뀐 것만 표시한다. 렌더링·빌드 영향은 실측이 필요하다.
+- Unity `6000.5.0f1`, URP `17.5.0`, Addressables `2.9.1`, Input System `1.19.0`. 현재 `activeInputHandler=1`. 실제 씬 흐름은 `TitleScene → LoadScene → LobbyScene → LoadScene → MainScene`. `Managers`는 씬 전환·리소스·풀·사운드·UI·데이터를 담당한다. `LoadScene` 기본값은 빈 preload 라벨과 `requireSkillData=false`이며, 로컬 Addressables 그룹은 비어 있다. 전투 스킬 표는 `Resources/Data/CombatSkillTable.json`에서 별도로 읽는다.
+- `Player`는 이동·HP/MP·가드/패링·스킬을, `CombatPopupController`는 레벨업·일시정지 UI를 맡는다. `EnemySpawnDirector`는 18분 진행 시계와 일반 스폰을, `SceneEnemyPool`은 적·경험치·필드 아이템 재사용을 맡는다. `BossEncounterController`는 보스전 동안 일반 스폰과 진행 시계만 멈춘다. `GameManager`는 결과 화면과 재시작·타이틀 복귀를 맡는다.
+- `Enemy Spawn System` 프리팹에 4종 × 6단계, 90초 전환, 30초 웨이브, 일반 적 동시 130마리 제한이 연결돼 있다. `MainScene`에서 앞 세 종류의 Early Weight와 네 종류의 Late Weight가 5이며 마지막 종류의 Early Weight는 프리팹 값 1을 상속한다. 따라서 MainScene 시작 비율은 첫 세 종류 각각 31.25%, 마지막 종류 6.25%다. 아래 11월 14일 기록의 균등 가중치는 프리팹 기본값이다.
+- `MainBossEncounterSchedule`에는 3분 야수와 6·9·12·15·18분 야수 변형 프리팹이 모두 연결돼 있다. `BossEncounterSchedule.md`의 2~6회차 빈 슬롯 안내는 초기 상태다. 일정 종료를 `GameManager`의 승리로 연결한 호출은 없으며, 현재 `victorySource`는 `ButtonForEvent`의 테스트 경로다. 최종 회차 승리 조건은 별도 기획·연동 항목이다.
+- 이번 작업은 코드·씬·프리팹·설정의 정적 확인과 문서 기록이다. Unity 컴파일·EditMode·PlayMode·APK 빌드 실행 0회. 다음 검증은 현재 `MainScene`의 스폰 혼합·보스 등장/처치·레벨업 일시정지·결과 화면 전환이며, Android 렌더링·조작과 실제 Addressables 카탈로그/번들은 별도 확인 대상이다.
+- 직접 확인: 전체 진입은 `Tools > Play From Title` 활성화 → Play → 타이틀 입력 → 로비 시작 버튼 → MainScene. 전투만 보려면 메뉴 해제 → MainScene → Hierarchy `Enemy Spawn System` → Inspector `Enemy Spawn Director`. 웨이브 8(03:30)은 구 단계 합계 약 67%와 새 단계 약 33%, 웨이브 10(04:30)은 새 단계만 표시된다. Play 중 컴포넌트 메뉴 `테스트/진행시간 30초 앞으로`로 03:00에 도달하면 보스가 등장하고 시계가 멈추며 이동·공격은 가능하다. 처치 후 시계와 일반 스폰이 재개된다. 이상 시 Console 첫 오류, Build Profiles의 Scene List, Director 모드·씬 Overrides, `Boss Encounter > Schedule`과 타깃 참조를 확인한다.
 
 ## 2026-11-14 몬스터 6단계 혼합 스폰 구현
 

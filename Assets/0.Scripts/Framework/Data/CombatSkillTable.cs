@@ -168,7 +168,7 @@ public static class CombatSkillTable
     private static void EnsureLoaded()
     {
         if (skills != null) return;
-        TextAsset asset = Resources.Load<TextAsset>(ResourcePath);
+        TextAsset asset = Managers.LoadGameplayAsset<TextAsset>(ResourcePath);
         if (asset == null)
         {
             skills = new Dictionary<int, CombatSkillRecord>();
@@ -182,18 +182,42 @@ public static class CombatSkillTable
             return;
         }
 
-        CombatSkillTableFile file = JsonUtility.FromJson<CombatSkillTableFile>(asset.text);
+        if (!TryInstall(asset, out string error)) Debug.LogError(error);
+    }
+
+    public static void ClearCached()
+    {
+        skills = null;
+        rarities = null;
+        fusions = null;
+        missingLogged = false;
+    }
+
+    public static bool TryInstall(TextAsset asset, out string error)
+    {
+        error = null;
+        CombatSkillTableFile file;
+        try { file = asset != null ? JsonUtility.FromJson<CombatSkillTableFile>(asset.text) : null; }
+        catch (Exception) { error = "전투 스킬 표 JSON을 읽지 못했습니다."; return false; }
+        if (file?.skills == null || file.skills.Count == 0) { error = "전투 스킬 표가 비어 있습니다."; return false; }
         var loaded = new Dictionary<int, CombatSkillRecord>();
-        if (file?.skills != null)
+        foreach (CombatSkillRecord skill in file.skills)
         {
-            foreach (CombatSkillRecord skill in file.skills)
+            if (skill == null || skill.Id <= 0 || string.IsNullOrWhiteSpace(skill.Name) || loaded.ContainsKey(skill.Id))
             {
-                if (skill == null || skill.Id <= 0) continue;
-                loaded[skill.Id] = skill;
+                error = "전투 스킬 표의 ID·이름이 없거나 ID가 중복됩니다.";
+                return false;
             }
+            loaded.Add(skill.Id, skill);
+        }
+        if (loaded.TryGetValue(10025, out CombatSkillRecord pilot) && !LightSkillCast.TryFrom(pilot, out _))
+        {
+            error = "수살(10025)의 공격 판정을 현재 앱에서 사용할 수 없습니다.";
+            return false;
         }
         skills = loaded;
         rarities = file?.rarities ?? new List<SkillRarityRecord>();
         fusions = file?.fusions ?? new List<SkillFusionRecord>();
+        return true;
     }
 }

@@ -1,0 +1,5 @@
+{
+  "name": "RemoteContent.PlayModeTests",
+  "references": ["Unity.Addressables", "Unity.ResourceManager", "UnityEngine.UI", "Unity.TextMeshPro"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

@@ -1,5 +1,72 @@
 # 리소스 로딩 사용 방법
 
+## 2026-11-17 실제 수살 콘텐츠 공급 경로
+
+전투 표·수살(10025)의 Texture/Frames/아이콘 네 파일은 GUID와 내용을 유지해 `Assets/RemoteContent/SkillPilot`로 이전했다. 소비자는 `Managers.LoadGameplayAsset<T>`로 기존 키를 전달한다. 로컬 Editor는 AssetDatabase, 로컬 Player는 빌드 전용 `SkillPilotLocalAssets` 참조를 사용한다. 원격 `skill-pilot-v1` 준비를 시작한 뒤에는 이전한 키를 원격 캐시에서만 읽으며 로컬 대체로 누락을 감추지 않는다. 나머지 키는 기존 Resources 경로다.
+
+릴리스의 앱 호환 계열과 contentProfile은 모두 `skill-pilot-v1`이어야 한다. 다운로드 완료 후에도 네 명시 주소가 추가 다운로드 0인지 검사하고 TextAsset/Texture2D/TextAsset/Sprite로 메모리 로딩한다. 실제 번들에서 Object 타입 로딩이 Texture2D를 돌려주는 문제가 있어 Sprite/Texture2D는 해당 타입으로 요청한다. 표의 중복 ID·수살 미지원 형태, 프레임/그리드 오류는 실패로 처리한다. 표 게시·12프레임 생성까지 끝나야 준비 성공이다. Clear는 파생 Sprite와 정적 표를 먼저 정리한 다음 원본 핸들을 해제한다.
+
+Android 콘텐츠와 로컬/원격 Development APK는 원본과 별개 임시 복사본에서 빌드한다. 원본 그룹/설정을 운영용으로 전환하지 않았다. 결과와 제한은 `docs/AI/SkillPilotBuildValidation.md`, PC 메뉴·캐시 초기 다운로드 재확인·APK 명령은 `tools/SkillPilotValidation/README.md`를 참조한다. 이 결과에는 실기기·AAB·운영 CDN·앱 재시작/롤백 검증이 포함되지 않는다.
+
+## 2026-11-17 원격 릴리스·카탈로그 연결
+
+원격 사용은 선택적 `RemoteContentSettings` asset으로 켠다. `Tools > Remote Content > Settings` 메뉴가 없을 때만 꺼진 asset을 생성/선택한다. 설정이 없거나 꺼져 있으면 기존 로컬 로딩은 그대로다. 설정을 켠 경우 LoadScene→Managers의 원격 준비가 아래 API를 사용한다.
+
+- `FetchRemoteReleaseAsync(url, platform, compatibility, allowHttp, Action<RemoteContentRelease,string>)`: formatVersion=1, 정확한 플랫폼/앱 호환 계열, 버전·필수 라벨·HTTPS 주소·SHA-256 필수값을 검증한다. 개발 HTTP는 설정 허용과 Editor/Development Build가 모두 필요하다. HTTP redirect는 따르지 않는다.
+- `LoadRemoteCatalogAsync(release, Action<bool,string>)`: 검증된 메타데이터를 다시 확인하고 카탈로그 바이트 SHA-256이 일치할 때만 내용 hash 파일명으로 보관해 로컬 Addressables 카탈로그로 등록한다. 현재 기본 바이너리 카탈로그(2.9.1 설정)를 사용한다. 전역 원격 카탈로그 자동 갱신 설정을 켜지 않는다.
+- manifest 64KiB, catalog 16MiB의 수신 상한과 요청 timeout 15초를 둔다. DownloadHandlerScript는 넘치는 청크를 저장하지 않고 실패시킨다. 카탈로그 캐시는 읽을 때도 hash를 확인하며, 캐시를 전체 삭제하지 않는다.
+- 같은 ResourceManager 실행 수명에서는 하나의 릴리스 identity만 허용한다. Clear는 HTTP 요청을 abort/dispose하고 loaded locator를 제거한다. 카탈로그 등록은 취소 API가 없으므로 취소 표시 후 실제 완료 콜백에서 늦은 locator/handle을 정리한다. 재등록은 이 정리가 끝나기를 기다린다.
+- 메타데이터·다운로드 실패는 UI 상태로 전달한다. 앱/콘텐츠 형식을 바꾸거나 선택한 릴리스를 교체하려면 재실행한다. 영속 마지막 정상 릴리스와 오프라인/롤백은 미정인 운영 정책과 함께 후속 구현이다.
+
+LoadScene은 원격 Ready/Disabled 후 기존 PrepareGame을 호출한다. UI_LoadScene의 용량·상태·동의·재시도는 기술 검증용 안내이며 게임 기획 팝업 내용을 확정한 것이 아니다. 현재 실제 전투 표·그림은 아직 기존 경로를 사용한다. Windows용 HTTP fixture로 전송/캐시/카탈로그/Managers/버튼 연결을 확인했으며 실제 게임 에셋 이전이나 Android 완료를 뜻하지 않는다.
+
+실제 검증: 기존 다운로드 14개를 포함해 **40/40 PlayMode 통과, 실패·생략 0**. 원본 전체 C# 7개 어셈블리 컴파일 exit 0. 원본 전체 씬/PlayMode, 실제 포인터 터치·화면 비율·한글 배치, APK/AAB·Android 기기·운영 CDN·앱 프로세스 재실행은 미검증이다. 재실행 명령과 직접 확인은 `tools/RemoteContentValidation/README.md`를 참조한다.
+
+## 2026-11-17 다운로드 전용 기반 API
+
+아래는 첫 기반 단위의 계약과 당시 검증 기록이다. 이후 카탈로그·동의/재시도 연결 상태는 바로 위 최신 절을 기준으로 한다.
+
+`ResourceManager.GetDownloadSizeAsync(string label, Action<long, string> completed)`와 `DownloadDependenciesAsync(string label, Action<long, long> progress, Action<bool, string> completed)`를 추가했다. 기존 메모리 로딩 API는 그대로다.
+
+사용 순서는 **카탈로그 준비 → 추가 용량 조회 → 사용자 다운로드 동의 → 다운로드 → 필요한 에셋 PreloadAsync → 사용**이다. 이번 구현은 두 다운로드 API까지이며, 카탈로그 선택·동의 UI·게임 진입 연결은 아직 하지 않았다. 현재 LoadScene의 로컬 플레이는 그대로다.
+
+```csharp
+long requiredBytes = -1;
+string sizeError = null;
+yield return Managers.Resource.GetDownloadSizeAsync(label, (bytes, error) =>
+{
+    requiredBytes = bytes;
+    sizeError = error;
+});
+if (sizeError != null)
+    yield break;
+
+// requiredBytes가 양수면 이 위치에서 UI 동의를 받아야 한다.
+// UI 결정 없이 자동 다운로드하도록 그대로 복사하지 않는다.
+// 동의를 받았거나 requiredBytes == 0일 때 아래를 호출한다.
+bool downloaded = false;
+yield return Managers.Resource.DownloadDependenciesAsync(label,
+    (receivedBytes, totalBytes) => { /* 바이트 진행 표시 */ },
+    (success, error) => { downloaded = success; });
+if (!downloaded)
+    yield break;
+
+// 다운로드는 디스크 캐시만 준비한다. 사용할 에셋은 별도로 메모리에 로딩한다.
+yield return Managers.Resource.PreloadAsync(label, (success, error) => { /* 진입 여부 판단 */ });
+```
+
+- 용량 조회 성공은 추가 바이트 수(캐시가 있으면 0), 실패는 -1과 오류다. 빈 라벨과 대상 없는 라벨을 0바이트 성공으로 처리하지 않는다.
+- 다운로드 진행은 받은/전체 바이트다. 초기 대상 확인 중에는 0/0일 수 있다. 성공 여부는 진행 수치가 아니라 완료 콜백으로 판단한다.
+- 같은 라벨·같은 종류의 진행 중 요청은 작업을 공유하며, 각 코루틴 대기자는 자신의 진행·완료를 받는다. 조회가 끝난 뒤 새 조회는 캐시 상태를 다시 계산한다. 실패 결과를 보관하지 않는다.
+- 코루틴 대기자가 사라져도 이미 시작한 작업의 완료 콜백에서 핸들을 정리한다. 파괴된 대기자에게 사용자 완료 콜백을 보장하지 않는다.
+- `ResourceManager.Clear`는 다운로드 요청도 실패로 종료하고 이전 세대 핸들을 정리한다. 네트워크 전송 자체가 즉시 중단된다고 보장하지 않으며, 늦은 완료가 새 요청을 제거하지 못하게 한다. 이미 내려받은 디스크 캐시는 삭제하지 않는다.
+- 기존 `Managers.Clear`는 씬 이동용이며 Resource 캐시를 보존한다. 다운로드 전체 취소 API로 대신 사용하지 않는다.
+- 새 구현은 `ResourceManager.Downloads.cs` partial에 있고 새 전역 매니저나 asmdef 이동은 없다. API는 이미 등록된 카탈로그/라벨을 대상으로 하며 원격 서버나 카탈로그를 자동 생성하지 않는다.
+
+검증 실행과 제한은 `tools/RemoteContentValidation/README.md`를 참조한다. Android 출시용 원격 패치 전체가 완료된 상태는 아니다.
+
+이번 단위의 실제 검증: 변경 전 새 API 부재로 PlayMode 9/9 실패 → 구현·독립 리뷰 보완 후 **14/14 통과, 실패·생략 0**. Windows Editor에서 실제 HTTP 번들·바이트 진행·캐시·전송 중 Clear와 새 요청·이탈 후 작업 핸들 반환을 확인했다. 원본 C# 7개 어셈블리 컴파일도 변경 전·후 exit 0이다. 원본 전체 씬/PlayMode 테스트, Android APK/AAB·기기·운영 CDN·실제 앱 재실행은 이번 결과에 포함하지 않는다.
+
 ## 진입과 로딩
 
 게임 시작은 기존처럼 `Managers.PrepareGame`을 사용한다. 이 코루틴이 호출하는 Resource.PreloadAsync와 기존 LoadAllAsync는 같은 처리 경로를 사용한다.

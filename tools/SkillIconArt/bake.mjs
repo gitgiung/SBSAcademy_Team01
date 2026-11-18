@@ -10,7 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const require = createRequire(path.join(root, '.utmp/skill-icons-runtime/package.json'));
 const sharp = require('sharp');
 const check = process.argv.includes('--check');
-const skills = JSON.parse(fs.readFileSync(path.join(root, 'Assets/Resources/Data/CombatSkillTable.json'), 'utf8')).skills;
+const skills = JSON.parse(fs.readFileSync(path.join(root, 'Assets/RemoteContent/SkillPilot/CombatSkillTable.json'), 'utf8')).skills;
 const palettes = {
   ELEM_FIRE: ['#ff482c','#ffb52e','#fff5bf'], ELEM_WATER: ['#136ee8','#37d9fa','#e7ffff'],
   ELEM_ICE: ['#557fe8','#96eaff','#ffffff'], ELEM_WIND: ['#179c8e','#72f8c4','#eaffed'],
@@ -140,7 +140,9 @@ const preview=path.join(root,'.utmp/skill-icons');fs.mkdirSync(preview,{recursiv
 let verified=0;const thumbs=[];const seen=new Set();
 for (const [i,s] of skills.entries()) {
   for(const card of [true,false]) {
-    const rel=card?`Assets/Resources/SkillIcons/Skill_${s.Id}.png`:`Assets/2.Resources/Art/SkillIcons/SkillIcon_${s.Id}.png`;
+    const rel = card
+      ? s.Id === 10025 ? 'Assets/RemoteContent/SkillPilot/Skill_10025.png' : `Assets/Resources/SkillIcons/Skill_${s.Id}.png`
+      : `Assets/2.Resources/Art/SkillIcons/SkillIcon_${s.Id}.png`;
     const dest=path.join(root,rel), source=svg(s,card), png=await sharp(Buffer.from(source)).png().toBuffer();
     if(!fs.existsSync(dest+'.meta'))throw new Error('Missing existing meta: '+rel);
     if(check){if(!fs.readFileSync(dest).equals(png))throw new Error('Art differs: '+rel);verified++;}

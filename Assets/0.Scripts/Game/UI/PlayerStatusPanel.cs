@@ -305,7 +305,7 @@ public sealed class PlayerStatusPanel : MonoBehaviour
         statValues[1].text = $"{stats.Value(PlayerStat.HP_Regen):P1}/초";
         statValues[2].text = $"{source.AttackDamage:0.##}";
         statValues[3].text = $"{source.MoveSpeed:0.##}";
-        statValues[4].text = $"{stats.Value(PlayerStat.DEF):0.##}";
+        statValues[4].text = $"{source.Defense:0.##}";
         statValues[5].text = $"{source.CurrentMP:0.#} / {source.maxMP:0.#}";
         statValues[6].text = $"{source.MPRecovery:0.##}/초";
         statValues[7].text = $"{stats.Value(PlayerStat.Cooldown):P0}";

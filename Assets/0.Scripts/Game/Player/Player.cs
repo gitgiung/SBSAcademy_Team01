@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// Composition root and compatibility facade for the player.
 /// Input and Unity lifecycle stay here; gameplay rules and presentation are delegated.
 /// </summary>
-public sealed partial class Player : MonoBehaviour, IContactDamageReceiver
+public sealed partial class Player : MonoBehaviour, IContactDamageResultReceiver
 {
     internal const float DefaultParryVfxScale = 1.75f;
 

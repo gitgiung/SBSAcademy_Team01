@@ -123,18 +123,18 @@ internal sealed class PlayerDefense
         Debug.Log("[패링/가드 쿨타임 종료] 재사용 가능");
     }
 
-    /// <summary>Marks an incoming attack blocked during the parry window as a successful parry.</summary>
-    public void NotifyIncomingAttackBlocked() => NotifyIncomingAttackBlockedFrom(null);
-
-    public void NotifyIncomingAttackBlockedFrom(GameObject source)
+    public bool TryRegisterParry(GameObject source)
     {
-        if (!isParrying || parrySucceeded) return;
+        if (!isParrying || parrySucceeded) return false;
         parrySucceeded = true;
         LastParrySource = source;
         ParrySucceeded?.Invoke();
-        if (parryVfxPlayed) return;
-        parryVfxPlayed = true;
-        view.PlayParryVfx();
+        if (!parryVfxPlayed)
+        {
+            parryVfxPlayed = true;
+            view.PlayParryVfx();
+        }
+        return true;
     }
 
     /// <summary>Immediately ends defense when a dash takes priority over parry or guard.</summary>

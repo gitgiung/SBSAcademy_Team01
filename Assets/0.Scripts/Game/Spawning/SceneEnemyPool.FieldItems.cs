@@ -39,12 +39,18 @@ public sealed partial class SceneEnemyPool
     }
 
     /// <summary>지정한 종류를 그 자리에 떨어뜨립니다. 동시 개수 제한에 걸리면 떨어뜨리지 않습니다.</summary>
-    public bool TryDropFieldItem(FieldItemKind kind, Vector3 position)
+    public bool TryDropFieldItem(FieldItemKind kind, Vector3 position) =>
+        TryDropFieldItem(kind, position, ignoreLimit: false);
+
+    public bool TryDropBossMagnet(Vector3 position) =>
+        TryDropFieldItem(FieldItemKind.Magnet, position, ignoreLimit: true);
+
+    private bool TryDropFieldItem(FieldItemKind kind, Vector3 position, bool ignoreLimit)
     {
         if (closing || !isActiveAndEnabled || kind == FieldItemKind.None) return false;
         FieldItemDropSettings settings = FieldItems;
         PruneFieldItems();
-        if (activeFieldItems.Count >= Mathf.Max(0, settings.maxFieldItems)) return false;
+        if (!ignoreLimit && activeFieldItems.Count >= Mathf.Max(0, settings.maxFieldItems)) return false;
 
         Sprite sprite = settings.SpriteFor(kind);
         if (sprite == null) sprite = FieldItemSprites.Get(kind);

@@ -515,6 +515,33 @@ public sealed class MobileReadinessTests
     }
 
     [Test]
+    public void SuccessfulParryResetsDashCooldownAndClearsItsDisplay()
+    {
+        var button = new GameObject("Sprint", typeof(RectTransform), typeof(Image), typeof(Button));
+        try
+        {
+            var display = button.AddComponent(RuntimeType("SprintCooldownUI"));
+            Set(display, "player", player);
+            var movement = Get(player, "movement");
+            Set(movement, "nextDashTime", Time.time + 5f);
+            Call(display, "Refresh");
+            var text = (TMPro.TMP_Text)Get(display, "cooldownText");
+            Assert.That(text.enabled, Is.True);
+
+            Down(1);
+            Assert.That(Blocking, Is.True);
+            Call(player, "TakeDamage", 10f, null);
+            Call(display, "Refresh");
+
+            Assert.That((bool)Call(movement, "CanBeginDash", Vector2.right), Is.True);
+            Assert.That(text.enabled, Is.False);
+            Assert.That(button.activeSelf, Is.True);
+        }
+        finally { UnityEngine.Object.DestroyImmediate(button); }
+    }
+
+
+    [Test]
     public void TacticalDisplayCanBindBeforeInactiveButtonAwakes()
     {
         var button = new GameObject("Skill", typeof(RectTransform), typeof(Image), typeof(Button));

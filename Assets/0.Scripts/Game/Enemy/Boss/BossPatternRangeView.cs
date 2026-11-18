@@ -21,8 +21,6 @@ public sealed class BossPatternRangeView : MonoBehaviour
         Color previous = Gizmos.color;
         Vector3 center = controller.transform.position;
         DrawSceneCircle(center, controller.PhaseTwoAreaRadius, new Color(1f, 0.55f, 0f));
-        DrawSceneCircle(center, controller.PhaseTwoAreaDistance.x, Color.cyan);
-        DrawSceneCircle(center, controller.PhaseTwoAreaDistance.y, Color.cyan);
         Gizmos.color = previous;
     }
 

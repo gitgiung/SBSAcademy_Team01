@@ -15,7 +15,6 @@ public sealed class SprintCooldownUI : MonoBehaviour
     private GameObject generatedText;
     private GameObject generatedOverlay;
     private bool tactical;
-    private bool initialized;
 
     public void BindTactical(Player source)
     {
@@ -31,9 +30,7 @@ public sealed class SprintCooldownUI : MonoBehaviour
         cooldownImage = generatedOverlay.GetComponent<UnityEngine.UI.Image>();
         cooldownImage.sprite = GetComponent<UnityEngine.UI.Image>()?.sprite;
         cooldownImage.color = new Color(0f, 0f, 0f, .65f);
-        cooldownImage.rectTransform.anchorMin = Vector2.zero;
-        cooldownImage.rectTransform.anchorMax = Vector2.one;
-        cooldownImage.rectTransform.offsetMin = cooldownImage.rectTransform.offsetMax = Vector2.zero;
+        Stretch(cooldownImage.rectTransform);
         ConfigureImage();
         // 전략 버튼의 원본 아이콘은 항상 온전히 표시합니다.
         var icon = GetComponent<UnityEngine.UI.Image>();
@@ -46,12 +43,11 @@ public sealed class SprintCooldownUI : MonoBehaviour
 
     private void Initialize()
     {
-        if (initialized) return;
+        if (sprintButton != null) return;
         sprintButton = GetComponent<UnityEngine.UI.Button>();
         if (cooldownImage == null) cooldownImage = GetComponent<UnityEngine.UI.Image>();
         ConfigureImage();
         ConfigureText();
-        initialized = true;
     }
 
     private void ConfigureText()
@@ -61,12 +57,9 @@ public sealed class SprintCooldownUI : MonoBehaviour
             generatedText = new GameObject("Cooldown Seconds", typeof(RectTransform));
             generatedText.transform.SetParent(cooldownImage != null ? cooldownImage.transform : transform, false);
             var text = generatedText.AddComponent<TMPro.TextMeshProUGUI>();
-            text.rectTransform.anchorMin = Vector2.zero;
-            text.rectTransform.anchorMax = Vector2.one;
-            text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
+            Stretch(text.rectTransform);
             text.fontSize = UiFontScale.Size(36f);
-            if (text.GetComponent<UiFontScaledMarker>() == null)
-                text.gameObject.AddComponent<UiFontScaledMarker>();
+            text.gameObject.AddComponent<UiFontScaledMarker>();
             text.fontStyle = TMPro.FontStyles.Bold;
             text.alignment = TMPro.TextAlignmentOptions.Center;
             text.color = Color.white;
@@ -88,7 +81,6 @@ public sealed class SprintCooldownUI : MonoBehaviour
 
     private void OnEnable()
     {
-        if (sprintButton == null) sprintButton = GetComponent<UnityEngine.UI.Button>();
         if (!tactical) sprintButton.onClick.AddListener(OnSprintClicked);
         Refresh();
     }
@@ -105,32 +97,43 @@ public sealed class SprintCooldownUI : MonoBehaviour
     private void Refresh()
     {
         ResolvePlayer();
-        float remaining = player != null ? (tactical ? player.TacticalCooldownRemaining : player.DashCooldownRemaining) : 0f;
-        bool visible = remaining > 0f;
-        if (cooldownImage != null)
+        float remaining = 0f;
+        float fill = 1f;
+        if (player != null)
         {
-            cooldownImage.fillAmount = player != null
-                ? (tactical ? 1f - player.TacticalCooldownProgress : player.DashCooldownProgress) : 1f;
+            remaining = tactical ? player.TacticalCooldownRemaining : player.DashCooldownRemaining;
+            fill = tactical ? 1f - player.TacticalCooldownProgress : player.DashCooldownProgress;
         }
-        SetCooldownVisible(visible);
-        if (cooldownText != null)
-        {
-            cooldownText.text = visible ? Mathf.CeilToInt(remaining).ToString() : string.Empty;
-            // 버튼과 같은 오브젝트에 연결해도 버튼 자체는 비활성화하지 않습니다.
-            cooldownText.enabled = visible;
-            if (!transform.IsChildOf(cooldownText.transform) && cooldownText.gameObject.activeSelf != visible)
-                cooldownText.gameObject.SetActive(visible);
-        }
+
+        if (cooldownImage != null) cooldownImage.fillAmount = fill;
+        ShowCooldown(remaining);
     }
 
-    private void SetCooldownVisible(bool visible)
+    private void ShowCooldown(float remaining)
     {
-        if (cooldownImage == null) return;
-        // 버튼 자신이나 그 상위를 끄면 다음 클릭과 표시 갱신도 끊어지므로 별도 표시만 토글합니다.
-        if (transform.IsChildOf(cooldownImage.transform)) return;
-        if (cooldownImage.gameObject.activeSelf != visible)
-            cooldownImage.gameObject.SetActive(visible);
+        bool visible = remaining > 0f;
+        SetSeparateObjectActive(cooldownImage, visible);
+        if (cooldownText == null) return;
+
+        cooldownText.text = visible ? Mathf.CeilToInt(remaining).ToString() : string.Empty;
+        cooldownText.enabled = visible;
+        SetSeparateObjectActive(cooldownText, visible);
     }
+
+    private void SetSeparateObjectActive(Component display, bool visible)
+    {
+        // 버튼이나 그 상위를 비활성화하면 클릭과 쿨타임 갱신도 멈춥니다.
+        if (display != null && !transform.IsChildOf(display.transform) && display.gameObject.activeSelf != visible)
+            display.gameObject.SetActive(visible);
+    }
+
+    private static void Stretch(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+    }
+
 
     private void ResolvePlayer()
     {
@@ -146,13 +149,7 @@ public sealed class SprintCooldownUI : MonoBehaviour
     private void OnDisable()
     {
         if (sprintButton != null) sprintButton.onClick.RemoveListener(OnSprintClicked);
-        SetCooldownVisible(false);
-        if (cooldownText != null)
-        {
-            cooldownText.text = string.Empty;
-            cooldownText.enabled = false;
-            if (!transform.IsChildOf(cooldownText.transform)) cooldownText.gameObject.SetActive(false);
-        }
+        ShowCooldown(0f);
     }
 
     private void OnDestroy()

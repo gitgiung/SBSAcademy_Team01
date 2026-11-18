@@ -30,6 +30,27 @@ public class LoadScene : BaseScene
 
         yield return null;
 
+        // 원격 설정이 없으면 기존 로컬 경로다. 활성화된 원격 준비 실패는 TestReady로 우회하지 않는다.
+        bool remoteRequired = RemoteContentSettings.Load()?.UseRemoteContent == true
+            || Managers.RemoteStatus.State != RemoteContentState.Disabled;
+        while (true)
+        {
+            yield return Managers.PrepareRemoteContent();
+            RemoteContentState state = Managers.RemoteStatus.State;
+            if (state == RemoteContentState.Ready) break;
+            if (state == RemoteContentState.Disabled)
+            {
+                if (remoteRequired)
+                {
+                    Debug.LogError("원격 준비 담당 객체가 없어져 씬 진입을 중단했습니다.", this);
+                    yield break;
+                }
+                break;
+            }
+            // 실패를 UI에 남기고, 사용자가 재시도를 요청할 때까지 자동 반복하지 않는다.
+            while (Managers.RemoteStatus.State == RemoteContentState.Failed) yield return null;
+        }
+
         // 1. 게임 실행에 필요한 것들을 준비한다.
         yield return PrepareGame();
 

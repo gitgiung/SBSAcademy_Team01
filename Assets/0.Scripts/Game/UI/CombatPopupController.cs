@@ -189,7 +189,7 @@ public sealed class CombatPopupController : MonoBehaviour
         return true;
     }
 
-    private void PresentLevelUpOffers()
+    private void PresentLevelUpOffers(int rerolledIndex = -1)
     {
         var cards = new List<LevelUpCardData>(levelUpOffers.Count);
         for (int i = 0; i < levelUpOffers.Count; i++) cards.Add(levelUpOffers[i].Card);
@@ -197,7 +197,7 @@ public sealed class CombatPopupController : MonoBehaviour
         {
             if (completionPending || index < 0 || index >= levelUpOffers.Count || !CanShow()) return;
             levelUpOffers[index].Apply();
-        }, levelUpRerollsRemaining, TryRerollLevelUpChoice);
+        }, levelUpRerollsRemaining, TryRerollLevelUpChoice, rerolledIndex);
     }
 
     private void TryRerollLevelUpChoice(int index)
@@ -210,7 +210,7 @@ public sealed class CombatPopupController : MonoBehaviour
             return;
         }
         levelUpRerollsRemaining--;
-        PresentLevelUpOffers();
+        PresentLevelUpOffers(index);
     }
 
     private bool TryReplaceLevelUpOffer(int index)
@@ -459,11 +459,10 @@ public sealed class CombatPopupController : MonoBehaviour
     public void CompleteLevelUp()
     {
         if (completionPending || !CanShow() || levelUpPopup == null || !levelUpPopup.gameObject.activeSelf) return;
-        if (automaticLevelUp)
+        if (automaticLevelUp && (growthSource == null || !growthSource.TryCompleteLevelUp())) return;
+        if (automaticLevelUp || (levelUpPanel != null && levelUpPanel.IsPlayingSelectionEffect))
         {
-            if (growthSource == null || !growthSource.TryCompleteLevelUp()) return;
             completionPending = true;
-            // 같은 클릭/Submit 입력이 다음 카드까지 처리되지 않도록 다음 프레임에 전환합니다.
             advanceLevelUp = StartCoroutine(AdvanceLevelUp());
             return;
         }
@@ -475,6 +474,7 @@ public sealed class CombatPopupController : MonoBehaviour
     private IEnumerator AdvanceLevelUp()
     {
         yield return null;
+        while (levelUpPanel != null && levelUpPanel.IsPlayingSelectionEffect) yield return null;
         advanceLevelUp = null;
         completionPending = false;
         if (!CanShow()) yield break;

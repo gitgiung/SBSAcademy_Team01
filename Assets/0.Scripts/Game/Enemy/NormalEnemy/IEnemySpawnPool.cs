@@ -16,3 +16,8 @@ public interface IEnemySpawnDiagnostics
     int ActiveEnemyCount { get; }
     EnemySpawnFailure LastSpawnFailure { get; }
 }
+
+public interface IBossDefeatDropper
+{
+    bool TryDropBossMagnet(Vector3 position);
+}

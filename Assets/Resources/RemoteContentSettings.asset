@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c12afe9dd8564ad997f3c83569aa0bb8, type: 3}
   m_Name: RemoteContentSettings
   m_EditorClassIdentifier: Assembly-CSharp::RemoteContentSettings
-  useRemoteContent: 1
+  useRemoteContent: 0
   releaseUrl: http://127.0.0.1:18763/release.json
   appCompatibility: 1
-  allowDevelopmentHttp: 1
+  allowDevelopmentHttp: 0
